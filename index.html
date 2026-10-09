@@ -138,7 +138,7 @@ dialog::backdrop{background:rgba(20,30,45,.4)}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-let cfg={},tasks=[],sha=null,busy=false,editing=null;
+let cfg={},tasks=[],sha=null,busy=false,editing=null,editOrig=null,autoDue=null;
 const file='tareas.json';
 const PRIO={Alta:0,Media:1,Baja:2};
 
@@ -230,7 +230,7 @@ function taskRow(t,opts){
   const n=t.due&&!t.done?daysUntil(t.due):null;
   if(n!==null&&n<0)row.classList.add('overdue');else if(n===0)row.classList.add('today');
   const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!t.done;cb.title=t.done?'Marcar pendiente':'Marcar terminada';
-  cb.addEventListener('change',()=>change(a=>{const item=a.find(x=>x.id===t.id);if(item){item.done=!item.done;item.completedAt=item.done?new Date().toISOString():null}}));
+  cb.addEventListener('change',()=>{const want=cb.checked;change(a=>{const item=a.find(x=>x.id===t.id);if(item&&!!item.done!==want){item.done=want;item.completedAt=want?new Date().toISOString():null}})});
   const main=document.createElement('div');main.className='main';
   const name=document.createElement('div');name.className='name';name.textContent=t.title;
   const small=document.createElement('small');
@@ -260,6 +260,7 @@ function render(){
   const pendingAll=tasks.filter(t=>!t.done);
   const done=tasks.filter(t=>t.done).sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||''));
   const today=ymd(new Date());
+  if(autoDue&&autoDue!==today&&$('due').value===autoDue)setNewDue('0');
   $('todayLabel').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})+' · Organizador personal';
   $('sOver').textContent=pendingAll.filter(t=>groupOf(t)==='g-over').length;
   $('sToday').textContent=pendingAll.filter(t=>groupOf(t)==='g-today').length;
@@ -277,43 +278,48 @@ function render(){
     const h=document.createElement('h3');h.id=g.id;if(g.cls)h.className=g.cls;
     h.textContent=g.title+' ';const c=document.createElement('span');c.className='n';c.textContent='('+items.length+')';h.append(c);
     el.append(h);
-    items.forEach((t,i)=>el.append(taskRow(t,{first:i===0,last:i===items.length-1})));
+    items.forEach((t,i)=>{const d=t.due||null;el.append(taskRow(t,{first:!!q||i===0||(items[i-1].due||null)!==d,last:!!q||i===items.length-1||(items[i+1].due||null)!==d}))});
   }
 
   const del=$('done');del.replaceChildren();
   const doneShown=done.filter(t=>matches(t,q));
-  if(!doneShown.length){const p=document.createElement('p');p.className='muted';p.textContent='Todavía no hay tareas terminadas.';del.append(p)}
+  if(!doneShown.length){const p=document.createElement('p');p.className='muted';p.textContent=q&&done.length?'Ninguna tarea terminada coincide con la búsqueda.':'Todavía no hay tareas terminadas.';del.append(p)}
   doneShown.forEach(t=>del.append(taskRow(t,{})));
 }
 
 // ---- Acciones ----
-// ↑↓ intercambia dentro del mismo grupo (Hoy, Mañana, etc.)
+// ↑↓ cambia solo el orden entre tareas con la misma fecha; nunca modifica la fecha
 function move(id,delta){change(a=>{
   const t=a.find(x=>x.id===id);if(!t)return;
-  const g=groupOf(t);
-  const list=a.filter(x=>!x.done&&groupOf(x)===g).sort(cmpPending);
+  const d=t.due||null;
+  const list=a.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending);
   const i=list.findIndex(x=>x.id===id),j=i+delta;
   if(i<0||j<0||j>=list.length)return;
-  // Si tienen fechas distintas dentro del grupo, se igualan para que el orden manual tenga efecto
-  if(list[i].due!==list[j].due){const d=list[i].due;list[i].due=list[j].due;list[j].due=d}
   [list[i],list[j]]=[list[j],list[i]];
   list.forEach((x,k)=>x.order=k);
 })}
 function setDue(id,due){change(a=>{const item=a.find(x=>x.id===id);if(item)item.due=due||null})}
 function edit(t){
   editing=t.id;
+  editOrig={title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||''};
   $('eTitle').value=t.title;$('eDue').value=t.due||'';$('ePriority').value=t.priority||'Media';
   $('eRequester').value=t.requester||'';$('eNotes').value=t.notes||'';
   $('editDlg').showModal();
 }
 $('eCancel').onclick=()=>$('editDlg').close();
-$('editForm').addEventListener('submit',()=>{
+$('editForm').addEventListener('submit',async e=>{
+  e.preventDefault();
   const title=$('eTitle').value.trim();if(!title||!editing)return;
-  const id=editing,due=$('eDue').value||null,priority=$('ePriority').value,requester=$('eRequester').value.trim(),notes=$('eNotes').value.trim();
-  change(a=>{const item=a.find(x=>x.id===id);if(item)Object.assign(item,{title,due,priority,requester,notes})});
+  const id=editing,orig=editOrig,patch={};
+  const vals={title,due:$('eDue').value||null,priority:$('ePriority').value,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim()};
+  for(const k in vals)if(vals[k]!==orig[k])patch[k]=vals[k];
+  if(!Object.keys(patch).length){$('editDlg').close();return}
+  const ok=await change(a=>{const item=a.find(x=>x.id===id);if(item)Object.assign(item,patch)});
+  if(ok&&editing===id)$('editDlg').close();
 });
 
-function setNewDue(v){$('due').value=v===''?'':v==='week'?nextMonday():addDays(Number(v))}
+function setNewDue(v){const val=v===''?'':v==='week'?nextMonday():addDays(Number(v));$('due').value=val;autoDue=v==='0'?val:null}
+$('due').addEventListener('input',()=>{autoDue=null});
 document.querySelectorAll('[data-due]').forEach(b=>b.addEventListener('click',()=>setNewDue(b.dataset.due)));
 document.querySelectorAll('[data-jump]').forEach(s=>s.addEventListener('click',()=>{
   const el=$(s.dataset.jump);if(!el)return;
@@ -325,7 +331,9 @@ $('search').addEventListener('input',render);
 $('newForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const title=$('title').value.trim();if(!title)return;
-  const requester=$('requester').value.trim(),priority=$('priority').value,due=$('due').value||null,notes=$('notes').value.trim();
+  const requester=$('requester').value.trim(),priority=$('priority').value,notes=$('notes').value.trim();
+  // Si la pestaña quedó abierta desde ayer, "hoy" se actualiza al día actual
+  const due=$('due').value&&$('due').value===autoDue?addDays(0):$('due').value||null;
   const ok=await change(a=>{
     const order=Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1;
     a.push({id:crypto.randomUUID(),title,requester,priority,due,notes,order,done:false,createdAt:new Date().toISOString(),completedAt:null});
