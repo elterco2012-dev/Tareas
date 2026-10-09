@@ -4,13 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mis tareas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#4f46e5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tareas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-:root{font-family:system-ui,Segoe UI,sans-serif;color:#182433;background:#f4f6f9}
+:root{font-family:system-ui,Segoe UI,sans-serif;color:#182433;background:#f4f6f9;--accent:#4f46e5}
 *{box-sizing:border-box}
-body{margin:0;padding:18px}
+body{margin:0;padding:18px;background:#f4f6f9}
 .wrap{max-width:760px;margin:auto}
 header,.panel,.task{background:white;border:1px solid #e0e5ec;border-radius:14px;padding:16px;margin-bottom:12px}
-h1{margin:0 0 5px;font-size:25px}
+header{display:flex;gap:12px;align-items:center}
+header img{width:44px;height:44px;border-radius:11px;flex:none}
+header .info{flex:1;min-width:0}
+h1{margin:0;font-size:22px}
 h2{font-size:16px;margin:0 0 12px}
 h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;color:#445468}
 h3:first-child{margin-top:0}
@@ -23,20 +34,37 @@ input,textarea{min-width:0;flex:1}
 textarea{width:100%;resize:vertical;min-height:60px}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#667588;flex:1;min-width:140px}
 label.f input,label.f select{color:#182433}
-button{cursor:pointer;background:#fff}
-button.primary{background:#1664d9;color:white;border-color:#1664d9}
-button.chip{padding:6px 10px;font-size:13px;border-radius:20px}
+button{cursor:pointer;background:#fff;color:inherit}
+button.primary{background:var(--accent);color:white;border-color:var(--accent);font-weight:600}
+button.chip{padding:6px 12px;font-size:13px;border-radius:20px}
+button.chip.on{background:#eef2ff;border-color:var(--accent);color:var(--accent);font-weight:600}
 button:disabled{opacity:.4;cursor:default}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
-.stat{border:1px solid #e0e5ec;border-radius:10px;padding:8px 10px;cursor:pointer;background:#fafbfc}
+#status{font-size:13px;margin-top:2px;color:#667588}
+#status.warn{color:#b45309}
+#status.err{color:#b42318}
+/* Alta rápida */
+.add{border-color:#c7d2fe;box-shadow:0 2px 10px rgba(79,70,229,.08)}
+.add .main-row{display:flex;gap:8px}
+.add .main-row input{font-size:17px;padding:12px}
+.add .main-row button{flex:none;padding:12px 18px}
+.add .chips{margin-top:10px}
+.add details{margin-top:10px}
+.add summary{font-size:13px;color:#667588}
+#toast{font-size:13px;color:#15803d;font-weight:600;min-height:18px;margin-top:8px}
+#setupBanner{background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:12px 16px;margin-bottom:12px;font-size:14px}
+#setupBanner a{color:var(--accent);font-weight:600}
+/* Resumen */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat{background:white;border:1px solid #e0e5ec;border-radius:12px;padding:8px 10px;cursor:pointer}
 .stat b{display:block;font-size:22px}
 .stat span{font-size:12px;color:#667588}
 .stat.over b{color:#b42318}
-.stat.today b{color:#1664d9}
+.stat.today b{color:var(--accent)}
+/* Tareas */
 .task{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .task.overdue{border-left:4px solid #b42318}
-.task.today{border-left:4px solid #1664d9}
-.task input[type=checkbox]{flex:0 0 18px;width:18px;height:18px;min-width:18px;padding:0;margin:0}
+.task.today{border-left:4px solid var(--accent)}
+.task input[type=checkbox]{flex:0 0 18px;width:18px;height:18px;min-width:18px;padding:0;margin:0;accent-color:var(--accent)}
 .task .main{flex:1;min-width:0;overflow-wrap:anywhere}
 .task .name{font-weight:600}
 .task small{display:block;color:#667588;margin-top:4px}
@@ -45,11 +73,11 @@ button:disabled{opacity:.4;cursor:default}
 .task .actions button{padding:7px}
 .due{font-weight:700}
 .due.over{color:#b42318}
-.due.today{color:#1664d9}
+.due.today{color:var(--accent)}
 .Alta{color:#b42318;font-weight:700}
 .Media{color:#986400;font-weight:700}
 .Baja{color:#477658;font-weight:700}
-#status{font-size:13px;margin:8px 0 0}
+.unsynced{color:#b45309}
 details{margin-top:12px}
 summary{cursor:pointer}
 #done .task{opacity:.7}
@@ -59,66 +87,81 @@ dialog::backdrop{background:rgba(20,30,45,.4)}
 @media(max-width:500px){
   body{padding:12px}
   header,.panel{padding:14px}
-  .summary{grid-template-columns:repeat(2,1fr)}
+  .summary{grid-template-columns:repeat(4,1fr);gap:6px}
+  .stat{padding:6px 8px}
+  .stat b{font-size:19px}
+  .stat span{font-size:11px}
   .task{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;padding:12px}
   .task input[type=checkbox]{width:20px;height:20px;min-width:20px;margin:3px 0}
   .task .actions{grid-column:2;flex-wrap:wrap}
   .task .actions button{min-width:36px;min-height:36px;padding:5px 8px}
   .row>input,.row>select,.row>label.f{width:100%;flex:1 1 100%}
-  .row>button.primary{width:100%}
+  .add .chips{gap:5px}
+  .add .main-row input{font-size:16px;padding:11px}
+  .add .main-row button{padding:11px 14px}
+  button.chip{padding:5px 9px}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <h1>Mis tareas</h1>
-  <div class="muted" id="todayLabel">Organizador personal · GitHub</div>
-  <div id="status">Sin configurar</div>
-  <div class="summary">
-    <div class="stat over" data-jump="g-over"><b id="sOver">0</b><span>Vencidas</span></div>
-    <div class="stat today" data-jump="g-today"><b id="sToday">0</b><span>Para hoy</span></div>
-    <div class="stat" data-jump="pendingCount"><b id="sPending">0</b><span>Pendientes</span></div>
-    <div class="stat" data-jump="doneCount"><b id="sDoneToday">0</b><span>Hechas hoy</span></div>
+  <img src="icons/icon.svg" alt="">
+  <div class="info">
+    <h1>Mis tareas</h1>
+    <div class="muted" id="todayLabel"></div>
+    <div id="status"></div>
   </div>
 </header>
+
+<div id="setupBanner" class="hidden">Las tareas se guardan solo en este dispositivo. Para tenerlas también en la compu y el celular, <a href="#settings" id="setupLink">configurá GitHub</a>.</div>
+
+<form id="newForm" class="panel add" autocomplete="off">
+  <div class="main-row">
+    <input id="title" placeholder="¿Qué tenés que hacer?" required maxlength="500" autofocus enterkeyhint="done" aria-label="Nueva tarea">
+    <button class="primary" type="submit">Agregar</button>
+  </div>
+  <div class="row chips">
+    <span class="muted">Para:</span>
+    <button type="button" class="chip" data-due="0">Hoy</button>
+    <button type="button" class="chip" data-due="1">Mañana</button>
+    <button type="button" class="chip" data-due="week">Lunes</button>
+    <button type="button" class="chip" data-due="">Sin fecha</button>
+  </div>
+  <details id="more"><summary>Más opciones</summary>
+    <div class="row" style="margin-top:8px">
+      <label class="f">Otra fecha<input id="due" type="date"></label>
+      <label class="f">Prioridad<select id="priority"><option>Media</option><option>Alta</option><option>Baja</option></select></label>
+      <label class="f">Solicitado por<input id="requester" placeholder="(opcional)" maxlength="100"></label>
+    </div>
+    <div class="row" style="margin-top:8px"><textarea id="notes" placeholder="Notas / detalle (opcional)" maxlength="2000" rows="2"></textarea></div>
+  </details>
+  <div id="toast" aria-live="polite"></div>
+</form>
+
+<div class="summary">
+  <div class="stat over" data-jump="g-over"><b id="sOver">0</b><span>Vencidas</span></div>
+  <div class="stat today" data-jump="g-today"><b id="sToday">0</b><span>Para hoy</span></div>
+  <div class="stat" data-jump="pendingCount"><b id="sPending">0</b><span>Pendientes</span></div>
+  <div class="stat" data-jump="doneCount"><b id="sDoneToday">0</b><span>Hechas hoy</span></div>
+</div>
+
+<section class="panel">
+  <div class="row" style="justify-content:space-between"><h2 id="pendingCount">Pendientes</h2><button id="refresh" type="button">↻ Actualizar</button></div>
+  <div class="row" style="margin-bottom:12px"><input id="search" type="search" placeholder="Buscar por texto o solicitante…"></div>
+  <div id="pending"></div>
+  <details><summary id="doneCount">Terminadas</summary><div id="done" style="margin-top:12px"></div></details>
+</section>
 
 <section class="panel">
   <details id="settings"><summary>⚙ Configuración de GitHub</summary>
     <p class="muted">Usá un repositorio PRIVADO para los datos, distinto del repositorio público de GitHub Pages. El token se guarda en este navegador y puede ser robado si el dispositivo o la página se comprometen. No cargues información confidencial.</p>
     <div class="row"><input id="owner" placeholder="Usuario de GitHub" autocomplete="off"><input id="repo" placeholder="Repositorio privado (ej. mis-tareas-datos)" autocomplete="off"></div>
     <div class="row" style="margin-top:8px"><input id="token" type="password" placeholder="Token fine-grained con permiso Contents: Read and write" autocomplete="off"></div>
-    <div class="row" style="margin-top:8px"><button id="saveCfg" class="primary">Guardar conexión</button><button id="clearCfg">Borrar conexión de este dispositivo</button></div>
+    <div class="row" style="margin-top:8px"><button id="saveCfg" type="button" class="primary">Guardar conexión</button><button id="clearCfg" type="button">Borrar conexión de este dispositivo</button></div>
   </details>
 </section>
-
-<section class="panel">
-  <h2>Nueva tarea</h2>
-  <form id="newForm">
-    <div class="row"><input id="title" placeholder="¿Qué tenés que hacer?" required maxlength="500"></div>
-    <div class="row" style="margin-top:8px">
-      <label class="f">Para cuándo<input id="due" type="date"></label>
-      <label class="f">Prioridad<select id="priority"><option>Media</option><option>Alta</option><option>Baja</option></select></label>
-      <label class="f">Solicitado por<input id="requester" placeholder="(opcional)" maxlength="100"></label>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <button type="button" class="chip" data-due="0">Hoy</button>
-      <button type="button" class="chip" data-due="1">Mañana</button>
-      <button type="button" class="chip" data-due="week">Próx. lunes</button>
-      <button type="button" class="chip" data-due="">Sin fecha</button>
-    </div>
-    <div class="row" style="margin-top:8px"><textarea id="notes" placeholder="Notas / detalle (opcional)" maxlength="2000" rows="2"></textarea></div>
-    <div class="row" style="margin-top:8px"><button class="primary" type="submit">+ Agregar</button></div>
-  </form>
-</section>
-
-<section class="panel">
-  <div class="row" style="justify-content:space-between"><h2 id="pendingCount">Pendientes</h2><button id="refresh">↻ Actualizar</button></div>
-  <div class="row" style="margin-bottom:12px"><input id="search" type="search" placeholder="Buscar por texto o solicitante…"></div>
-  <div id="pending"></div>
-  <details><summary id="doneCount">Terminadas</summary><div id="done" style="margin-top:12px"></div></details>
-</section>
-<p class="muted">Los cambios se guardan en GitHub. Si dos dispositivos editan al mismo tiempo, se reintenta automáticamente. Actualización automática cada 20 segundos.</p>
+<p class="muted">Cada tarea queda guardada en este dispositivo al instante y se sube a GitHub sola, aunque cierres la app enseguida o no tengas señal (se sube la próxima vez que la abras).</p>
 </div>
 
 <dialog id="editDlg">
@@ -138,9 +181,24 @@ dialog::backdrop{background:rgba(20,30,45,.4)}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-let cfg={},tasks=[],sha=null,busy=false,editing=null,editOrig=null,autoDue=null;
 const file='tareas.json';
+const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes';
 const PRIO={Alta:0,Media:1,Baja:2};
+let cfg={},remote=[],tasks=[],outboxMem=[];
+let syncing=false,syncAgain=false,lastSync=null,lastError=null;
+let editing=null,editOrig=null,autoDue=null,toastTimer=null;
+
+// ---- Almacenamiento local ----
+function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch{return def}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+// Cambios hechos en este dispositivo que todavía no se subieron a GitHub.
+// Se leen siempre de localStorage para compartirlos entre pestañas.
+function getOutbox(){const v=load(K_OUTBOX,null);return Array.isArray(v)?v:outboxMem}
+function setOutbox(v){outboxMem=v;store(K_OUTBOX,v)}
+function loadCache(){
+  const c=load(K_CACHE,null);
+  remote=c&&c.owner&&c.owner===cfg.owner&&c.repo===cfg.repo&&Array.isArray(c.items)?c.items:[];
+}
 
 // ---- Fechas (siempre en hora local, formato YYYY-MM-DD) ----
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -158,6 +216,7 @@ function dueLabel(s){
   return n<7?txt:txt+' (en '+n+' días)';
 }
 function shortDate(iso){return iso?new Date(iso).toLocaleDateString('es-AR',{day:'numeric',month:'numeric'}):''}
+function timeNow(d){return d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
 
 const GROUPS=[
   {id:'g-over',title:'Vencidas',cls:'over',test:n=>n!==null&&n<0},
@@ -173,53 +232,148 @@ function cmpPending(a,b){
   return (a.due||'9999').localeCompare(b.due||'9999')||(a.order??0)-(b.order??0)||(PRIO[a.priority]??1)-(PRIO[b.priority]??1);
 }
 
+// ---- Cambios: cada acción es una operación que se puede reaplicar sobre la última versión ----
+function applyOp(a,op){
+  const item=op.id?a.find(x=>x.id===op.id):null;
+  switch(op.type){
+    case 'add':
+      if(!a.some(x=>x.id===op.task.id)){
+        const order=Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1;
+        a.push({...op.task,order});
+      }
+      break;
+    case 'done':
+      if(item&&!!item.done!==op.done){item.done=op.done;item.completedAt=op.done?op.at:null}
+      break;
+    case 'edit':
+      if(item)Object.assign(item,op.patch);
+      break;
+    case 'move': {
+      // Reordena las tareas de esa fecha según op.ids (el orden elegido al tocar ↑↓).
+      // Nunca modifica la fecha, y aplicarlo dos veces da el mismo resultado.
+      if(!item)break;
+      const d=item.due||null;
+      const list=a.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending);
+      const pos=x=>{const k=op.ids.indexOf(x.id);return k<0?op.ids.length+list.indexOf(x):k};
+      list.sort((x,y)=>pos(x)-pos(y)).forEach((x,k)=>x.order=k);
+      break;
+    }
+  }
+}
+// ↑↓ solo entre tareas con la misma fecha
+function moveOp(id,delta){
+  const t=tasks.find(x=>x.id===id),d=t.due||null;
+  const ids=tasks.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending).map(x=>x.id);
+  const i=ids.indexOf(id),j=i+delta;
+  if(j>=0&&j<ids.length)[ids[i],ids[j]]=[ids[j],ids[i]];
+  return {type:'move',id,ids};
+}
+function applyAll(base,ops){
+  const a=structuredClone(base);
+  for(const op of ops){try{applyOp(a,op)}catch{}}
+  return a;
+}
+// Guarda el cambio en el dispositivo al instante y después intenta subirlo
+function act(op){
+  op.opId=crypto.randomUUID();
+  setOutbox([...getOutbox(),op]);
+  recompute();
+  sync();
+}
+function recompute(){tasks=applyAll(remote,getOutbox());render();updateStatus()}
+
 // ---- GitHub ----
-function status(s){$('status').textContent=s}
-function key(){return `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${file}`}
-function headers(){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+cfg.token,'X-GitHub-Api-Version':'2022-11-28'}}
+function repoUrl(c){return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`}
+function headers(c){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28'}}
+// Si GitHub no responde en 20 s se corta, para no trabar las siguientes subidas
+function ghFetch(url,opts){return fetch(url,AbortSignal.timeout?{...opts,signal:AbortSignal.timeout(20000)}:opts)}
 function utf8b64(s){const a=new TextEncoder().encode(s);let b='';for(const x of a)b+=String.fromCharCode(x);return btoa(b)}
 function b64utf8(s){const b=atob(s.replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
 function configured(){return !!(cfg.owner&&cfg.repo&&cfg.token)}
-async function getRemote(){
-  const r=await fetch(key()+'?t='+Date.now(),{headers:headers(),cache:'no-store'});
-  if(r.status===404)return {items:[],sha:null};
-  if(!r.ok)throw Error('GitHub respondió '+r.status+'. Revisá el repositorio y los permisos.');
+function httpError(r,what){
+  if(r.status===401)return Error('El token no es válido o venció');
+  if(r.status===403||r.status===404)return Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token');
+  return Error(what+' ('+r.status+')');
+}
+async function getRemote(c){
+  const r=await ghFetch(repoUrl(c)+'/contents/'+file+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
+  if(r.status===404){
+    // El archivo todavía no existe, salvo que el repositorio tampoco sea accesible
+    const repo=await ghFetch(repoUrl(c),{headers:headers(c),cache:'no-store'});
+    if(!repo.ok)throw httpError(repo,'GitHub respondió');
+    return {items:[],sha:null};
+  }
+  if(!r.ok)throw httpError(r,'GitHub respondió');
   const j=await r.json();
   const data=JSON.parse(b64utf8(j.content));
-  if(!Array.isArray(data))throw Error('El archivo tareas.json no contiene una lista válida.');
+  if(!Array.isArray(data))throw Error('El archivo tareas.json no contiene una lista válida');
   return {items:data,sha:j.sha};
 }
-async function refresh(){
-  if(!configured()){status('Configurá GitHub para empezar');$('settings').open=true;return}
-  if(busy)return;
-  try{const data=await getRemote();tasks=data.items;sha=data.sha;render();status('✓ Sincronizado · '+new Date().toLocaleTimeString('es-AR'))}
-  catch(e){status('⚠ '+e.message)}
+async function putRemote(c,items,sha){
+  const payload={message:'Actualizar tareas',content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
+  const r=await ghFetch(repoUrl(c)+'/contents/'+file,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(r.status===409||r.status===422)return false;
+  if(!r.ok)throw httpError(r,'No se pudo guardar');
+  return true;
 }
-// Lee la última versión, aplica el cambio y guarda. Si otro dispositivo guardó
-// en el medio (409/422), vuelve a leer y reaplica el cambio automáticamente.
-async function change(mutator){
-  if(!configured()){alert('Primero configurá GitHub');$('settings').open=true;return false}
-  if(busy){status('⏳ Esperá a que termine el guardado anterior');return false}
-  busy=true;status('Guardando…');
+// Trae la última versión y sube los cambios pendientes. Si otro dispositivo guardó
+// en el medio, vuelve a leer y reaplica los cambios. Si falla, quedan guardados acá
+// y se reintenta solo (cada 20 s, al volver a la app o al recuperar la conexión).
+async function sync(){
+  if(!configured()){recompute();return}
+  if(syncing){syncAgain=true;return}
+  syncing=true;updateStatus();
+  let conflicts=0;
   try{
-    for(let attempt=0;attempt<3;attempt++){
-      const latest=await getRemote();
-      const next=structuredClone(latest.items);
-      mutator(next);
-      const payload={message:'Actualizar tareas',content:utf8b64(JSON.stringify(next,null,2)),...(latest.sha?{sha:latest.sha}:{})};
-      const r=await fetch(key(),{method:'PUT',headers:{...headers(),'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(r.status===409||r.status===422)continue;
-      if(!r.ok)throw Error('No se pudo guardar ('+r.status+')');
-      const result=await r.json();
-      tasks=next;sha=result.content.sha;render();
-      status('✓ Guardado · '+new Date().toLocaleTimeString('es-AR'));
-      return true;
-    }
-    status('⚠ Conflicto de edición. Actualizá y repetí el cambio.');
-    alert('Otra edición se guardó al mismo tiempo. Actualizá y repetí el cambio para no perder datos.');
-    return false;
-  }catch(e){status('⚠ '+e.message);return false}
-  finally{busy=false}
+    do{
+      syncAgain=false;
+      // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
+      const c=cfg;
+      const latest=await getRemote(c);
+      if(cfg!==c){syncAgain=configured();continue}
+      const ops=getOutbox();
+      if(!ops.length){remote=latest.items}
+      else{
+        const next=applyAll(latest.items,ops);
+        const saved=await putRemote(c,next,latest.sha);
+        if(cfg!==c){syncAgain=configured();continue}
+        if(!saved){
+          if(++conflicts>=5)throw Error('Otro dispositivo está guardando al mismo tiempo');
+          syncAgain=true;continue;
+        }
+        remote=next;
+        const sent=new Set(ops.map(o=>o.opId));
+        setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
+        if(getOutbox().length)syncAgain=true;
+      }
+      store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote});
+      lastSync=new Date();lastError=null;
+    }while(syncAgain);
+  }catch(e){
+    lastError=e instanceof TypeError?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
+  }finally{
+    syncing=false;recompute();
+  }
+}
+
+// ---- Estado ----
+function updateStatus(){
+  const n=getOutbox().length,el=$('status');
+  const pend=n===1?'1 cambio sin subir':n+' cambios sin subir';
+  const here=(n===1?'guardado':'guardados')+' en este dispositivo';
+  let txt,cls='';
+  $('setupBanner').classList.toggle('hidden',configured());
+  if(!configured()){txt=n?'📱 '+pend+' ('+here+')':'Sin conectar a GitHub';cls='warn'}
+  else if(syncing&&n){txt='⏳ Subiendo '+pend.replace(' sin subir','')+'…'}
+  else if(lastError){txt='⚠ '+lastError+(n?' · '+pend+', '+here:'');cls=n?'warn':'err'}
+  else if(n){txt='⏳ '+pend;cls='warn'}
+  else if(lastSync){txt='✓ Todo subido · '+timeNow(lastSync)}
+  else{txt='↻ Conectando…'}
+  el.textContent=txt;el.className=cls;
+}
+function toast(msg){
+  $('toast').textContent=msg;clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{$('toast').textContent=''},2500);
 }
 
 // ---- Render ----
@@ -230,7 +384,7 @@ function taskRow(t,opts){
   const n=t.due&&!t.done?daysUntil(t.due):null;
   if(n!==null&&n<0)row.classList.add('overdue');else if(n===0)row.classList.add('today');
   const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!t.done;cb.title=t.done?'Marcar pendiente':'Marcar terminada';
-  cb.addEventListener('change',()=>{const want=cb.checked;change(a=>{const item=a.find(x=>x.id===t.id);if(item&&!!item.done!==want){item.done=want;item.completedAt=want?new Date().toISOString():null}})});
+  cb.addEventListener('change',()=>act({type:'done',id:t.id,done:cb.checked,at:new Date().toISOString()}));
   const main=document.createElement('div');main.className='main';
   const name=document.createElement('div');name.className='name';name.textContent=t.title;
   const small=document.createElement('small');
@@ -241,15 +395,16 @@ function taskRow(t,opts){
   if(t.createdAt)extra.push('asignada '+shortDate(t.createdAt));
   if(t.done&&t.completedAt)extra.push('terminada '+shortDate(t.completedAt));
   if(extra.length)small.append(' · '+extra.join(' · '));
+  if(opts.unsynced){const u=document.createElement('span');u.className='unsynced';u.title='Guardado en este dispositivo, todavía no subido a GitHub';u.textContent=' · ⏳ sin subir';small.append(u)}
   main.append(name,small);
   if(t.notes){const nt=document.createElement('div');nt.className='notes';nt.textContent=t.notes;main.append(nt)}
   const actions=document.createElement('div');actions.className='actions';
   if(!t.done){
-    const up=makeButton('↑',()=>move(t.id,-1),'Subir');up.disabled=opts.first;
-    const down=makeButton('↓',()=>move(t.id,1),'Bajar');down.disabled=opts.last;
+    const up=makeButton('↑',()=>act(moveOp(t.id,-1)),'Subir');up.disabled=opts.first;
+    const down=makeButton('↓',()=>act(moveOp(t.id,1)),'Bajar');down.disabled=opts.last;
     actions.append(up,down);
-    if(n===null||n<=0)actions.append(makeButton('→ Mañana',()=>setDue(t.id,addDays(1)),'Pasar a mañana'));
-    if(n!==0)actions.append(makeButton('Hoy',()=>setDue(t.id,addDays(0)),'Agendar para hoy'));
+    if(n===null||n<=0)actions.append(makeButton('→ Mañana',()=>act({type:'edit',id:t.id,patch:{due:addDays(1)}}),'Pasar a mañana'));
+    if(n!==0)actions.append(makeButton('Hoy',()=>act({type:'edit',id:t.id,patch:{due:addDays(0)}}),'Agendar para hoy'));
   }
   actions.append(makeButton('✎',()=>edit(t),'Editar'));
   row.append(cb,main,actions);
@@ -257,11 +412,13 @@ function taskRow(t,opts){
 }
 function render(){
   const q=$('search').value.trim().toLowerCase();
+  const unsynced=new Set(getOutbox().map(o=>o.id||(o.task&&o.task.id)));
   const pendingAll=tasks.filter(t=>!t.done);
   const done=tasks.filter(t=>t.done).sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||''));
   const today=ymd(new Date());
   if(autoDue&&autoDue!==today&&$('due').value===autoDue)setNewDue('0');
-  $('todayLabel').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})+' · Organizador personal';
+  updateChips();
+  $('todayLabel').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   $('sOver').textContent=pendingAll.filter(t=>groupOf(t)==='g-over').length;
   $('sToday').textContent=pendingAll.filter(t=>groupOf(t)==='g-today').length;
   $('sPending').textContent=pendingAll.length;
@@ -278,27 +435,16 @@ function render(){
     const h=document.createElement('h3');h.id=g.id;if(g.cls)h.className=g.cls;
     h.textContent=g.title+' ';const c=document.createElement('span');c.className='n';c.textContent='('+items.length+')';h.append(c);
     el.append(h);
-    items.forEach((t,i)=>{const d=t.due||null;el.append(taskRow(t,{first:!!q||i===0||(items[i-1].due||null)!==d,last:!!q||i===items.length-1||(items[i+1].due||null)!==d}))});
+    items.forEach((t,i)=>{const d=t.due||null;el.append(taskRow(t,{unsynced:unsynced.has(t.id),first:!!q||i===0||(items[i-1].due||null)!==d,last:!!q||i===items.length-1||(items[i+1].due||null)!==d}))});
   }
 
   const del=$('done');del.replaceChildren();
   const doneShown=done.filter(t=>matches(t,q));
   if(!doneShown.length){const p=document.createElement('p');p.className='muted';p.textContent=q&&done.length?'Ninguna tarea terminada coincide con la búsqueda.':'Todavía no hay tareas terminadas.';del.append(p)}
-  doneShown.forEach(t=>del.append(taskRow(t,{})));
+  doneShown.forEach(t=>del.append(taskRow(t,{unsynced:unsynced.has(t.id)})));
 }
 
-// ---- Acciones ----
-// ↑↓ cambia solo el orden entre tareas con la misma fecha; nunca modifica la fecha
-function move(id,delta){change(a=>{
-  const t=a.find(x=>x.id===id);if(!t)return;
-  const d=t.due||null;
-  const list=a.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending);
-  const i=list.findIndex(x=>x.id===id),j=i+delta;
-  if(i<0||j<0||j>=list.length)return;
-  [list[i],list[j]]=[list[j],list[i]];
-  list.forEach((x,k)=>x.order=k);
-})}
-function setDue(id,due){change(a=>{const item=a.find(x=>x.id===id);if(item)item.due=due||null})}
+// ---- Editar ----
 function edit(t){
   editing=t.id;
   editOrig={title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||''};
@@ -307,58 +453,74 @@ function edit(t){
   $('editDlg').showModal();
 }
 $('eCancel').onclick=()=>$('editDlg').close();
-$('editForm').addEventListener('submit',async e=>{
+$('editForm').addEventListener('submit',e=>{
   e.preventDefault();
   const title=$('eTitle').value.trim();if(!title||!editing)return;
-  const id=editing,orig=editOrig,patch={};
   const vals={title,due:$('eDue').value||null,priority:$('ePriority').value,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim()};
-  for(const k in vals)if(vals[k]!==orig[k])patch[k]=vals[k];
-  if(!Object.keys(patch).length){$('editDlg').close();return}
-  const ok=await change(a=>{const item=a.find(x=>x.id===id);if(item)Object.assign(item,patch)});
-  if(ok&&editing===id)$('editDlg').close();
+  // Solo se guardan los campos modificados, para no pisar cambios hechos desde otro dispositivo
+  const patch={};for(const k in vals)if(vals[k]!==editOrig[k])patch[k]=vals[k];
+  if(Object.keys(patch).length)act({type:'edit',id:editing,patch});
+  $('editDlg').close();
 });
 
-function setNewDue(v){const val=v===''?'':v==='week'?nextMonday():addDays(Number(v));$('due').value=val;autoDue=v==='0'?val:null}
-$('due').addEventListener('input',()=>{autoDue=null});
-document.querySelectorAll('[data-due]').forEach(b=>b.addEventListener('click',()=>setNewDue(b.dataset.due)));
+// ---- Alta rápida ----
+function dueFor(v){return v===''?'':v==='week'?nextMonday():addDays(Number(v))}
+function setNewDue(v){const val=dueFor(v);$('due').value=val;autoDue=v==='0'?val:null;updateChips()}
+function updateChips(){
+  const cur=$('due').value;
+  document.querySelectorAll('[data-due]').forEach(b=>b.classList.toggle('on',dueFor(b.dataset.due)===cur));
+}
+$('due').addEventListener('input',()=>{autoDue=null;updateChips()});
+document.querySelectorAll('[data-due]').forEach(b=>b.addEventListener('click',()=>{setNewDue(b.dataset.due);$('title').focus()}));
+
+$('newForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const title=$('title').value.trim();if(!title)return;
+  // Si la app quedó abierta desde ayer, "hoy" se actualiza al día actual
+  const due=$('due').value&&$('due').value===autoDue?addDays(0):$('due').value||null;
+  act({type:'add',task:{id:crypto.randomUUID(),title,requester:$('requester').value.trim(),priority:$('priority').value,due,notes:$('notes').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null}});
+  toast('✓ Agregada'+(due?' para '+dueLabel(due).toLowerCase():' sin fecha'));
+  $('title').value='';$('requester').value='';$('notes').value='';$('priority').value='Media';
+  $('more').open=false;setNewDue('0');$('title').focus();
+});
+
+// ---- Otros controles ----
 document.querySelectorAll('[data-jump]').forEach(s=>s.addEventListener('click',()=>{
   const el=$(s.dataset.jump);if(!el)return;
   if(s.dataset.jump==='doneCount')el.parentElement.open=true;
   el.scrollIntoView({behavior:'smooth',block:'start'});
 }));
 $('search').addEventListener('input',render);
-
-$('newForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const title=$('title').value.trim();if(!title)return;
-  const requester=$('requester').value.trim(),priority=$('priority').value,notes=$('notes').value.trim();
-  // Si la pestaña quedó abierta desde ayer, "hoy" se actualiza al día actual
-  const due=$('due').value&&$('due').value===autoDue?addDays(0):$('due').value||null;
-  const ok=await change(a=>{
-    const order=Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1;
-    a.push({id:crypto.randomUUID(),title,requester,priority,due,notes,order,done:false,createdAt:new Date().toISOString(),completedAt:null});
-  });
-  if(ok){$('title').value='';$('requester').value='';$('notes').value='';setNewDue('0');$('title').focus()}
-});
-
-$('refresh').onclick=refresh;
+$('refresh').onclick=()=>{if(!configured())openSettings();else sync()};
+function openSettings(){$('settings').open=true;$('settings').scrollIntoView({behavior:'smooth'})}
+$('setupLink').onclick=e=>{e.preventDefault();openSettings()};
 $('saveCfg').onclick=()=>{
   const next={owner:$('owner').value.trim(),repo:$('repo').value.trim(),token:$('token').value.trim()};
   if(!next.owner||!next.repo||!next.token){alert('Completá los tres campos');return}
-  cfg=next;localStorage.setItem('githubTasksConfig',JSON.stringify(cfg));$('settings').open=false;refresh();
+  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;
+  $('settings').open=false;recompute();sync();
 };
 $('clearCfg').onclick=()=>{
-  if(!confirm('¿Borrar el token y la conexión guardados en este navegador?'))return;
-  localStorage.removeItem('githubTasksConfig');cfg={};tasks=[];sha=null;
-  $('owner').value='';$('repo').value='';$('token').value='';render();status('Sin configurar');$('settings').open=true;
+  const n=getOutbox().length;
+  if(!confirm('¿Borrar el token, la conexión y las tareas guardadas en este navegador?'+(n?`\n\nAtención: hay ${n} cambio(s) que todavía no se subieron a GitHub y se van a perder.`:'')))return;
+  try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
+  cfg={};remote=[];outboxMem=[];lastSync=null;lastError=null;
+  $('owner').value='';$('repo').value='';$('token').value='';
+  recompute();openSettings();
 };
 
-try{cfg=JSON.parse(localStorage.getItem('githubTasksConfig')||'{}')}catch{cfg={}}
+// ---- Inicio ----
+cfg=load(K_CFG,{})||{};
 $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';
+loadCache();
 setNewDue('0');
-render();refresh();
-setInterval(()=>{if(!busy&&document.visibilityState==='visible')refresh()},20000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+recompute();   // muestra al instante lo guardado en el dispositivo
+sync();        // y después trae lo último de GitHub
+setInterval(()=>{if(document.visibilityState==='visible')sync()},20000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
+window.addEventListener('online',sync);
+window.addEventListener('storage',e=>{if(e.key===K_OUTBOX||e.key===K_CACHE){loadCache();recompute()}});
+if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>

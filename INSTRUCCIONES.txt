@@ -1,7 +1,8 @@
 ORGANIZADOR PERSONAL - SOLO GITHUB
 
 1) En GitHub crea un repositorio PUBLICO, por ejemplo "organizador-web".
-2) Sube index.html al directorio raiz de ese repositorio.
+2) Sube al directorio raiz de ese repositorio: index.html, manifest.webmanifest, sw.js y la carpeta icons/ completa
+   (los cuatro son necesarios para instalarla como aplicacion y abrirla sin conexion).
 3) Settings > Pages > Build and deployment: Deploy from a branch, main, /(root). Guarda.
 4) Crea OTRO repositorio, PRIVADO, por ejemplo "mis-tareas-datos". No necesitas subir archivos.
 5) En GitHub: Settings de tu cuenta > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token.
@@ -13,13 +14,30 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 7) En Configuracion escribe usuario, nombre del repo PRIVADO y token. Pulsa Guardar conexion.
 8) Abre la misma URL desde tu celular y configura los mismos datos una sola vez.
 
+INSTALAR COMO APLICACION
+- Android (Chrome): abri la URL > menu ⋮ > "Instalar aplicacion" (o "Agregar a pantalla principal").
+- iPhone (Safari): abri la URL > boton Compartir > "Agregar a inicio".
+- Compu (Chrome/Edge): icono de instalar en la barra de direcciones, o menu > "Instalar Mis tareas".
+- En iPhone la app instalada no comparte datos con Safari: al abrirla por primera vez desde el icono,
+  carga de nuevo usuario, repositorio y token en Configuracion. Usa siempre la app instalada (no Safari)
+  para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
+
+USO DIARIO
+- Abris la app, escribis la tarea y Enter (queda para hoy). Con "Mañana", "Lunes" o "Sin fecha" elegis otro dia.
+  En "Mas opciones" estan la fecha exacta, prioridad, quien la pidio y notas.
+- La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
+  Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
+  Arriba se ve el estado: "✓ Todo subido" o "⏳ N cambios sin subir".
+
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
 - El token se guarda en localStorage en CADA navegador para evitar volver a ingresarlo. No es adecuado para dispositivos compartidos ni informacion confidencial empresarial. Un script malicioso, extension comprometida o persona con acceso al navegador podria extraerlo.
 - NO pongas el token en index.html ni en commits de GitHub.
 - Si el token se filtra, revocalo inmediatamente en GitHub.
 - GitHub Pages no es una plataforma de autenticacion privada; la seguridad de los datos depende de los permisos del repositorio y del token.
-- La aplicacion consulta cambios cada 20 segundos mientras la pagina esta visible. Necesita Internet.
-- Cada cambio crea un commit en el repositorio privado. Si se producen cambios simultaneos, se solicita reintentar.
+- La aplicacion consulta cambios cada 20 segundos mientras esta abierta. Sin Internet se puede abrir y cargar tareas;
+  los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
+- Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
+- "Borrar conexion de este dispositivo" tambien borra la copia local de las tareas (avisa si habia cambios sin subir).
 - Las tareas terminadas permanecen en el historial. No se incluye borrado definitivo para evitar perdidas accidentales.
 - Comprueba las politicas de tu empresa antes de introducir informacion laboral en un servicio externo.
