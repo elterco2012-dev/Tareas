@@ -197,7 +197,7 @@ function getOutbox(){const v=load(K_OUTBOX,null);return Array.isArray(v)?v:outbo
 function setOutbox(v){outboxMem=v;store(K_OUTBOX,v)}
 function loadCache(){
   const c=load(K_CACHE,null);
-  remote=c&&c.owner===cfg.owner&&c.repo===cfg.repo&&Array.isArray(c.items)?c.items:[];
+  remote=c&&c.owner&&c.owner===cfg.owner&&c.repo===cfg.repo&&Array.isArray(c.items)?c.items:[];
 }
 
 // ---- Fechas (siempre en hora local, formato YYYY-MM-DD) ----
@@ -249,17 +249,24 @@ function applyOp(a,op){
       if(item)Object.assign(item,op.patch);
       break;
     case 'move': {
-      // ↑↓ cambia solo el orden entre tareas con la misma fecha; nunca modifica la fecha
+      // Reordena las tareas de esa fecha según op.ids (el orden elegido al tocar ↑↓).
+      // Nunca modifica la fecha, y aplicarlo dos veces da el mismo resultado.
       if(!item)break;
       const d=item.due||null;
       const list=a.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending);
-      const i=list.findIndex(x=>x.id===op.id),j=i+op.delta;
-      if(i<0||j<0||j>=list.length)break;
-      [list[i],list[j]]=[list[j],list[i]];
-      list.forEach((x,k)=>x.order=k);
+      const pos=x=>{const k=op.ids.indexOf(x.id);return k<0?op.ids.length+list.indexOf(x):k};
+      list.sort((x,y)=>pos(x)-pos(y)).forEach((x,k)=>x.order=k);
       break;
     }
   }
+}
+// ↑↓ solo entre tareas con la misma fecha
+function moveOp(id,delta){
+  const t=tasks.find(x=>x.id===id),d=t.due||null;
+  const ids=tasks.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending).map(x=>x.id);
+  const i=ids.indexOf(id),j=i+delta;
+  if(j>=0&&j<ids.length)[ids[i],ids[j]]=[ids[j],ids[i]];
+  return {type:'move',id,ids};
 }
 function applyAll(base,ops){
   const a=structuredClone(base);
@@ -276,8 +283,10 @@ function act(op){
 function recompute(){tasks=applyAll(remote,getOutbox());render();updateStatus()}
 
 // ---- GitHub ----
-function key(){return `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${file}`}
-function headers(){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+cfg.token,'X-GitHub-Api-Version':'2022-11-28'}}
+function repoUrl(c){return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`}
+function headers(c){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28'}}
+// Si GitHub no responde en 20 s se corta, para no trabar las siguientes subidas
+function ghFetch(url,opts){return fetch(url,AbortSignal.timeout?{...opts,signal:AbortSignal.timeout(20000)}:opts)}
 function utf8b64(s){const a=new TextEncoder().encode(s);let b='';for(const x of a)b+=String.fromCharCode(x);return btoa(b)}
 function b64utf8(s){const b=atob(s.replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
 function configured(){return !!(cfg.owner&&cfg.repo&&cfg.token)}
@@ -286,11 +295,11 @@ function httpError(r,what){
   if(r.status===403||r.status===404)return Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token');
   return Error(what+' ('+r.status+')');
 }
-async function getRemote(){
-  const r=await fetch(key()+'?t='+Date.now(),{headers:headers(),cache:'no-store'});
+async function getRemote(c){
+  const r=await ghFetch(repoUrl(c)+'/contents/'+file+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
   if(r.status===404){
     // El archivo todavía no existe, salvo que el repositorio tampoco sea accesible
-    const repo=await fetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`,{headers:headers(),cache:'no-store'});
+    const repo=await ghFetch(repoUrl(c),{headers:headers(c),cache:'no-store'});
     if(!repo.ok)throw httpError(repo,'GitHub respondió');
     return {items:[],sha:null};
   }
@@ -300,9 +309,9 @@ async function getRemote(){
   if(!Array.isArray(data))throw Error('El archivo tareas.json no contiene una lista válida');
   return {items:data,sha:j.sha};
 }
-async function putRemote(items,sha){
+async function putRemote(c,items,sha){
   const payload={message:'Actualizar tareas',content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
-  const r=await fetch(key(),{method:'PUT',headers:{...headers(),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const r=await ghFetch(repoUrl(c)+'/contents/'+file,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(r.status===409||r.status===422)return false;
   if(!r.ok)throw httpError(r,'No se pudo guardar');
   return true;
@@ -311,19 +320,24 @@ async function putRemote(items,sha){
 // en el medio, vuelve a leer y reaplica los cambios. Si falla, quedan guardados acá
 // y se reintenta solo (cada 20 s, al volver a la app o al recuperar la conexión).
 async function sync(){
-  if(!configured()){updateStatus();return}
+  if(!configured()){recompute();return}
   if(syncing){syncAgain=true;return}
   syncing=true;updateStatus();
   let conflicts=0;
   try{
     do{
       syncAgain=false;
-      const latest=await getRemote();
+      // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
+      const c=cfg;
+      const latest=await getRemote(c);
+      if(cfg!==c){syncAgain=configured();continue}
       const ops=getOutbox();
       if(!ops.length){remote=latest.items}
       else{
         const next=applyAll(latest.items,ops);
-        if(!await putRemote(next,latest.sha)){
+        const saved=await putRemote(c,next,latest.sha);
+        if(cfg!==c){syncAgain=configured();continue}
+        if(!saved){
           if(++conflicts>=5)throw Error('Otro dispositivo está guardando al mismo tiempo');
           syncAgain=true;continue;
         }
@@ -332,11 +346,11 @@ async function sync(){
         setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
         if(getOutbox().length)syncAgain=true;
       }
-      store(K_CACHE,{owner:cfg.owner,repo:cfg.repo,items:remote});
+      store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote});
       lastSync=new Date();lastError=null;
     }while(syncAgain);
   }catch(e){
-    lastError=e instanceof TypeError?'Sin conexión':e.message;
+    lastError=e instanceof TypeError?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
   }finally{
     syncing=false;recompute();
   }
@@ -386,8 +400,8 @@ function taskRow(t,opts){
   if(t.notes){const nt=document.createElement('div');nt.className='notes';nt.textContent=t.notes;main.append(nt)}
   const actions=document.createElement('div');actions.className='actions';
   if(!t.done){
-    const up=makeButton('↑',()=>act({type:'move',id:t.id,delta:-1}),'Subir');up.disabled=opts.first;
-    const down=makeButton('↓',()=>act({type:'move',id:t.id,delta:1}),'Bajar');down.disabled=opts.last;
+    const up=makeButton('↑',()=>act(moveOp(t.id,-1)),'Subir');up.disabled=opts.first;
+    const down=makeButton('↓',()=>act(moveOp(t.id,1)),'Bajar');down.disabled=opts.last;
     actions.append(up,down);
     if(n===null||n<=0)actions.append(makeButton('→ Mañana',()=>act({type:'edit',id:t.id,patch:{due:addDays(1)}}),'Pasar a mañana'));
     if(n!==0)actions.append(makeButton('Hoy',()=>act({type:'edit',id:t.id,patch:{due:addDays(0)}}),'Agendar para hoy'));

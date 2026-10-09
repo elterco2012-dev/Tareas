@@ -19,7 +19,8 @@ INSTALAR COMO APLICACION
 - iPhone (Safari): abri la URL > boton Compartir > "Agregar a inicio".
 - Compu (Chrome/Edge): icono de instalar en la barra de direcciones, o menu > "Instalar Mis tareas".
 - En iPhone la app instalada no comparte datos con Safari: al abrirla por primera vez desde el icono,
-  carga de nuevo usuario, repositorio y token en Configuracion.
+  carga de nuevo usuario, repositorio y token en Configuracion. Usa siempre la app instalada (no Safari)
+  para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
 
 USO DIARIO
 - Abris la app, escribis la tarea y Enter (queda para hoy). Con "Mañana", "Lunes" o "Sin fecha" elegis otro dia.
