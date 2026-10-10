@@ -11,7 +11,8 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
    - Define una caducidad razonable; deberas renovarlo cuando venza.
    - NO compartas el token, ni lo subas al repositorio publico, ni lo pegues en conversaciones.
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
-7) En Configuracion escribe usuario, nombre del repo PRIVADO y token. Pulsa Guardar conexion.
+7) Toca el boton de estado (arriba a la derecha) para abrir Sincronizacion; escribe usuario, nombre del repo PRIVADO
+   y token, y pulsa Guardar conexion.
 8) Abre la misma URL desde tu celular y configura los mismos datos una sola vez.
 
 INSTALAR COMO APLICACION
@@ -19,7 +20,7 @@ INSTALAR COMO APLICACION
 - iPhone (Safari): abri la URL > boton Compartir > "Agregar a inicio".
 - Compu (Chrome/Edge): icono de instalar en la barra de direcciones, o menu > "Instalar Mis tareas".
 - En iPhone la app instalada no comparte datos con Safari: al abrirla por primera vez desde el icono,
-  carga de nuevo usuario, repositorio y token en Configuracion. Usa siempre la app instalada (no Safari)
+  carga de nuevo usuario, repositorio y token en Sincronizacion. Usa siempre la app instalada (no Safari)
   para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
 
 USO DIARIO
@@ -43,7 +44,7 @@ SEGURIDAD Y LIMITACIONES
 - La aplicacion consulta cambios cada 20 segundos mientras esta abierta. Sin Internet se puede abrir y cargar tareas;
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
 - Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
-- "Borrar conexion de este dispositivo" tambien borra la copia local de las tareas (avisa si habia cambios sin subir).
+- "Borrar conexion y datos de este dispositivo" (en Sincronizacion, pide confirmar con un segundo toque) borra la copia local de las tareas (avisa si habia cambios sin subir).
 - Borrar una tarea la saca de tareas.json. Si te arrepentis despues del "Deshacer", sigue en el historial de commits del repositorio privado.
 - En Terminadas se ven las de los ultimos 7 dias; "Ver todas" muestra el resto.
 - Comprueba las politicas de tu empresa antes de introducir informacion laboral en un servicio externo.
