@@ -23,11 +23,16 @@ INSTALAR COMO APLICACION
   para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
 
 USO DIARIO
-- Abris la app, escribis la tarea y Enter (queda para hoy). Con "Mañana", "Lunes" o "Sin fecha" elegis otro dia.
-  En "Mas opciones" estan la fecha exacta, prioridad, quien la pidio y notas.
+- Abris la app, escribis la tarea y Enter: queda para hoy. Con los botones Mañana, Lunes o Sin fecha elegis otro dia.
+- Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
+  Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, en 3 dias. Prioridad: !alta (o !), !media, !baja.
+  Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
+- Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
+  Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
   Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
-  Arriba se ve el estado: "✓ Todo subido" o "⏳ N cambios sin subir".
+  El boton de arriba a la derecha muestra el estado ("Al dia", "Pendiente", "Sin subir") y abre la configuracion de GitHub.
+- En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir, Espacio terminar, E editar, H hoy, M mañana, Supr borrar.
 
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
@@ -39,5 +44,6 @@ SEGURIDAD Y LIMITACIONES
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
 - Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
 - "Borrar conexion de este dispositivo" tambien borra la copia local de las tareas (avisa si habia cambios sin subir).
-- Las tareas terminadas permanecen en el historial. No se incluye borrado definitivo para evitar perdidas accidentales.
+- Borrar una tarea la saca de tareas.json. Si te arrepentis despues del "Deshacer", sigue en el historial de commits del repositorio privado.
+- En Terminadas se ven las de los ultimos 7 dias; "Ver todas" muestra el resto.
 - Comprueba las politicas de tu empresa antes de introducir informacion laboral en un servicio externo.
