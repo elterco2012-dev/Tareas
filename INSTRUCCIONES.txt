@@ -28,6 +28,22 @@ USO DIARIO
 - Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
   Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, en 3 dias. Prioridad: !alta (o !), !media, !baja.
   Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
+- Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo, deci la tarea y toca "Listo"
+  (o espera a que termine solo). Lo dictado queda en el campo con "Detectado: ..." y se guarda recien
+  cuando tocas Agregar, asi podes corregirlo antes. Ejemplos:
+    "recordame mañana a las 3 llamar al banco, es urgente, me lo pidio Laura"
+    "tengo que mandar los remitos el viernes que viene"
+    "crear tarea revisar stock el 15 de octubre"
+  Entiende: hoy, mañana, pasado mañana, lunes a domingo, "el viernes que viene", "la semana que viene",
+  "el 15 de octubre", "en 3 dias", "en dos semanas"; la hora ("a las 3", "a las 9 de la mañana");
+  "urgente", "importante" o "prioridad alta/media/baja"; y "me lo pidio Juan" o "de parte de Juan".
+  El dictado usa el reconocimiento de voz del navegador: necesita internet y el audio lo procesa Google.
+  En iPhone puede no estar disponible dentro de la app instalada: usa el microfono del teclado.
+- Recordatorios: la app no puede sonar a una hora estando cerrada. Si la tarea tiene hora o empieza con
+  "recordame", despues de agregarla aparece "Al calendario": abre Google Calendar con el evento listo y
+  el calendario te avisa. Tambien esta en el menu "⋯" de cada tarea ("Agregar al calendario").
+  Si no le pusiste hora, el evento queda de todo el dia y Calendar puede no avisarte: deci la hora
+  ("a las 10") o ponesela en Calendar antes de guardar el evento. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
   Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
