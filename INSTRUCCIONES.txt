@@ -42,6 +42,8 @@ USO DIARIO
 - Recordatorios: la app no puede sonar a una hora estando cerrada. Si la tarea tiene hora o empieza con
   "recordame", despues de agregarla aparece "Al calendario": abre Google Calendar con el evento listo y
   el calendario te avisa. Tambien esta en el menu "⋯" de cada tarea ("Agregar al calendario").
+  Si no le pusiste hora, el evento queda de todo el dia y Calendar puede no avisarte: deci la hora
+  ("a las 10") o ponesela en Calendar antes de guardar el evento. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
   Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
