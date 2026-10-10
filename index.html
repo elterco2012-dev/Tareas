@@ -50,6 +50,11 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .addrow{display:flex;gap:8px}
 .addrow input{flex:1;min-width:0;font-size:17px;padding:12px 14px;border-radius:11px}
 .addrow button{flex:none;border-radius:11px;padding:0 18px;font-size:15px}
+.addbtn{min-width:96px;display:flex;align-items:center;justify-content:center;gap:6px}
+.addbtn svg{flex:none}
+.addbtn.listening,.addbtn.listening:hover{background:#b42318;animation:pulse 1.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(180,35,24,.45)}100%{box-shadow:0 0 0 10px rgba(180,35,24,0)}}
+@media (prefers-reduced-motion:reduce){.addbtn.listening{animation:none}}
 .chiprow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
 .chip{padding:7px 13px;border-radius:20px;font-size:13px;border:1px solid #d5dce5;background:#fff;color:#445468;font-weight:500}
 .chip.on{background:#eef2ff;border-color:#4f46e5;color:#4338ca;font-weight:600}
@@ -179,7 +184,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   <form id="addForm" class="addcard" autocomplete="off">
     <div class="addrow">
       <input id="title" class="inp" placeholder="¿Qué tenés que hacer?" aria-label="Nueva tarea" maxlength="500" enterkeyhint="done">
-      <button type="submit" class="primary">Agregar</button>
+      <button type="submit" id="addBtn" class="primary addbtn">Agregar</button>
     </div>
     <div class="chiprow">
       <span id="chips" style="display:contents">
@@ -286,7 +291,8 @@ let cfg={},remote=[],tasks=[],outboxMem=[];
 let syncing=false,syncAgain=false,lastSync=null,lastError=null;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
-let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastUndo=null,toastTimer=null;
+let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
+let rec=null,listening=false,voiceFilled=false;
 
 // ---- Almacenamiento local ----
 function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch{return def}}
@@ -340,40 +346,100 @@ function cmpPending(a,b){
   return (a.due||'9999').localeCompare(b.due||'9999')||(a.order??0)-(b.order??0)||(PRIO[a.priority]??1)-(PRIO[b.priority]??1);
 }
 
-// ---- Texto libre: "Llamar proveedor viernes !alta @Juan" ----
+// ---- Texto libre, escrito o dictado: "Llamar proveedor viernes !alta @Juan" o
+// "recordame mañana a las 3 llamar al banco, es urgente, me lo pidió Laura" ----
+const MONTHS=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const WDAYS=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+const NUMW={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,veinte:20,treinta:30};
+const NUM_RE=Object.keys(NUMW).join('|');
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim()}
+function toNum(s){return /^\d+$/.test(s)?Number(s):NUMW[s]}
+// Día y mes; si la fecha ya pasó este año, es la del año que viene
+function dayMonth(d,mo){
+  if(!(mo>=1&&mo<=12&&d>=1&&d<=31))return null;
+  const now=new Date();let dt=new Date(now.getFullYear(),mo-1,d);
+  if(dt.getMonth()!==mo-1)return null;
+  if(ymd(dt)<ymd(now))dt=new Date(now.getFullYear()+1,mo-1,d);
+  return ymd(dt);
+}
 function wordDate(w){
-  const n=w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+  const n=norm(w).replace(/^proximo /,'').replace(/ que viene$/,'');
   if(n==='hoy')return addDays(0);
   if(n==='manana')return addDays(1);
   if(n==='pasado manana')return addDays(2);
-  const wd=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'].indexOf(n);
+  if(/^(la )?(semana|proxima semana)$/.test(n))return nextMonday();
+  const wd=WDAYS.indexOf(n);
   if(wd>=0)return addDays((wd-new Date().getDay()+7)%7||7);
-  let m=n.match(/^en (\d+) dias?$/);if(m)return addDays(Number(m[1]));
+  let m=n.match(/^(?:en|dentro de) (\w+) (dias?|semanas?)$/);
+  if(m){const k=toNum(m[1]);return k?addDays(k*(m[2][0]==='s'?7:1)):null}
   m=n.match(/^(\d{1,2})\/(\d{1,2})$/);
-  if(m){
-    const d=+m[1],mo=+m[2];if(mo<1||mo>12||d<1||d>31)return null;
-    const now=new Date();let dt=new Date(now.getFullYear(),mo-1,d);
-    if(dt.getMonth()!==mo-1)return null;
-    // Si la fecha ya pasó este año, es la del año que viene
-    if(ymd(dt)<ymd(now))dt=new Date(now.getFullYear()+1,mo-1,d);
-    return ymd(dt);
-  }
+  if(m)return dayMonth(+m[1],+m[2]);
+  m=n.match(/^(\w+) de (\w+)$/);
+  if(m){const mo=MONTHS.indexOf(m[2]==='setiembre'?'septiembre':m[2]),d=m[1]==='primero'?1:toNum(m[1]);if(mo>=0&&d)return dayMonth(d,mo+1)}
   return null;
 }
+const DATE_RE=new RegExp('\\s(?:para\\s+)?(?:el\\s+|del\\s+|este\\s+)?('+
+  'hoy|pasado\\s+ma[ñn]ana|ma[ñn]ana'+
+  '|(?:pr[óo]ximo\\s+)?(?:lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)(?:\\s+que\\s+viene)?'+
+  '|(?:la\\s+)?(?:semana\\s+que\\s+viene|pr[óo]xima\\s+semana)'+
+  '|\\d{1,2}\\/\\d{1,2}'+
+  '|(?:\\d{1,2}|primero|'+NUM_RE+')\\s+de\\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)'+
+  '|(?:en|dentro\\s+de)\\s+(?:\\d{1,3}|'+NUM_RE+')\\s+(?:d[íi]as?|semanas?)'+
+  ')(?=[\\s,.;:])','gi');
+// Hora: "a las 3", "a las 15:30", "a las 9 y media", "a la una", "a las 8 de la noche"
+const TIME_RE=new RegExp('(?:^|\\s)a\\s+las?\\s+(\\d{1,2}|'+NUM_RE+')(?:[:.](\\d{2})|\\s+y\\s+(media|cuarto))?(?:\\s*(?:hs\\.?|horas?))?(?:\\s+de\\s+la\\s+(ma[ñn]ana|tarde|noche))?(?=[\\s,.;:]|$)','i');
+function timeOf(text){
+  const m=text.match(TIME_RE);if(!m)return null;
+  let h=toNum(norm(m[1]));const min=m[2]?+m[2]:m[3]?(norm(m[3])==='media'?30:15):0;
+  if(h==null||h>23||min>59)return null;
+  const part=m[4]&&norm(m[4]);
+  if(part==='tarde'||part==='noche'){if(h<12)h+=12}
+  else if(!part&&h>=1&&h<=7)h+=12;   // "a las 3", sin aclarar, es a la tarde
+  return {h,m:min,text:m[0].trim()};
+}
+function timeLabel(tm){return String(tm.h).padStart(2,'0')+':'+String(tm.m).padStart(2,'0')}
+// Frases para pedir la tarea que no son parte del título
+const CMD_RE=/^(?:(?:crear|cre[áa]|agregar|agreg[áa]|anotar|anot[áa]|nueva)\s+(?:una\s+)?tarea|record[áa]me|recu[ée]rdame|acordate|acu[ée]rdate|anot[áa]|agreg[áa]|tengo\s+que|hay\s+que)(?=[\s,:]|$)[\s,:]*(?:(?:de|que)\s+)?/i;
 function parse(text){
   const out={title:text.trim()};
   if(!out.title)return out;
   let t=' '+text+' ';
+  // Prioridad: "!alta", "!" … o dicho: "urgente", "importante", "prioridad baja"
   t=t.replace(/\s!(alta|urgente|media|baja|a|m|b)?(?=\s)/i,(m,p)=>{const v=(p||'alta').toLowerCase();out.priority=v[0]==='a'||v[0]==='u'?'Alta':v[0]==='b'?'Baja':'Media';return ' '});
+  if(!out.priority)t=t.replace(/\s(?:(?:es|con)\s+)?(?:prioridad\s+(alta|media|baja)|urgente|importante)(?=[\s,.;:])/i,(m,p)=>{out.priority=p?cap(p.toLowerCase()):'Alta';return ' '});
+  // Quién la pide: "@Juan" … o dicho: "me lo pidió Juan", "pedido por Juan", "de parte de Juan"
   t=t.replace(/\s@([^\s@!]+)/,(m,r)=>{out.requester=r.replace(/[.,;:)]+$/,'').replace(/_/g,' ');return ' '});
-  t=t.replace(/\s(?:para\s+)?(?:el\s+|del\s+)?(hoy|pasado\s+ma[ñn]ana|ma[ñn]ana|lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo|\d{1,2}\/\d{1,2}|en\s+\d{1,3}\s+d[íi]as?)(?=\s)/gi,(m,w,off,str)=>{
+  if(!out.requester)t=t.replace(/\s(?:me\s+(?:lo|la)\s+pidi[óo]|(?:lo|la)\s+pidi[óo]|pedid[oa]\s+por|de\s+parte\s+de)\s+([^\s,.;:]+)((?:\s+[^\s,.;:]+)?)(?=[\s,.;:])/i,(m,n1,n2)=>{
+    // Un segundo nombre solo si empieza con mayúscula ("Juan Pérez"); si no, queda en el título
+    const both=n2&&/^\s+[A-ZÁÉÍÓÚÑ]/.test(n2);
+    out.requester=cap(n1+(both?n2:''));
+    return ' '+(both?'':n2)+' ';
+  });
+  // Fecha
+  t=t.replace(DATE_RE,(m,w,off,str)=>{
     if(out.due)return m;
-    // "a la mañana", "esta mañana", "los lunes", "cada viernes": no son una fecha
-    if(/(?:^|\s)(?:la|las|los|esta|este|cada)$/i.test(str.slice(0,off)))return m;
+    const before=str.slice(0,off),nw=norm(w);
+    // "a la mañana", "esta mañana" (momento del día) o "los lunes", "cada viernes" (algo que se repite): no son una fecha
+    if(nw==='manana'&&/(?:^|\s)(?:la|esta)$/i.test(before))return m;
+    if(WDAYS.includes(nw.replace(/^proximo /,'').replace(/ que viene$/,''))&&/(?:^|\s)(?:los|cada)$/i.test(before))return m;
     const d=wordDate(w);if(!d)return m;
     out.due=d;return ' ';
   });
-  out.title=t.replace(/\s+/g,' ').trim()||text.trim();
+  let title=t.replace(/\s+/g,' ').replace(/\s([,.;:])/g,'$1').replace(/[,;:](?=[,.;:])/g,'').replace(/^[\s,.;:]+|[\s,.;:]+$/g,'');
+  let cmd=false;
+  for(let i=0;i<2;i++){
+    const m=title.match(CMD_RE);if(!m)break;
+    if(/^(?:record|recu|acord|acu)/i.test(m[0]))out.remind=true;
+    title=title.slice(m[0].length);cmd=true;
+  }
+  const tm=timeOf(' '+title+' ');
+  if(tm){
+    out.time=tm;
+    // "a las 3 llamar al banco" → "llamar al banco a las 3"
+    if(title.toLowerCase().startsWith(tm.text.toLowerCase()))title=(title.slice(tm.text.length).replace(/^[\s,]+/,'')+' '+tm.text).trim();
+  }
+  title=title.trim();
+  out.title=title?(cmd?cap(title):title):text.trim();
   return out;
 }
 
@@ -536,10 +602,12 @@ function renderAdd(){
   const tags=[];
   if(p.due)tags.push(shortDue(p.due));
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
+  if(p.time)tags.push(timeLabel(p.time));
   if(p.requester)tags.push('@'+p.requester);
   if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(el('span','tag',x)))}
   det.classList.toggle('hidden',!tags.length);
-  $('tip').classList.toggle('hidden',!(document.activeElement===$('title')&&!raw.trim()));
+  $('tip').classList.toggle('hidden',listening||!(document.activeElement===$('title')&&!raw.trim()));
+  updateAddBtn();
   placeMenu();
 }
 function matcher(){
@@ -621,6 +689,7 @@ function openMenu(id){
   if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
   if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
   if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
+  item('Agregar al calendario',()=>openCalendar(t));
   item('Editar…',()=>openEdit(t));
   m.append(el('div','sep'));
   item('Borrar',()=>del(t),'danger');
@@ -643,12 +712,14 @@ function placeMenu(){
 function closeMenu(){menuId=null;$('menu').classList.add('hidden');$('menuBackdrop').classList.add('hidden')}
 
 // ---- Acciones ----
-function toast(msg,undo){
-  $('toastMsg').textContent=msg;toastUndo=undo||null;
-  $('toastUndo').classList.toggle('hidden',!undo);$('toast').classList.remove('hidden');
-  clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,4500);
+// Aviso abajo; la acción por defecto es "Deshacer"
+function toast(msg,action,label,ms){
+  $('toastMsg').textContent=msg;toastAction=action||null;
+  $('toastUndo').textContent=label||'Deshacer';
+  $('toastUndo').classList.toggle('hidden',!action);$('toast').classList.remove('hidden');
+  clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||4500);
 }
-function hideToast(){$('toast').classList.add('hidden');toastUndo=null}
+function hideToast(){$('toast').classList.add('hidden');toastAction=null}
 function toggle(t){
   const done=!t.done,prevAt=t.completedAt;
   act({type:'done',id:t.id,done,at:new Date().toISOString()});
@@ -669,6 +740,21 @@ function del(t){
   // en GitHub (con lo que se haya cambiado desde otro dispositivo). Si ya se subió, se repone.
   toast('Tarea borrada',()=>{setOutbox(getOutbox().filter(o=>o.opId!==op.opId));act({type:'add',task:copy})});
 }
+// Google Calendar con el evento ya completo; el calendario se encarga del aviso
+function calendarUrl(t){
+  const day=t.due||ymd(new Date()),tm=timeOf(' '+t.title+' '),fmt=d=>ymd(d).replace(/-/g,'');
+  let dates;
+  if(tm){
+    const a=parseYmd(day);a.setHours(tm.h,tm.m);const b=new Date(a.getTime()+30*60000);
+    const hm=d=>'T'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'00';
+    dates=fmt(a)+hm(a)+'/'+fmt(b)+hm(b);
+  }else{const b=parseYmd(day);b.setDate(b.getDate()+1);dates=day.replace(/-/g,'')+'/'+fmt(b)}
+  const q=new URLSearchParams({action:'TEMPLATE',text:t.title,dates});
+  if(t.notes)q.set('details',t.notes);
+  try{q.set('ctz',Intl.DateTimeFormat().resolvedOptions().timeZone)}catch{}
+  return 'https://calendar.google.com/calendar/render?'+q;
+}
+function openCalendar(t){window.open(calendarUrl(t),'_blank','noopener')}
 function addedMsg(due){
   if(!due)return 'Agregada sin fecha';
   const n=daysUntil(due);
@@ -679,13 +765,19 @@ function addedMsg(due){
 $('addForm').addEventListener('submit',e=>{
   e.preventDefault();
   const raw=$('title').value.trim();if(!raw)return;
+  // En el celular el cursor vuelve al campo solo si el teclado ya estaba abierto (se agregó con Enter)
+  const refocus=FINE||document.activeElement===$('title');
   const p=parse(raw),due=p.due!==undefined?p.due:dueFor(chip);
-  act({type:'add',task:{id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',due:due||null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null}});
-  toast(addedMsg(due));
-  $('title').value='';$('note').value='';setNote(false);chip='0';
-  $('title').focus();renderAdd();
+  const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',due:due||null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  act({type:'add',task});
+  // Con hora o "recordame…", un toque la pasa a Google Calendar para que avise
+  if(p.time||p.remind)toast(addedMsg(due),()=>openCalendar(task),'Al calendario',7000);
+  else toast(addedMsg(due));
+  $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;
+  if(refocus)$('title').focus();
+  renderAdd();
 });
-$('title').addEventListener('input',renderAdd);
+$('title').addEventListener('input',()=>{if(!$('title').value.trim())voiceFilled=false;renderAdd()});
 $('title').addEventListener('focus',renderAdd);
 // Al salir del campo, el tip se oculta recién después del clic o toque: si se ocultara
 // al apretar, la lista subiría bajo el puntero y el clic caería en otro lugar
@@ -705,6 +797,46 @@ function setNote(on){
 }
 $('noteToggle').onclick=()=>{const on=$('note').classList.contains('hidden');setNote(on);if(on)$('note').focus()};
 
+// ---- Dictado por voz ----
+// Con el campo vacío, el botón de Agregar es un micrófono. Lo dictado queda en el campo con
+// "Detectado: …" y se guarda recién al tocar Agregar (o Enter), así se puede corregir antes.
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const MIC_SVG='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0"/><line x1="10" y1="15.5" x2="10" y2="18"/></svg>';
+const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
+function updateAddBtn(){
+  const b=$('addBtn'),mode=listening?'listening':SR&&!$('title').value.trim()?'mic':'add';
+  if(b.dataset.mode===mode)return;
+  b.dataset.mode=mode;b.type=mode==='add'?'submit':'button';
+  b.classList.toggle('listening',mode==='listening');
+  if(mode==='add'){b.textContent='Agregar';b.removeAttribute('aria-label');b.removeAttribute('title')}
+  else if(mode==='mic'){b.innerHTML=MIC_SVG;b.setAttribute('aria-label','Dictar tarea');b.title='Dictar tarea'}
+  else{b.innerHTML=STOP_SVG+'<span>Listo</span>';b.setAttribute('aria-label','Dejar de escuchar');b.title='Dejar de escuchar'}
+  $('title').placeholder=mode==='listening'?'Escuchando…':'¿Qué tenés que hacer?';
+}
+const VOICE_ERR={'not-allowed':'Permití el uso del micrófono para dictar','service-not-allowed':'Permití el uso del micrófono para dictar','no-speech':'No se escuchó nada. Probá de nuevo','audio-capture':'No se encontró un micrófono','network':'El dictado necesita conexión a internet'};
+function startVoice(){
+  if(listening||!SR)return;
+  const base=$('title').value.trim();
+  try{
+    rec=new SR();rec.lang='es-AR';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+    rec.onresult=e=>{
+      let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+      $('title').value=((base?base+' ':'')+txt).trim();voiceFilled=true;renderAdd();
+    };
+    rec.onerror=e=>{if(e.error!=='aborted')toast(VOICE_ERR[e.error]||'No se pudo usar el dictado')};
+    rec.onend=()=>{listening=false;rec=null;renderAdd()};
+    rec.start();listening=true;
+  }catch{rec=null;listening=false;toast('No se pudo usar el dictado')}
+  renderAdd();
+}
+function stopVoice(abort){if(rec){abort?rec.abort():rec.stop()}}
+$('addBtn').addEventListener('click',e=>{
+  const mode=$('addBtn').dataset.mode;
+  if(mode==='mic'){e.preventDefault();startVoice()}
+  else if(mode==='listening'){e.preventDefault();stopVoice()}
+});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')stopVoice(true)});
+
 // ---- Buscar ----
 function openSearch(){searchOpen=true;$('searchBar').classList.remove('hidden');$('search').focus()}
 function closeSearch(){searchOpen=false;$('search').value='';$('searchBar').classList.add('hidden');renderList()}
@@ -719,7 +851,7 @@ $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
 // ---- Menú y aviso ----
 $('menuBackdrop').onclick=closeMenu;
 window.addEventListener('resize',()=>{if(menuId)closeMenu()});
-$('toastUndo').onclick=()=>{const u=toastUndo;clearTimeout(toastTimer);hideToast();if(u)u()};
+$('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToast();if(a)a()};
 
 // ---- Editar ----
 function openEdit(t){
@@ -798,7 +930,8 @@ document.addEventListener('keydown',e=>{
   const tg=e.target||{},tag=(tg.tagName||'').toLowerCase();
   const typing=tag==='input'||tag==='textarea'||tag==='select'||tg.isContentEditable;
   if(e.key==='Escape'){
-    if(edit)closeEdit();
+    if(listening)stopVoice(true);
+    else if(edit)closeEdit();
     else if(settingsOpen)closeSettings();
     else if(menuId)closeMenu();
     else if(searchOpen)closeSearch();
