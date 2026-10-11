@@ -7,158 +7,216 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#4f46e5">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1520" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tareas">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
+:root{color-scheme:light dark;
+  --bg:#f4f6f9;--card:#fff;--border:#e0e5ec;--input:#ccd5df;--chip:#d5dce5;--divider:#edf0f4;
+  --text:#182433;--text2:#445468;--muted:#667588;--faint:#8a96a6;
+  --accent:#4f46e5;--accent-h:#4338ca;--accent-soft:#eef2ff;--accent-text:#4338ca;--on-accent:#fff;--tag-text:#3730a3;--addcard-border:#d9ddf5;
+  --red:#b42318;--red-soft:#fef3f2;--amber:#b45309;--amber-dot:#d97706;--green:#16a34a;--green-soft:#f0fdf4;--green-text:#15803d;
+  --hover:#f4f6f9;--hover2:#f8f9fb;--sel:#eef1ff;--statusbox:#f6f7f9;--circle:#b9c2ce;--kbd:#dde2e9;--gray-dot:#98a2b3;
+  --toast-bg:#182433;--toast-text:#fff;--toast-btn:#c7d2fe;--overlay:rgba(20,30,45,.42);--shadow:rgba(20,30,45,.16)}
+/* Modo oscuro: sigue al del sistema */
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1520;--card:#182131;--border:#273244;--input:#3a475d;--chip:#3a475d;--divider:#212b3b;
+  --text:#e6ebf2;--text2:#a7b2c2;--muted:#8391a5;--faint:#8391a5;
+  --accent:#818cf8;--accent-h:#a5b4fc;--accent-soft:#1e2342;--accent-text:#a5b4fc;--on-accent:#0f1520;--tag-text:#c7d2fe;--addcard-border:#2d3654;
+  --red:#f97066;--red-soft:#3a1d1d;--amber:#fbbf24;--amber-dot:#fbbf24;--green:#4ade80;--green-soft:#14301f;--green-text:#4ade80;
+  --hover:#212b3b;--hover2:#1e2838;--sel:#1e2342;--statusbox:#121a27;--circle:#4a5870;--kbd:#273244;--gray-dot:#6b778a;
+  --toast-bg:#e6ebf2;--toast-text:#0f1520;--toast-btn:#4338ca;--overlay:rgba(0,0,0,.6);--shadow:rgba(0,0,0,.5)}}
 *{box-sizing:border-box}
-html,body{margin:0;background:#f4f6f9;color:#182433;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-a{color:#4f46e5}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 .hidden{display:none!important}
 .wrap{max-width:680px;margin:0 auto;padding:20px 16px calc(110px + env(safe-area-inset-bottom))}
-.inp{border:1px solid #ccd5df;color:#182433;background:#fff;outline:none}
-.inp:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.15)}
-.primary{background:#4f46e5;color:#fff;border:0;font-weight:600}
-.primary:hover{background:#4338ca}
+.inp{border:1px solid var(--input);color:var(--text);background:var(--card);outline:none}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+.inp::placeholder{color:var(--muted);opacity:1}
+.primary{background:var(--accent);color:var(--on-accent);border:0;font-weight:600}
+.primary:hover{background:var(--accent-h)}
 
 /* Encabezado */
 .top{display:flex;align-items:flex-start;gap:12px;padding:4px 2px 16px}
 .top .ttl{flex:1;min-width:0}
 h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:700}
-.sub{margin-top:5px;font-size:14px;color:#667588;display:flex;flex-wrap:wrap;gap:2px 12px}
+.sub{margin-top:5px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px}
 #summary{display:contents}
-.sub .over{color:#b42318;font-weight:600}
-.sub .today{color:#4f46e5;font-weight:600}
+.sub .over{color:var(--red);font-weight:600}
+.sub .today{color:var(--accent);font-weight:600}
 .hbtns{display:flex;gap:6px;align-items:center;flex:none}
-.iconbtn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #e0e5ec;border-radius:12px;color:#445468;padding:0}
-.pill{height:40px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e0e5ec;border-radius:20px;padding:0 14px 0 12px;color:#445468;font-size:13.5px;font-weight:500}
-.iconbtn:hover,.pill:hover{background:#f8f9fb;border-color:#ccd5df}
-.dot{width:8px;height:8px;border-radius:50%;flex:none;background:#98a2b3}
+.iconbtn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text2);padding:0}
+.pill{height:40px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:0 14px 0 12px;color:var(--text2);font-size:13.5px;font-weight:500}
+.iconbtn:hover,.pill:hover{background:var(--hover2);border-color:var(--input)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--gray-dot)}
 
 /* Buscador */
 .searchbar{display:flex;gap:8px;margin-bottom:12px}
 .searchbar input{flex:1;min-width:0;font-size:15px;padding:11px 14px;border-radius:11px}
-.textbtn{flex:none;background:none;border:0;color:#4f46e5;font-weight:600;font-size:14px;padding:0 6px}
+.textbtn{flex:none;background:none;border:0;color:var(--accent);font-weight:600;font-size:14px;padding:0 6px}
 
 /* Agregar */
-.addcard{background:#fff;border:1px solid #d9ddf5;border-radius:16px;padding:12px;margin-bottom:22px;box-shadow:0 1px 2px rgba(20,30,45,.04),0 6px 18px rgba(79,70,229,.07)}
+.addcard{background:var(--card);border:1px solid var(--addcard-border);border-radius:16px;padding:12px;margin-bottom:22px;box-shadow:0 1px 2px rgba(20,30,45,.04),0 6px 18px rgba(79,70,229,.07)}
 .addrow{display:flex;gap:8px}
 .addrow input{flex:1;min-width:0;font-size:17px;padding:12px 14px;border-radius:11px}
 .addrow button{flex:none;border-radius:11px;padding:0 18px;font-size:15px}
 .addbtn{min-width:96px;display:flex;align-items:center;justify-content:center;gap:6px}
 .addbtn svg{flex:none}
-.addbtn.listening,.addbtn.listening:hover{background:#b42318;animation:pulse 1.4s ease-out infinite}
+.addbtn.listening,.addbtn.listening:hover{background:var(--red);animation:pulse 1.4s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(180,35,24,.45)}100%{box-shadow:0 0 0 10px rgba(180,35,24,0)}}
 @media (prefers-reduced-motion:reduce){.addbtn.listening{animation:none}}
 .chiprow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
-.chip{padding:7px 13px;border-radius:20px;font-size:13px;border:1px solid #d5dce5;background:#fff;color:#445468;font-weight:500}
-.chip.on{background:#eef2ff;border-color:#4f46e5;color:#4338ca;font-weight:600}
-.notebtn{margin-left:auto;flex:none;white-space:nowrap;background:none;border:0;color:#667588;font-size:13px;padding:7px 4px}
-.notebtn:hover{color:#4f46e5}
+.chip{padding:7px 13px;border-radius:20px;font-size:13px;border:1px solid var(--chip);background:var(--card);color:var(--text2);font-weight:500}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.notebtn{margin-left:auto;flex:none;white-space:nowrap;background:none;border:0;color:var(--muted);font-size:13px;padding:7px 4px}
+.notebtn:hover{color:var(--accent)}
 .detected{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-size:13px}
-.detected .lbl{color:#667588}
-.detected .heard{flex-basis:100%;font-size:15px;line-height:1.4;color:#182433;overflow-wrap:anywhere}
-.tag{padding:3px 9px;border-radius:6px;background:#eef2ff;color:#3730a3;font-weight:600}
-.tip{margin-top:10px;font-size:12.5px;color:#8a96a6;line-height:1.45}
+.detected .lbl{color:var(--muted)}
+.detected .heard{flex-basis:100%;font-size:15px;line-height:1.4;color:var(--text);overflow-wrap:anywhere}
+.tag{padding:3px 9px;border-radius:6px;background:var(--accent-soft);color:var(--tag-text);font-weight:600}
+.tip{margin-top:10px;font-size:12.5px;color:var(--faint);line-height:1.45}
 #note{display:block;width:100%;margin-top:10px;font-size:14px;padding:10px 12px;border-radius:10px;resize:vertical}
 
 /* Lista */
-.emptycard{background:#fff;border:1px solid #e0e5ec;border-radius:14px;padding:28px 16px;text-align:center;color:#667588;font-size:15px}
+.emptycard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 16px;text-align:center;color:var(--muted);font-size:15px}
 .grp{margin-bottom:18px}
-.ghead{display:flex;align-items:baseline;gap:6px;padding:0 4px 7px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#445468}
-.ghead.over{color:#b42318}
-.ghead.today{color:#4f46e5}
-.ghead .n{font-weight:500;color:#8a96a6}
-.card{background:#fff;border:1px solid #e0e5ec;border-radius:14px;padding:2px 0}
+.ghead{display:flex;align-items:baseline;gap:6px;padding:0 4px 7px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
+.ghead.over{color:var(--red)}
+.ghead.today{color:var(--accent)}
+.ghead .n{font-weight:500;color:var(--faint)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:2px 0;overflow:hidden}
 .task{position:relative;display:flex;align-items:flex-start;gap:2px;padding:0 4px}
-.task+.task{border-top:1px solid #edf0f4}
-.task.sel{background:#eef1ff}
+.task+.task,.swipe+.swipe{border-top:1px solid var(--divider)}
+/* Deslizar (celular): detrás de la fila, verde para terminar o violeta para pasar a mañana */
+.swipe{position:relative}
+.swipe .task{background:var(--card);touch-action:pan-y}
+.swipe .task.sel{background:var(--sel)}
+.task.anim{transition:transform .15s ease}
+.swbg{position:absolute;inset:0;display:none;align-items:center;padding:0 20px;color:#fff;font-weight:700;font-size:14px}
+.swbg.right{display:flex;background:#16a34a;justify-content:flex-start}
+.swbg.left{display:flex;background:#4f46e5;justify-content:flex-end}
+.swbg.right .l,.swbg.left .r{display:none}
+.swbg span{transition:transform .12s}
+.swbg.armed span{transform:scale(1.2)}
+.task.sel{background:var(--sel)}
 .chk{flex:none;width:44px;height:46px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0}
-.chk span{width:22px;height:22px;border-radius:50%;border:2px solid #b9c2ce;background:#fff}
-.chk:hover span{border-color:#4f46e5;background:#eef2ff}
+.chk span{width:22px;height:22px;border-radius:50%;border:2px solid var(--circle);background:var(--card)}
+.chk:hover span{border-color:var(--accent);background:var(--accent-soft)}
 .body{flex:1;min-width:0;padding:12px 0 11px;cursor:pointer}
-.ttext{font-size:15px;line-height:1.4;color:#182433;overflow-wrap:anywhere;text-wrap:pretty}
-.meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:3px;font-size:13px;color:#667588}
-.meta .over{color:#b42318;font-weight:600}
-.alta{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#b42318;background:#fef3f2;border-radius:5px;padding:2px 6px}
-.unsynced{color:#b45309}
-.notes{margin-top:3px;font-size:13px;color:#8a96a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.more{flex:none;width:40px;height:46px;background:none;border:0;border-radius:10px;color:#8a96a6;font-size:20px;line-height:1;padding:0}
-.more:hover{background:#f4f6f9;color:#445468}
+.ttext{font-size:15px;line-height:1.4;color:var(--text);overflow-wrap:anywhere;text-wrap:pretty}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:3px;font-size:13px;color:var(--muted)}
+.meta .over{color:var(--red);font-weight:600}
+.alta{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--red);background:var(--red-soft);border-radius:5px;padding:2px 6px}
+.unsynced{color:var(--amber)}
+.notes{margin-top:3px;font-size:13px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more{flex:none;width:40px;height:46px;background:none;border:0;border-radius:10px;color:var(--faint);font-size:20px;line-height:1;padding:0}
+.more:hover{background:var(--hover);color:var(--text2)}
+
+/* Persona (filtro), Esperando */
+.person{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.person:hover{color:var(--accent);text-decoration:underline}
+.late{color:var(--amber);font-weight:600}
+.filterbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-soft);color:var(--accent-text);border-radius:12px;padding:6px 6px 6px 14px;margin-bottom:14px;font-size:14px}
+.filterbar b{font-weight:700}
+.filterbar button{width:32px;height:32px;border:0;border-radius:50%;background:none;color:inherit;font-size:14px;flex:none}
+.filterbar button:hover{background:var(--hover)}
 
 /* Menú ⋯ */
 .backdrop{position:fixed;inset:0;z-index:20}
-.menu{position:absolute;z-index:30;background:#fff;border:1px solid #e0e5ec;border-radius:12px;box-shadow:0 10px 28px rgba(20,30,45,.16);padding:5px;min-width:190px;display:flex;flex-direction:column}
-.menu button{width:100%;text-align:left;padding:10px 12px;border:0;background:none;border-radius:8px;font-size:14px;color:#182433}
-.menu button:hover{background:#f4f6f9}
-.menu button.danger{color:#b42318}
-.menu button.danger:hover{background:#fef3f2}
-.menu .sep{height:1px;background:#edf0f4;margin:4px 6px}
+.menu{position:absolute;z-index:30;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px var(--shadow);padding:5px;min-width:190px;display:flex;flex-direction:column}
+.menu button{width:100%;text-align:left;padding:10px 12px;border:0;background:none;border-radius:8px;font-size:14px;color:var(--text)}
+.menu button:hover{background:var(--hover)}
+.menu button.danger{color:var(--red)}
+.menu button.danger:hover{background:var(--red-soft)}
+.menu .sep{height:1px;background:var(--divider);margin:4px 6px}
 
 /* Terminadas */
 .donesec{margin-top:26px}
-.donebtn{display:flex;align-items:baseline;gap:7px;background:none;border:0;padding:6px 4px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#445468}
+.donehead{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.donetools{margin-left:auto;display:flex;align-items:center;gap:4px}
+.donetools select{font-size:13px;padding:5px 8px;border:1px solid var(--chip);border-radius:8px;background:var(--card);color:var(--text2)}
+.donetools .linkbtn{margin:0}
+.donebtn{display:flex;align-items:baseline;gap:7px;background:none;border:0;padding:6px 4px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
 .donebtn svg{flex:none;align-self:center;transition:transform .15s}
-.donebtn .n{font-weight:500;letter-spacing:0;text-transform:none;color:#8a96a6}
+.donebtn .n{font-weight:500;letter-spacing:0;text-transform:none;color:var(--faint)}
 #doneList{margin-top:6px}
 .drow{display:flex;align-items:center;gap:2px;padding:0 10px 0 4px}
-.drow+.drow{border-top:1px solid #edf0f4}
+.drow+.drow{border-top:1px solid var(--divider)}
 .drow .chk{height:44px}
-.drow .chk span{border:0;background:#4f46e5;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.drow .dt{flex:1;min-width:0;padding:11px 0;font-size:15px;color:#8a96a6;text-decoration:line-through;overflow-wrap:anywhere}
-.drow .when{flex:none;font-size:12.5px;color:#8a96a6}
-.nodone{padding:16px;color:#8a96a6;font-size:14px}
-.linkbtn{margin-top:8px;background:none;border:0;color:#4f46e5;font-weight:600;font-size:13.5px;padding:6px 4px}
+.drow .chk span{border:0;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.drow .dt{flex:1;min-width:0;padding:11px 0;font-size:15px;color:var(--faint);text-decoration:line-through;overflow-wrap:anywhere}
+.drow .when{flex:none;font-size:12.5px;color:var(--faint)}
+.nodone{padding:16px;color:var(--faint);font-size:14px}
+.linkbtn{margin-top:8px;background:none;border:0;color:var(--accent);font-weight:600;font-size:13.5px;padding:6px 4px}
 
 /* Atajos */
-.shortcuts{margin-top:32px;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:#8a96a6}
+.shortcuts{margin-top:32px;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:var(--faint)}
 .shortcuts span{display:flex;align-items:center;gap:5px}
-kbd{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#445468;background:#fff;border:1px solid #dde2e9;border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+kbd{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--text2);background:var(--card);border:1px solid var(--kbd);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
 
 /* Modales */
-.overlay{position:fixed;inset:0;z-index:50;background:rgba(20,30,45,.42);display:flex;align-items:center;justify-content:center;padding:12px}
-.modal{width:100%;max-width:500px;max-height:calc(100vh - 24px);overflow:auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 20px 50px rgba(20,30,45,.25);display:flex;flex-direction:column;gap:16px}
+.overlay{position:fixed;inset:0;z-index:50;background:var(--overlay);display:flex;align-items:center;justify-content:center;padding:12px}
+.modal{width:100%;max-width:500px;max-height:calc(100vh - 24px);overflow:auto;background:var(--card);border-radius:18px;padding:20px;box-shadow:0 20px 50px rgba(20,30,45,.25);display:flex;flex-direction:column;gap:16px}
 .modal.sync{gap:14px}
 .mhead{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .mhead h2{margin:0;font-size:18px}
-.xbtn{width:36px;height:36px;border:0;background:#f4f6f9;border-radius:50%;color:#445468;font-size:14px;flex:none}
+.xbtn{width:36px;height:36px;border:0;background:var(--hover);border-radius:50%;color:var(--text2);font-size:14px;flex:none}
 .fcol{display:flex;flex-direction:column;gap:7px}
-.lbl{font-size:12.5px;font-weight:600;color:#445468}
-label.fcol{font-size:12.5px;font-weight:600;color:#445468}
+.lbl{font-size:12.5px;font-weight:600;color:var(--text2)}
+label.fcol{font-size:12.5px;font-weight:600;color:var(--text2)}
 label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;border-radius:10px;min-width:0}
 #eTitle{width:100%;font-size:16px;padding:11px 12px;border-radius:10px}
 #eNotes{resize:vertical}
 .echips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-#eDue{font-size:13.5px;padding:6px 10px;border:1px solid #d5dce5;border-radius:20px;color:#445468;background:#fff}
+#eDue{font-size:13.5px;padding:6px 10px;border:1px solid var(--chip);border-radius:20px;color:var(--text2);background:var(--card)}
 .prios{display:flex;gap:6px}
-.prio{flex:1;padding:9px 0;border-radius:10px;font-size:14px;border:1px solid #d5dce5;background:#fff;color:#445468;font-weight:500}
-.prio.on.Alta{background:#fef3f2;border-color:#b42318;color:#b42318;font-weight:600}
-.prio.on.Media{background:#eef2ff;border-color:#4338ca;color:#4338ca;font-weight:600}
-.prio.on.Baja{background:#f0fdf4;border-color:#15803d;color:#15803d;font-weight:600}
+.prio{flex:1;padding:9px 0;border-radius:10px;font-size:14px;border:1px solid var(--chip);background:var(--card);color:var(--text2);font-weight:500}
+.prio.on.Alta{background:var(--red-soft);border-color:var(--red);color:var(--red);font-weight:600}
+.prio.on.Media{background:var(--accent-soft);border-color:var(--accent-text);color:var(--accent-text);font-weight:600}
+.prio.on.Baja{background:var(--green-soft);border-color:var(--green-text);color:var(--green-text);font-weight:600}
 .mfoot{display:flex;align-items:center;gap:8px;margin-top:2px}
 .mfoot .spacer{flex:1}
-.delbtn{background:none;border:0;color:#b42318;font-weight:600;font-size:14px;padding:10px 4px}
-.secbtn{background:#fff;border:1px solid #ccd5df;border-radius:10px;padding:10px 16px;font-size:14px;color:#182433}
+.delbtn{background:none;border:0;color:var(--red);font-weight:600;font-size:14px;padding:10px 4px}
+.secbtn{background:var(--card);border:1px solid var(--input);border-radius:10px;padding:10px 16px;font-size:14px;color:var(--text)}
 .mfoot .primary,.cfgbtns .primary{border-radius:10px;padding:10px 18px;font-size:14px}
-.statusbox{display:flex;gap:10px;align-items:flex-start;background:#f6f7f9;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.45}
+.statusbox{display:flex;gap:10px;align-items:flex-start;background:var(--statusbox);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.45}
 .statusbox .dot{margin-top:6px}
-.muted{margin:0;font-size:13.5px;color:#667588;line-height:1.5}
-.fine{margin:0;font-size:12.5px;color:#8a96a6;line-height:1.5}
+.muted{margin:0;font-size:13.5px;color:var(--muted);line-height:1.5}
+.fine{margin:0;font-size:12.5px;color:var(--faint);line-height:1.5}
 .cfggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
 .cfggrid label.fcol,.modal.sync label.fcol{gap:6px}
-.cfgmsg{font-size:13px;color:#b42318}
+.cfgmsg{font-size:13px;color:var(--red)}
 .cfgbtns{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.clearbtn{align-self:flex-start;background:none;border:0;color:#b42318;font-size:13px;padding:4px 0;text-align:left}
+.clearbtn{align-self:flex-start;background:none;border:0;color:var(--red);font-size:13px;padding:4px 0;text-align:left}
+
+/* Se repite / interruptor */
+#eRepeat{font-size:14px;padding:8px 10px;border:1px solid var(--chip);border-radius:10px;background:var(--card);color:var(--text)}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;color:var(--text)}
+.switchrow input{width:40px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+
+/* Mini diálogo y texto para copiar */
+.modal.small{max-width:400px}
+#waitName{font-size:16px;padding:11px 12px;border-radius:10px;width:100%}
+#textBox{width:100%;min-height:220px;font-size:14px;padding:10px 12px;border-radius:10px;resize:vertical;font-family:inherit}
+
+/* Pegar varias líneas */
+.bulklist{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;margin:0 -4px;padding:2px 4px}
+.bulkrow{display:flex;align-items:center;gap:8px}
+.bulkrow input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--accent);margin:0}
+.bulkrow .inp{flex:1;min-width:0;font-size:15px;padding:9px 11px;border-radius:10px}
+.bulkrow.off .inp{opacity:.5}
 
 /* Aviso con Deshacer */
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;background:#182433;color:#fff;border-radius:12px;padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgba(20,30,45,.3);font-size:14px;max-width:calc(100% - 24px)}
-.toast .msg{padding:7px 10px 7px 0;overflow-wrap:anywhere}
-.toast button{flex:none;white-space:nowrap;background:none;border:0;color:#c7d2fe;font-weight:700;padding:8px 12px;border-radius:8px}
+.toast{position:fixed;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:12px;background:var(--toast-bg);color:var(--toast-text);border-radius:12px;padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgba(20,30,45,.3);font-size:14px;max-width:calc(100% - 24px)}
+.toast .msg{padding:7px 10px 7px 0;overflow-wrap:break-word;min-width:0}
+.toast button{flex:none;white-space:nowrap;background:none;border:0;color:var(--toast-btn);font-weight:700;padding:8px 12px;border-radius:8px}
 .toast button:hover{background:rgba(255,255,255,.1)}
 </style>
 </head>
@@ -201,17 +259,26 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <textarea id="note" class="inp hidden" placeholder="Nota / detalle (opcional)" maxlength="2000" rows="2"></textarea>
   </form>
 
+  <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
   <div id="empty" class="emptycard hidden"></div>
   <div id="groups"></div>
+  <div id="waitingSec"></div>
 
   <div class="donesec">
-    <button type="button" id="doneToggle" class="donebtn" aria-expanded="false">
-      <svg id="doneChev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>
-      <span>Terminadas</span><span class="n" id="doneSub"></span>
-    </button>
+    <div class="donehead">
+      <button type="button" id="doneToggle" class="donebtn" aria-expanded="false">
+        <svg id="doneChev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>
+        <span>Terminadas</span><span class="n" id="doneSub"></span>
+      </button>
+      <div class="donetools">
+        <select id="sumWeek" aria-label="Semana del resumen"><option value="0">Esta semana</option><option value="1">Semana pasada</option></select>
+        <button type="button" id="copySum" class="linkbtn">Copiar resumen</button>
+      </div>
+    </div>
     <div id="doneWrap" class="hidden">
       <div id="doneList" class="card"></div>
       <button type="button" id="doneAll" class="linkbtn hidden"></button>
+      <p id="archiveNote" class="fine hidden" style="margin:4px 4px 0">Las de más de 3 meses están en archivo/ de tu repositorio.</p>
     </div>
   </div>
 
@@ -245,6 +312,9 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
         <button type="button" class="prio Baja" data-p="Baja">Baja</button>
       </div>
     </div>
+    <label class="fcol">Se repite
+      <select id="eRepeat"><option value="">No</option><option value="daily">Diaria</option><option value="weekdays">Lun a vie</option><option value="weekly">Semanal</option><option value="monthly">Mensual</option></select>
+    </label>
     <label class="fcol">Pedida por<input id="eRequester" class="inp" maxlength="100" placeholder="(opcional)"></label>
     <label class="fcol">Notas<textarea id="eNotes" class="inp" maxlength="2000" rows="3" placeholder="(opcional)"></textarea></label>
     <div class="mfoot">
@@ -272,8 +342,39 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <button type="button" id="saveCfg" class="primary">Guardar conexión</button>
       <button type="button" id="syncNow" class="secbtn hidden">Sincronizar ahora</button>
     </div>
+    <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
     <button type="button" id="clearCfg" class="clearbtn"></button>
   </div>
+</div>
+
+<div id="waitOv" class="overlay hidden">
+  <form id="waitForm" class="modal small" role="dialog" aria-modal="true" aria-labelledby="waitH">
+    <div class="mhead"><h2 id="waitH">¿De quién?</h2><button type="button" class="xbtn" id="waitX" aria-label="Cerrar">✕</button></div>
+    <p class="muted">La tarea pasa a "Esperando" hasta que te respondan.</p>
+    <input id="waitName" class="inp" maxlength="100" placeholder="Nombre (opcional)" aria-label="De quién esperás respuesta">
+    <div class="mfoot"><span class="spacer"></span><button type="button" id="waitCancel" class="secbtn">Cancelar</button><button type="submit" class="primary">Guardar</button></div>
+  </form>
+</div>
+
+<div id="textOv" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="textH">
+    <div class="mhead"><h2 id="textH">Resumen</h2><button type="button" class="xbtn" id="textX" aria-label="Cerrar">✕</button></div>
+    <p class="muted">No se pudo copiar solo: seleccioná el texto y copialo.</p>
+    <textarea id="textBox" class="inp" readonly></textarea>
+  </div>
+</div>
+
+<div id="bulkOv" class="overlay hidden">
+  <form id="bulkForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkH">
+    <div class="mhead"><h2 id="bulkH">¿Cargar tareas?</h2><button type="button" class="xbtn" id="bulkX" aria-label="Cerrar">✕</button></div>
+    <p class="muted" id="bulkHint"></p>
+    <div id="bulkList" class="bulklist"></div>
+    <div class="mfoot">
+      <span class="spacer"></span>
+      <button type="button" id="bulkCancel" class="secbtn">Cancelar</button>
+      <button type="submit" id="bulkOk" class="primary">Agregar</button>
+    </div>
+  </form>
 </div>
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><button type="button" id="toastUndo" class="hidden">Deshacer</button></div>
@@ -283,9 +384,12 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
-const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes';
+const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero',K_ARCHIVE='ultimoArchivo';
+const ARCHIVE_DAYS=90;
+const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
+const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
 const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Espacio','terminar'],['E','editar'],['H','hoy'],['M','mañana'],['Supr','borrar']];
 let cfg={},remote=[],tasks=[],outboxMem=[];
@@ -293,7 +397,7 @@ let syncing=false,syncAgain=false,lastSync=null,lastError=null;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
-let rec=null,listening=false,voiceFilled=false;
+let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
 
 // ---- Almacenamiento local ----
 function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch{return def}}
@@ -440,6 +544,15 @@ function parse(text,defaultDue){
     if(out.priority||/(?:^|\s)(?:no|nada|poco|tan|lo|m[áa]s)$/i.test(str.slice(0,off)))return m;
     out.priority=p?cap(p.toLowerCase()):'Alta';return ' ';
   });
+  // Se repite: "todos los días", "de lunes a viernes", "cada lunes" (semanal, desde el próximo lunes), "cada semana", "cada mes"
+  t=t.replace(/\s(?:(todos\s+los\s+d[íi]as\s+h[áa]biles|de\s+lunes\s+a\s+viernes|d[íi]as\s+h[áa]biles)|(todos\s+los\s+d[íi]as|cada\s+d[íi]a|diariamente|todas\s+las\s+ma[ñn]anas|cada\s+ma[ñn]ana)|(?:cada|todos\s+los)\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bados?|domingos?)|(cada\s+semana|todas\s+las\s+semanas|semanalmente)|(cada\s+mes|todos\s+los\s+meses|mensualmente))(?=[\s,.;:])/i,(m,wk,dl,wd,ww,mm)=>{
+    out.repeat=wk?'weekdays':dl?'daily':wd||ww?'weekly':'monthly';
+    if(wd)out.due=baseDate(wd.replace(/^(s[áa]bado|domingo)s$/i,'$1'));
+    return ' ';
+  });
+  // Esperando respuesta: "#esperando" (con "@Juan" queda de quién) o dicho: "esperando respuesta de Juan"
+  t=t.replace(/\s#esperando(?=[\s,.;:])/i,()=>{out.waiting=true;return ' '});
+  if(!out.waiting)t=t.replace(/\s(?:en\s+)?espera(?:ndo)?\s+(?:respuesta|confirmaci[óo]n)(?:\s+de\s+([A-ZÁÉÍÓÚÑ][^\s,.;:]*))?(?=[\s,.;:])/,(m,n)=>{out.waiting=true;if(n)out.waitingOn=n;return ' '});
   // Quién la pide: "@Juan" … o dicho: "me lo pidió Laura", "pedido por Juan", "de parte de mi jefe"
   t=t.replace(/\s@([^\s@!]+)/,(m,r)=>{out.requester=r.replace(/[.,;:)]+$/,'').replace(/_/g,' ');return ' '});
   if(!out.requester)t=t.replace(/\s(me\s+(?:lo|la)\s+pidi[óo]|pedid[oa]\s+por|de\s+parte\s+de)\s+((?:(?:el|la|mi|su|tu)\s+)?[^\s,.;:]+)((?:\s+[^\s,.;:]+)?)(?=[\s,.;:])/i,(m,k,n1,n2,off,str)=>{
@@ -495,6 +608,8 @@ function applyOp(a,op){
   const item=op.id?a.find(x=>x.id===op.id):null;
   switch(op.type){
     case 'add':
+      // La próxima de una tarea que se repite se agrega una sola vez, aunque dos dispositivos la terminen
+      if(op.task.repeatOf&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id))break;
       if(!a.some(x=>x.id===op.task.id)){
         const order=op.task.order??(Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1);
         a.push({...op.task,order});
@@ -508,7 +623,8 @@ function applyOp(a,op){
       break;
     case 'delete': {
       const i=a.findIndex(x=>x.id===op.id);
-      if(i>=0)a.splice(i,1);
+      // onlyDone (archivo): si mientras tanto alguien la volvió a pendientes, no se borra
+      if(i>=0&&!(op.onlyDone&&!a[i].done))a.splice(i,1);
       break;
     }
     case 'move': {
@@ -534,6 +650,12 @@ function act(op){
   recompute();
   sync();
 }
+// Varias operaciones juntas (una sola subida)
+function actMany(ops){
+  ops.forEach(o=>o.opId=crypto.randomUUID());
+  if(ops.length)setOutbox([...getOutbox(),...ops]);
+  recompute();sync();
+}
 function recompute(){tasks=applyAll(remote,getOutbox());render()}
 
 // ---- GitHub ----
@@ -549,6 +671,22 @@ function httpError(r,what){
   if(r.status===403||r.status===404)return Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token');
   return Error(what+' ('+r.status+')');
 }
+// Cualquier archivo JSON del repositorio (tareas.json o archivo/AAAA.json)
+async function getFile(c,path){
+  const r=await ghFetch(repoUrl(c)+'/contents/'+path+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
+  if(r.status===404)return {items:[],sha:null};
+  if(!r.ok)throw httpError(r,'GitHub respondió');
+  const j=await r.json(),data=JSON.parse(b64utf8(j.content));
+  if(!Array.isArray(data))throw Error(path+' no contiene una lista válida');
+  return {items:data,sha:j.sha};
+}
+async function putFile(c,path,items,sha,message){
+  const payload={message,content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
+  const r=await ghFetch(repoUrl(c)+'/contents/'+path,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(r.status===409||r.status===422)return false;
+  if(!r.ok)throw httpError(r,'No se pudo guardar');
+  return true;
+}
 async function getRemote(c){
   const r=await ghFetch(repoUrl(c)+'/contents/'+file+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
   if(r.status===404){
@@ -563,13 +701,7 @@ async function getRemote(c){
   if(!Array.isArray(data))throw Error('El archivo tareas.json no contiene una lista válida');
   return {items:data,sha:j.sha};
 }
-async function putRemote(c,items,sha){
-  const payload={message:'Actualizar tareas',content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
-  const r=await ghFetch(repoUrl(c)+'/contents/'+file,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  if(r.status===409||r.status===422)return false;
-  if(!r.ok)throw httpError(r,'No se pudo guardar');
-  return true;
-}
+function putRemote(c,items,sha){return putFile(c,file,items,sha,'Actualizar tareas')}
 // Trae la última versión y sube los cambios pendientes. Si otro dispositivo guardó
 // en el medio, vuelve a leer y reaplica los cambios. Si falla, quedan guardados acá
 // y se reintenta solo (cada 20 s, al volver a la app o al recuperar la conexión).
@@ -577,7 +709,7 @@ async function sync(){
   if(!configured()){recompute();return}
   if(syncing){syncAgain=true;return}
   syncing=true;renderStatus();
-  let conflicts=0;
+  let conflicts=0,synced=false;
   try{
     do{
       syncAgain=false;
@@ -603,23 +735,60 @@ async function sync(){
       store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote});
       lastSync=new Date();lastError=null;
     }while(syncAgain);
+    synced=true;
   }catch(e){
     lastError=e instanceof TypeError?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
   }finally{
     syncing=false;recompute();
   }
+  if(synced)archiveOld();
+}
+// ---- Archivo automático ----
+// Una vez por día en cada dispositivo: las terminadas hace más de 90 días se agregan a
+// archivo/AAAA.json (por año de terminación, sin duplicar) y recién cuando eso se guardó
+// bien se sacan de tareas.json.
+let archiving=false,archiveTried=0;
+async function archiveOld(){
+  const c=cfg,today=ymd(new Date());
+  if(archiving||!configured()||load(K_ARCHIVE,null)===today)return;
+  // Si falla (por ejemplo, sin permiso), se reintenta como mucho una vez por hora
+  if(Date.now()-archiveTried<3600000)return;
+  archiveTried=Date.now();
+  const cutoff=Date.now()-ARCHIVE_DAYS*86400000;
+  const old=remote.filter(t=>t.done&&t.completedAt&&new Date(t.completedAt).getTime()<cutoff);
+  if(!old.length){store(K_ARCHIVE,today);return}
+  archiving=true;
+  try{
+    const byYear={};
+    old.forEach(t=>{const y=new Date(t.completedAt).getFullYear();(byYear[y]=byYear[y]||[]).push(t)});
+    for(const y of Object.keys(byYear)){
+      const path='archivo/'+y+'.json';
+      for(let i=0;;i++){
+        const cur=await getFile(c,path);
+        if(cfg!==c)return;
+        const ids=new Set(cur.items.map(t=>t.id)),add=byYear[y].filter(t=>!ids.has(t.id));
+        if(!add.length)break;
+        if(await putFile(c,path,cur.items.concat(add),cur.sha,'Archivar tareas terminadas de '+y))break;
+        if(i>=4)throw Error('Conflicto al archivar');
+      }
+    }
+    if(cfg!==c)return;
+    store(K_ARCHIVE,today);
+    actMany(old.map(t=>({type:'delete',id:t.id,onlyDone:true})));
+  }catch{}   // se reintenta en la próxima sincronización
+  finally{archiving=false}
 }
 
 // ---- Estado de sincronización ----
 function cambios(n,guardados){return n===1?'1 cambio'+(guardados?' guardado':''):n+' cambios'+(guardados?' guardados':'')}
 function status(){
   const n=getOutbox().length;
-  if(!configured())return {dot:'#98a2b3',short:'Solo acá',long:(n?cambios(n,true)+' en este dispositivo. ':'')+'Las tareas se guardan solo en este navegador. Conectá un repositorio privado de GitHub para tenerlas en la compu y el celular.'};
-  if(syncing&&n)return {dot:'#d97706',short:'Subiendo…',long:'Subiendo '+cambios(n)+' a GitHub…'};
-  if(lastError)return {dot:'#b42318',short:n?'Sin subir ('+n+')':'Error',long:lastError+'.'+(n?' Hay '+cambios(n,true)+' acá; '+(n===1?'se sube solo':'se suben solos')+' al reconectar.':'')};
-  if(n)return {dot:'#d97706',short:'Pendiente',long:cambios(n)+' sin subir todavía.'};
-  if(lastSync)return {dot:'#16a34a',short:'Al día',long:'Todo subido a GitHub · '+timeNow(lastSync)+'.'};
-  return {dot:'#98a2b3',short:'Conectando…',long:'Conectando con GitHub…'};
+  if(!configured())return {dot:'var(--gray-dot)',short:'Solo acá',long:(n?cambios(n,true)+' en este dispositivo. ':'')+'Las tareas se guardan solo en este navegador. Conectá un repositorio privado de GitHub para tenerlas en la compu y el celular.'};
+  if(syncing&&n)return {dot:'var(--amber-dot)',short:'Subiendo…',long:'Subiendo '+cambios(n)+' a GitHub…'};
+  if(lastError)return {dot:'var(--red)',short:n?'Sin subir ('+n+')':'Error',long:lastError+'.'+(n?' Hay '+cambios(n,true)+' acá; '+(n===1?'se sube solo':'se suben solos')+' al reconectar.':'')};
+  if(n)return {dot:'var(--amber-dot)',short:'Pendiente',long:cambios(n)+' sin subir todavía.'};
+  if(lastSync)return {dot:'var(--green)',short:'Al día',long:'Todo subido a GitHub · '+timeNow(lastSync)+'.'};
+  return {dot:'var(--gray-dot)',short:'Conectando…',long:'Conectando con GitHub…'};
 }
 function renderStatus(){
   const st=status();
@@ -628,9 +797,21 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){renderHeader();renderAdd();renderList();renderStatus();if(edit)renderEdit()}
+function render(){renderHeader();renderAdd();renderList();renderStatus();if(edit)renderEdit();updateBadge()}
+// Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
+// lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
+const BADGE='setAppBadge' in navigator;
+let lastBadge=null;
+function badgeOn(){return load(K_BADGE,true)!==false}
+function updateBadge(){
+  if(!BADGE)return;
+  const n=badgeOn()?tasks.filter(t=>!t.done&&!t.waiting&&t.due&&daysUntil(t.due)<=0).length:0;
+  if(n===lastBadge)return;
+  lastBadge=n;
+  try{(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{})}catch{}
+}
 function renderHeader(){
-  const today=ymd(new Date()),pend=tasks.filter(t=>!t.done);
+  const today=ymd(new Date()),pend=tasks.filter(t=>!t.done&&!t.waiting);
   $('todayLabel').textContent=cap(new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}));
   const over=pend.filter(t=>groupOf(t)==='over').length,tod=pend.filter(t=>groupOf(t)==='today').length;
   const doneToday=tasks.filter(t=>t.done&&t.completedAt&&ymd(new Date(t.completedAt))===today).length;
@@ -651,6 +832,8 @@ function renderAdd(){
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
   if(p.time)tags.push(timeLabel(p.time));
   if(p.requester)tags.push('@'+p.requester);
+  if(p.repeat)tags.push('↻ '+cap(REPEAT_LABEL[p.repeat]));
+  if(p.waiting){const w=p.waitingOn||p.requester;tags.push(w?'Esperando a '+w:'Esperando')}
   // Lo dictado no entra en el campo: se muestra completo el título que se va a guardar
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
   if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(el('span','tag',x)))}
@@ -659,14 +842,19 @@ function renderAdd(){
   updateAddBtn();
   placeMenu();
 }
+const samePerson=(a,b)=>!!a&&!!b&&norm(a)===norm(b);
+// La pidió esa persona, o se está esperando su respuesta
+function byPerson(t){return !personFilter||samePerson(t.requester,personFilter)||(t.waiting&&!t.done&&samePerson(t.waitingOn,personFilter))}
 function matcher(){
   const q=$('search').value.trim().toLowerCase().replace(/^@/,'');
-  return t=>!q||(t.title+' '+(t.requester||'')+' '+(t.notes||'')).toLowerCase().includes(q);
+  return t=>byPerson(t)&&(!q||(t.title+' '+(t.requester||'')+' '+(t.waitingOn||'')+' '+(t.notes||'')).toLowerCase().includes(q));
 }
+function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
+  if(swiping){renderLater=true;return}
   const match=matcher(),q=$('search').value.trim();
   const unsynced=new Set(configured()?getOutbox().map(o=>o.id||(o.task&&o.task.id)):[]);
-  const pending=tasks.filter(t=>!t.done&&match(t)).sort(cmpPending);
+  const pending=tasks.filter(t=>!t.done&&!t.waiting&&match(t)).sort(cmpPending);
   const box=$('groups');box.replaceChildren();visibleIds=[];
   for(const g of GROUPS){
     const items=pending.filter(t=>groupOf(t)===g.id);
@@ -675,11 +863,21 @@ function renderList(){
     const head=el('div','ghead'+(g.id==='over'?' over':g.id==='today'?' today':''));
     head.append(el('span',null,g.title),el('span','n',String(items.length)));
     const card=el('div','card');
-    items.forEach(t=>{visibleIds.push(t.id);card.append(taskRow(t,g.id,unsynced))});
+    items.forEach(t=>{visibleIds.push(t.id);card.append(COARSE?swipeRow(taskRow(t,g.id,unsynced),t):taskRow(t,g.id,unsynced))});
     grp.append(head,card);box.append(grp);
   }
-  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.':'Nada pendiente. Buen trabajo.';
-  $('empty').classList.toggle('hidden',pending.length>0);
+  // Esperando: debajo de los pendientes, las más viejas primero
+  const waiting=tasks.filter(t=>!t.done&&t.waiting&&match(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''));
+  const ws=$('waitingSec');ws.replaceChildren();
+  if(waiting.length){
+    const grp=el('div','grp'),head=el('div','ghead'),card=el('div','card');
+    head.append(el('span',null,'Esperando'),el('span','n',String(waiting.length)));
+    waiting.forEach(t=>{visibleIds.push(t.id);card.append(taskRow(t,'waiting',unsynced))});
+    grp.append(head,card);ws.append(grp);
+  }
+  $('filterBar').classList.toggle('hidden',!personFilter);$('filterName').textContent=personFilter||'';
+  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.':personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
+  $('empty').classList.toggle('hidden',pending.length+waiting.length>0);
   if(sel&&!visibleIds.includes(sel))sel=null;
   if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done))closeMenu();
 
@@ -704,7 +902,14 @@ function renderList(){
   const older=doneMatch.length>recent.length||showAllDone;
   $('doneAll').classList.toggle('hidden',!older);
   $('doneAll').textContent=showAllDone?'Ver solo últimos '+DONE_DAYS+' días':'Ver todas ('+doneMatch.length+')';
+  $('archiveNote').classList.toggle('hidden',!configured());
   placeMenu();
+}
+// Tocar "@Laura" filtra por esa persona (sin abrir la edición)
+function personBtn(name,label){
+  const b=el('button','person',label);b.type='button';b.title='Ver solo las de '+name;
+  b.onclick=e=>{e.stopPropagation();setPersonFilter(name)};
+  return b;
 }
 function taskRow(t,gid,unsynced){
   const row=el('div','task'+(sel===t.id?' sel':''));row.dataset.id=t.id;
@@ -715,9 +920,18 @@ function taskRow(t,gid,unsynced){
   // La fecha solo donde aporta: en Hoy y Mañana sería redundante
   const showDue=!!t.due&&(gid==='over'||gid==='week'||gid==='later');
   const meta=el('div','meta');
+  if(gid==='waiting'){
+    // "Juan · hace 3 días": desde los 3 días, en ámbar
+    const days=t.waitingSince?Math.max(0,-daysUntil(ymd(new Date(t.waitingSince)))):0;
+    const w=el('span',days>=3?'late':null);
+    if(t.waitingOn)w.append(personBtn(t.waitingOn,t.waitingOn),' · ');else w.append('Esperando · ');
+    w.append(days===0?'desde hoy':days===1?'hace 1 día':'hace '+days+' días');
+    meta.append(w);
+  }
   if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
+  if(t.repeat&&REPEAT_LABEL[t.repeat])meta.append(el('span',null,'↻ '+REPEAT_LABEL[t.repeat]));
   if(t.priority==='Alta')meta.append(el('span','alta','Alta'));
-  if(t.requester)meta.append(el('span',null,'@'+t.requester));
+  if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
   if(unsynced.has(t.id))meta.append(el('span','unsynced','sin subir'));
   if(meta.childNodes.length)body.append(meta);
   if(t.notes)body.append(el('div','notes',t.notes));
@@ -727,6 +941,53 @@ function taskRow(t,gid,unsynced){
   return row;
 }
 
+// ---- Deslizar en el celular ----
+// Derecha más de 80 px: terminar. Izquierda: pasar a mañana. Si el dedo va más vertical que
+// horizontal, se deja hacer scroll. Las dos acciones muestran el aviso con Deshacer.
+function swipeRow(row,t){
+  const wrap=el('div','swipe'),bg=el('div','swbg');
+  bg.append(el('span','r','✓'),el('span','l','Mañana'));
+  wrap.append(bg,row);
+  let sx=0,sy=0,dx=0,pid=null,mode=null,armed=false;
+  const reset=()=>{row.classList.add('anim');row.style.transform='';setTimeout(()=>{if(!pid)bg.className='swbg'},160)};
+  const finish=()=>{swiping=false;if(renderLater){renderLater=false;render()}};
+  row.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'||!e.isPrimary)return;
+    sx=e.clientX;sy=e.clientY;dx=0;pid=e.pointerId;mode=null;armed=false;
+  });
+  row.addEventListener('pointermove',e=>{
+    if(e.pointerId!==pid||mode==='scroll')return;
+    const mx=e.clientX-sx,my=e.clientY-sy;
+    if(!mode){
+      if(Math.abs(my)>10&&Math.abs(my)>=Math.abs(mx)){mode='scroll';return}
+      if(Math.abs(mx)<=10)return;
+      mode='swipe';swiping=true;row.classList.remove('anim');
+      try{row.setPointerCapture(pid)}catch{}
+    }
+    dx=mx;row.style.transform='translateX('+dx+'px)';
+    bg.className='swbg '+(dx>0?'right':'left')+(armed?' armed':'');
+    const now=Math.abs(dx)>80;
+    if(now!==armed){armed=now;bg.classList.toggle('armed',now);if(now&&navigator.vibrate)navigator.vibrate(10)}
+  });
+  const end=e=>{
+    if(e.pointerId!==pid)return;
+    pid=null;
+    if(mode!=='swipe'){mode=null;return}
+    mode=null;
+    // El toque que termina el gesto no tiene que abrir la edición
+    swallowClick=true;setTimeout(()=>{swallowClick=false},400);
+    const goRight=dx>80,goLeft=dx<-80&&t.due!==dueFor('1');
+    if(e.type==='pointerup'&&(goRight||goLeft)){
+      row.classList.add('anim');row.style.transform='translateX('+(goRight?'':'-')+'110%)';
+      setTimeout(()=>{finish();goRight?toggle(t):reschedule(t,'1')},150);
+    }else{reset();finish()}
+  };
+  row.addEventListener('pointerup',end);
+  row.addEventListener('pointercancel',end);
+  return wrap;
+}
+document.addEventListener('click',e=>{if(swallowClick){swallowClick=false;e.stopPropagation();e.preventDefault()}},true);
+
 // ---- Menú ⋯ ----
 function openMenu(id){
   if(menuId===id){closeMenu();return}
@@ -735,10 +996,16 @@ function openMenu(id){
   const m=$('menu');m.replaceChildren();
   const n=t.due?daysUntil(t.due):null;
   const item=(label,fn,cls)=>{const b=el('button',cls,label);b.type='button';b.setAttribute('role','menuitem');b.onclick=()=>{closeMenu();fn()};m.append(b)};
-  if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
-  if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
-  if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
-  item('Agregar al calendario',()=>openCalendar(t));
+  if(t.waiting){
+    item('Ya respondió',()=>setWaiting(t,false));
+    item('Terminar',()=>toggle(t));
+  }else{
+    if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
+    if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
+    if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
+    item('Esperando respuesta…',()=>openWait(t));
+    item('Agregar al calendario',()=>openCalendar(t));
+  }
   item('Editar…',()=>openEdit(t));
   m.append(el('div','sep'));
   item('Borrar',()=>del(t),'danger');
@@ -752,7 +1019,7 @@ function openMenu(id){
 // página (acompaña el scroll) y se vuelve a ubicar cada vez que la lista se redibuja.
 function placeMenu(){
   if(!menuId)return;
-  const row=[...document.querySelectorAll('#groups .task')].find(r=>r.dataset.id===menuId);
+  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task')].find(r=>r.dataset.id===menuId);
   if(!row){closeMenu();return}
   const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
   let top=r.bottom+2;if(top+mh>innerHeight-8)top=Math.max(8,r.top-mh-2);
@@ -769,10 +1036,39 @@ function toast(msg,action,label,ms){
   clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||4500);
 }
 function hideToast(){$('toast').classList.add('hidden');toastAction=null}
+// Próxima vez de una tarea que se repite, contada desde su fecha (o desde hoy si no tenía).
+// Si esa fecha ya pasó, la primera de hoy en adelante. Mensual: mismo día, o el último del mes.
+function addDaysTo(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function nextDue(t){
+  const today=ymd(new Date()),base=parseYmd(t.due||today),anchor=t.repeat==='monthly'&&t.repeatDay||base.getDate();
+  let cand=base;
+  for(let k=1;k<4000;k++){
+    if(t.repeat==='monthly'){const x=new Date(base.getFullYear(),base.getMonth()+k,1);x.setDate(Math.min(anchor,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));cand=x}
+    else if(t.repeat==='weekly')cand=addDaysTo(base,7*k);
+    else{cand=addDaysTo(cand,1);if(t.repeat==='weekdays')while(cand.getDay()===0||cand.getDay()===6)cand=addDaysTo(cand,1)}
+    if(ymd(cand)>=today)break;
+  }
+  return ymd(cand);
+}
 function toggle(t){
-  const done=!t.done,prevAt=t.completedAt;
-  act({type:'done',id:t.id,done,at:new Date().toISOString()});
-  toast(done?'Tarea terminada':'Volvió a pendientes',()=>act({type:'done',id:t.id,done:!done,at:prevAt||new Date().toISOString()}));
+  const done=!t.done,prevAt=t.completedAt,ops=[{type:'done',id:t.id,done,at:new Date().toISOString()}];
+  let next=null;
+  // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
+  // en otro dispositivo), no se crea otra
+  if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
+    next={id:crypto.randomUUID(),repeatOf:t.id,title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
+    ops.push({type:'add',task:next});
+  }
+  actMany(ops);
+  const msg=!done?'Volvió a pendientes':next?'Tarea terminada · la próxima '+(daysUntil(next.due)<=1?'es '+dueLabel(next.due).toLowerCase():'el '+shortDue(next.due).toLowerCase()):'Tarea terminada';
+  // Deshacer: vuelve a como estaba y borra la próxima. Se encola el borrado siempre, porque la
+  // subida puede estar en curso; si la próxima nunca llegó a GitHub, borrarla no hace nada.
+  toast(msg,()=>{
+    const undo=[{type:'done',id:t.id,done:!done,at:prevAt||new Date().toISOString()}];
+    if(next)undo.push({type:'delete',id:next.id});
+    actMany(undo);
+  });
 }
 function reschedule(t,v){
   const prev=t.due||null,due=dueFor(v);
@@ -780,6 +1076,23 @@ function reschedule(t,v){
   act({type:'edit',id:t.id,patch:{due}});
   toast(v==='0'?'Pasada a hoy':v==='1'?'Pasada a mañana':'Pasada al lunes',()=>act({type:'edit',id:t.id,patch:{due:prev}}));
 }
+// Esperando respuesta: sale de los grupos por fecha hasta que respondan
+function setWaiting(t,on,name){
+  const prev={waiting:!!t.waiting,waitingOn:t.waitingOn||'',waitingSince:t.waitingSince||null};
+  if(on){
+    act({type:'edit',id:t.id,patch:{waiting:true,waitingOn:name||'',waitingSince:new Date().toISOString()}});
+    toast(name?'En espera de '+name:'En espera',()=>act({type:'edit',id:t.id,patch:prev}));
+  }else{
+    act({type:'edit',id:t.id,patch:{waiting:false}});
+    toast('Volvió a pendientes',()=>act({type:'edit',id:t.id,patch:prev}));
+  }
+}
+function openWait(t){
+  waitFor=t;$('waitName').value=t.waitingOn||t.requester||'';
+  $('waitOv').classList.remove('hidden');$('wrap').inert=true;
+  if(FINE){$('waitName').focus();$('waitName').select()}
+}
+function closeWait(){waitFor=null;releaseFocus($('waitOv'));$('waitOv').classList.add('hidden');$('wrap').inert=false}
 function del(t){
   const copy={...t};
   if(edit&&edit.id===t.id)closeEdit();
@@ -789,24 +1102,39 @@ function del(t){
   // en GitHub (con lo que se haya cambiado desde otro dispositivo). Si ya se subió, se repone.
   toast('Tarea borrada',()=>{setOutbox(getOutbox().filter(o=>o.opId!==op.opId));act({type:'add',task:copy})});
 }
-// Google Calendar con el evento ya completo; el calendario se encarga del aviso
-// tm: la hora entendida al agregar; si no viene, se lee del título
-function calendarUrl(t,tm){
-  // Una tarea vencida va al calendario para hoy, así todavía puede avisar
-  const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today,fmt=d=>ymd(d).replace(/-/g,'');
+// Calendario: se descarga un evento (.ics) que el calendario del teléfono (Samsung, Outlook,
+// Apple…) agrega con su aviso. Sin hora, el evento queda a las 9:00 (o en la próxima hora en
+// punto si es para hoy y ya pasaron las 9), así siempre avisa. Una tarea vencida va para hoy.
+function eventTime(t,tm){
+  const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today;
   tm=tm||timeOf(' '+t.title+' ');
-  let dates;
-  if(tm){
-    const a=parseYmd(day);a.setHours(tm.h,tm.m);const b=new Date(a);b.setMinutes(b.getMinutes()+30);
-    const hm=d=>'T'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'00';
-    dates=fmt(a)+hm(a)+'/'+fmt(b)+hm(b);
-  }else{const b=parseYmd(day);b.setDate(b.getDate()+1);dates=day.replace(/-/g,'')+'/'+fmt(b)}
-  const q=new URLSearchParams({action:'TEMPLATE',text:t.title,dates});
-  if(t.notes)q.set('details',t.notes);
-  try{q.set('ctz',Intl.DateTimeFormat().resolvedOptions().timeZone)}catch{}
-  return 'https://calendar.google.com/calendar/render?'+q;
+  let d=day;
+  if(!tm){const n=new Date();tm=day===today&&n.getHours()>=9?{h:n.getHours()+1,m:0}:{h:9,m:0};if(tm.h>23){d=addDays(1);tm={h:9,m:0}}}
+  const start=parseYmd(d);start.setHours(tm.h,tm.m);
+  const end=new Date(start);end.setMinutes(end.getMinutes()+30);
+  return {start,end};
 }
-function openCalendar(t,tm){window.open(calendarUrl(t,tm),'_blank','noopener')}
+function icsText(t,tm){
+  const {start,end}=eventTime(t,tm);
+  const esc=x=>String(x||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  const p2=n=>String(n).padStart(2,'0'),dt=d=>ymd(d).replace(/-/g,'')+'T'+p2(d.getHours())+p2(d.getMinutes())+'00';
+  // Líneas de hasta 75 bytes, como pide el formato
+  const fold=line=>{const enc=new TextEncoder(),out=[];let cur='',n=0;for(const ch of line){const b=enc.encode(ch).length;if(n+b>(out.length?74:75)){out.push(cur);cur='';n=0}cur+=ch;n+=b}out.push(cur);return out.join('\r\n ')};
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mis tareas//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    'UID:'+t.id+'@mis-tareas','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''),
+    'DTSTART:'+dt(start),'DTEND:'+dt(end),'SUMMARY:'+esc(t.title)];
+  if(t.notes)L.push('DESCRIPTION:'+esc(t.notes));
+  L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+esc(t.title),'TRIGGER:-PT0M','END:VALARM','END:VEVENT','END:VCALENDAR');
+  return L.map(fold).join('\r\n')+'\r\n';
+}
+function openCalendar(t,tm){
+  const blob=new Blob([icsText(t,tm)],{type:'text/calendar;charset=utf-8'});
+  const a=el('a');a.href=URL.createObjectURL(blob);
+  a.download=(t.title.replace(/[\\/:*?"<>|\r\n]+/g,' ').trim().slice(0,40)||'tarea')+'.ics';
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  toast('Abrí el archivo descargado para agregarlo al calendario',null,null,6000);
+}
 function addedMsg(due){
   if(!due)return 'Agregada sin fecha';
   const n=daysUntil(due);
@@ -823,8 +1151,10 @@ $('addForm').addEventListener('submit',e=>{
   const refocus=FINE||document.activeElement===$('title');
   const p=parse(raw,dueFor(chip)),due=p.due!==undefined?p.due:dueFor(chip);
   const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',due:due||null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  if(p.repeat)task.repeat=p.repeat;
+  if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   act({type:'add',task});
-  // Con hora o "recordame…", un toque la pasa a Google Calendar para que avise
+  // Con hora o "recordame…", un toque la pasa al calendario del teléfono para que avise
   if(p.time||p.remind)toast(addedMsg(due),()=>openCalendar(task,p.time),'Al calendario',7000);
   else toast(addedMsg(due));
   $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;
@@ -854,6 +1184,70 @@ function setNote(on){
   if(!on)$('note').value='';
 }
 $('noteToggle').onclick=()=>{const on=$('note').classList.contains('hidden');setNote(on);if(on)$('note').focus()};
+
+// ---- Pegar varias líneas ----
+// Si se pegan 2 o más líneas, se ofrece cargar una tarea por línea (se pueden editar o destildar).
+const BULLET_RE=/^\s*(?:(?:[-*•·]|\d+[.)](?!\d))\s*)?(?:\[[ xX]?\]\s*)?/;
+function splitLines(text){return String(text||'').split(/\r?\n/).map(l=>l.replace(BULLET_RE,'').trim()).filter(Boolean)}
+$('title').addEventListener('paste',e=>{
+  const lines=splitLines(e.clipboardData&&e.clipboardData.getData('text'));
+  if(lines.length<2)return;
+  e.preventDefault();openBulk(lines);
+});
+$('title').addEventListener('beforeinput',e=>{
+  if(!e.data||!/[\r\n]/.test(e.data))return;
+  const lines=splitLines(e.data);if(lines.length<2)return;
+  const t=e.target,prev=t.value;
+  e.preventDefault();
+  if(!e.cancelable)setTimeout(()=>{t.value=prev;renderAdd()},0);   // si no se pudo cancelar, se deja como estaba
+  openBulk(lines);
+});
+function openBulk(lines){
+  closeMenu();bulk=true;
+  const list=$('bulkList');list.replaceChildren();
+  lines.forEach(l=>{
+    const row=el('label','bulkrow'),cb=el('input'),inp=el('input','inp');
+    cb.type='checkbox';cb.checked=true;cb.setAttribute('aria-label','Cargar esta línea');
+    inp.value=l.slice(0,500);inp.maxLength=500;inp.setAttribute('aria-label','Tarea');
+    cb.addEventListener('change',renderBulk);inp.addEventListener('input',renderBulk);
+    row.append(cb,inp);list.append(row);
+  });
+  const d=dueFor(chip);
+  $('bulkHint').textContent='Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'.';
+  $('bulkOv').classList.remove('hidden');$('wrap').inert=true;
+  renderBulk();
+}
+function bulkItems(){return [...$('bulkList').children].filter(r=>r.firstChild.checked&&r.lastChild.value.trim()).map(r=>r.lastChild.value.trim())}
+function renderBulk(){
+  const n=bulkItems().length;
+  [...$('bulkList').children].forEach(r=>r.classList.toggle('off',!r.firstChild.checked));
+  $('bulkH').textContent=n===1?'¿Cargar 1 tarea?':'¿Cargar '+n+' tareas?';
+  $('bulkOk').textContent=n===1?'Agregar 1':'Agregar '+n;$('bulkOk').disabled=!n;
+}
+function closeBulk(){bulk=null;releaseFocus($('bulkOv'));$('bulkOv').classList.add('hidden');$('wrap').inert=false}
+$('bulkForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const def=dueFor(chip),now=new Date().toISOString();
+  const added=bulkItems().map(line=>{
+    const p=parse(line,def);
+    const task={id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',due:(p.due!==undefined?p.due:def)||null,notes:'',done:false,createdAt:now,completedAt:null};
+    if(p.repeat)task.repeat=p.repeat;
+    if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:now});
+    return task;
+  });
+  closeBulk();
+  if(!added.length)return;
+  const ops=added.map(task=>({type:'add',task}));
+  actMany(ops);
+  $('title').value='';renderAdd();
+  // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
+  toast(added.length===1?'1 tarea agregada':added.length+' tareas agregadas',()=>{
+    actMany(added.map(x=>({type:'delete',id:x.id})));
+  });
+});
+$('bulkX').onclick=closeBulk;$('bulkCancel').onclick=closeBulk;
+$('bulkOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('bulkOv').addEventListener('click',e=>{if(e.target===$('bulkOv')&&downOn===e.target)closeBulk()});
 
 // ---- Dictado por voz ----
 // Con el campo vacío, el botón de Agregar es un micrófono. Lo dictado queda en el campo con
@@ -909,6 +1303,49 @@ $('searchBtn').onclick=()=>searchOpen?closeSearch():openSearch();
 $('searchClose').onclick=closeSearch;
 $('search').addEventListener('input',renderList);
 
+// ---- Filtro por persona ----
+$('filterX').onclick=()=>setPersonFilter(null);
+
+// ---- Mini diálogo "¿De quién?" ----
+$('waitForm').addEventListener('submit',e=>{e.preventDefault();const t=waitFor;closeWait();if(t)setWaiting(t,true,$('waitName').value.trim())});
+$('waitX').onclick=closeWait;$('waitCancel').onclick=closeWait;
+$('waitOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('waitOv').addEventListener('click',e=>{if(e.target===$('waitOv')&&downOn===e.target)closeWait()});
+
+// ---- Copiar resumen de la semana ----
+// Terminadas desde el lunes (o la semana pasada), agrupadas por quién las pidió
+function dm(d){return d.getDate()+'/'+(d.getMonth()+1)}
+function weekSummary(off){
+  const now=new Date(),mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(now.getDay()+6)%7-7*off);
+  const end=off?new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+6):new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const from=ymd(mon),to=ymd(end);
+  const done=tasks.filter(t=>t.done&&t.completedAt&&byPerson(t)).filter(t=>{const d=ymd(new Date(t.completedAt));return d>=from&&d<=to})
+    .sort((a,b)=>a.completedAt.localeCompare(b.completedAt));
+  if(!done.length)return null;
+  const groups=new Map();
+  done.forEach(t=>{const name=(t.requester||'').trim(),k=name?norm(name):'';if(!groups.has(k))groups.set(k,{name:name||'Sin asignar',items:[]});groups.get(k).items.push(t.title)});
+  const keys=[...groups.keys()].sort((a,b)=>a===''?1:b===''?-1:a.localeCompare(b,'es'));
+  const lines=['Resumen semana '+dm(mon)+' al '+dm(end)];
+  keys.forEach(k=>{const g=groups.get(k);lines.push('',g.name,...g.items.map(x=>'• '+x))});
+  const waiting=tasks.filter(t=>!t.done&&t.waiting&&byPerson(t));
+  if(waiting.length){lines.push('');waiting.forEach(t=>lines.push('En espera: '+t.title+(t.waitingOn?' (esperando a '+t.waitingOn+')':' (esperando respuesta)')))}
+  return lines.join('\n');
+}
+function showText(text){
+  $('textBox').value=text;$('textOv').classList.remove('hidden');$('wrap').inert=true;
+  $('textBox').focus();$('textBox').select();
+}
+function closeText(){releaseFocus($('textOv'));$('textOv').classList.add('hidden');$('wrap').inert=false}
+$('copySum').onclick=()=>{
+  const off=Number($('sumWeek').value),text=weekSummary(off);
+  if(!text){toast(off?'No hay tareas terminadas la semana pasada':'Todavía no hay tareas terminadas esta semana');return}
+  const fail=()=>showText(text);
+  try{navigator.clipboard.writeText(text).then(()=>toast('Resumen copiado'),fail)}catch{fail()}
+};
+$('textX').onclick=closeText;
+$('textOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('textOv').addEventListener('click',e=>{if(e.target===$('textOv')&&downOn===e.target)closeText()});
+
 // ---- Terminadas ----
 $('doneToggle').onclick=()=>{showDone=!showDone;renderList()};
 $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
@@ -922,7 +1359,8 @@ $('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToa
 function openEdit(t){
   closeMenu();
   edit={id:t.id,due:t.due||'',priority:t.priority||'Media',
-    orig:{title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||''}};
+    orig:{title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
+  $('eRepeat').value=edit.orig.repeat||'';
   $('eTitle').value=t.title;$('eRequester').value=t.requester||'';$('eNotes').value=t.notes||'';
   if(FINE)sel=t.id;
   $('editOv').classList.remove('hidden');$('wrap').inert=true;
@@ -944,7 +1382,7 @@ $('editForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(!edit)return;
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
-  const vals={title,due:edit.due||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim()};
+  const vals={title,due:edit.due||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
   const patch={};for(const k in vals)if(vals[k]!==edit.orig[k])patch[k]=vals[k];
   const id=edit.id;closeEdit();
@@ -953,7 +1391,6 @@ $('editForm').addEventListener('submit',e=>{
 $('editX').onclick=closeEdit;$('eCancel').onclick=closeEdit;
 // Tocar el fondo oscuro cierra el modal, salvo que el toque empiece adentro
 // (por ejemplo, al arrastrar para seleccionar texto y soltar afuera)
-let downOn=null;
 ['editOv','syncOv'].forEach(id=>$(id).addEventListener('pointerdown',e=>{downOn=e.target}));
 $('editOv').addEventListener('click',e=>{if(e.target===$('editOv')&&downOn===e.target)closeEdit()});
 $('eDel').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);if(t)del(t);else closeEdit()};
@@ -963,6 +1400,7 @@ function openSettings(){
   closeMenu();settingsOpen=true;confirmClear=false;
   $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';
   $('cfgMsg').classList.add('hidden');$('syncOv').classList.remove('hidden');$('wrap').inert=true;
+  $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
   renderStatus();
 }
 function closeSettings(){settingsOpen=false;confirmClear=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
@@ -982,6 +1420,12 @@ $('saveCfg').onclick=()=>{
   closeSettings();recompute();sync();
 };
 $('syncNow').onclick=()=>sync();
+$('badgeSw').addEventListener('change',()=>{
+  const on=$('badgeSw').checked;store(K_BADGE,on);lastBadge=null;updateBadge();
+  // En iPhone el número necesita permiso de notificaciones: se pide solo al activarlo
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(on&&ios&&window.Notification&&Notification.permission==='default')Notification.requestPermission().then(()=>{lastBadge=null;updateBadge()}).catch(()=>{});
+});
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
   try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
@@ -996,15 +1440,19 @@ document.addEventListener('keydown',e=>{
   const typing=tag==='input'||tag==='textarea'||tag==='select'||tg.isContentEditable;
   if(e.key==='Escape'){
     if(listening)stopVoice(true);
+    else if(!$('textOv').classList.contains('hidden'))closeText();
+    else if(waitFor)closeWait();
+    else if(bulk)closeBulk();
     else if(edit)closeEdit();
     else if(settingsOpen)closeSettings();
     else if(menuId)closeMenu();
     else if(searchOpen)closeSearch();
+    else if(personFilter)setPersonFilter(null);
     else if(typing&&tg.blur)tg.blur();
     else if(sel){sel=null;renderList()}
     return;
   }
-  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen)return;
+  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||!$('textOv').classList.contains('hidden'))return;
   // Espacio/Enter sobre un botón con foco ya lo activan: no duplicar la acción
   if((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter'))return;
   const ids=visibleIds,i=ids.indexOf(sel),t=tasks.find(x=>x.id===sel&&!x.done);
@@ -1033,7 +1481,25 @@ cfg=load(K_CFG,{})||{};
 loadCache();
 recompute();   // muestra al instante lo guardado en el dispositivo
 sync();        // y después trae lo último de GitHub
-if(FINE)$('title').focus();   // en el celular no se abre el teclado al entrar
+// Desde el acceso directo "Nueva tarea" (?nueva=1) el foco va al campo también en el celular
+const params=new URLSearchParams(location.search);
+// Al compartir, Chrome arma la dirección con title/text/url (reemplaza el ?share=1 del manifest)
+const shared=['share','title','text','url'].some(k=>params.has(k));
+if(params.has('nueva')||shared)history.replaceState(null,'',location.pathname+location.hash);
+if(FINE||params.has('nueva')||shared)$('title').focus();   // si no, en el celular no se abre el teclado al entrar
+// Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
+// Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
+if(shared){
+  const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
+  const lines=splitLines(text);
+  if(lines.length>=2){
+    const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
+    openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
+  }else{
+    const parts=[];[title,text,url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
+    $('title').value=parts.join(' ').replace(/\s+/g,' ').slice(0,500);renderAdd();
+  }
+}
 setInterval(()=>{if(document.visibilityState==='visible')sync()},20000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
 window.addEventListener('online',sync);

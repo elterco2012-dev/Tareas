@@ -39,17 +39,39 @@ USO DIARIO
   "urgente", "importante" o "prioridad alta/media/baja"; y "me lo pidio Juan" o "de parte de Juan".
   El dictado usa el reconocimiento de voz del navegador: necesita internet y el audio lo procesa Google.
   En iPhone puede no estar disponible dentro de la app instalada: usa el microfono del teclado.
-- Recordatorios: la app no puede sonar a una hora estando cerrada. Si la tarea tiene hora o empieza con
-  "recordame", despues de agregarla aparece "Al calendario": abre Google Calendar con el evento listo y
-  el calendario te avisa. Tambien esta en el menu "⋯" de cada tarea ("Agregar al calendario").
-  Si no le pusiste hora, el evento queda de todo el dia y Calendar puede no avisarte: deci la hora
-  ("a las 10") o ponesela en Calendar antes de guardar el evento. Una tarea vencida va al calendario para hoy.
+- Calendario: si la tarea tiene hora o empieza con "recordame", despues de agregarla aparece "Al calendario".
+  Tambien esta en el menu "⋯" ("Agregar al calendario"). Se descarga un archivo de evento: abrilo (en Android,
+  tocando "Abrir" en el aviso de descarga) y el Calendario de Samsung (o Outlook, o el de Apple) lo agrega con
+  su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
   Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
   Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
   El boton de arriba a la derecha muestra el estado ("Al dia", "Pendiente", "Sin subir") y abre la configuracion de GitHub.
 - En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir, Espacio terminar, E editar, H hoy, M mañana, Supr borrar.
+- Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
+  cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
+- Compartir desde WhatsApp o el mail (Android, con la app instalada): en el mensaje toca Compartir y elegi
+  "Tareas". El texto queda en el campo para revisarlo y tocar Agregar.
+- Acceso directo: mantene apretado el icono de la app y elegi "Nueva tarea": abre con el teclado listo.
+  Si "Tareas" no aparece al compartir o no ves "Nueva tarea", el celular todavia no actualizo la app instalada:
+  esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
+- Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
+- Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
+  ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
+  Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
+- Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
+  (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
+- Filtrar por persona: toca "@Laura" en una tarea para ver solo las que te pidio. La ✕ (o Esc) quita el filtro.
+- Copiar resumen: en Terminadas, "Copiar resumen" copia lo que terminaste esta semana (o la pasada),
+  agrupado por quien lo pidio, para pegarlo en un mail o WhatsApp.
+- Numero en el icono: en la compu (app instalada) muestra cuantas vencidas y para hoy hay. En Android, Chrome
+  no muestra numeros en el icono. Se apaga en Sincronizacion.
+- Modo oscuro: sigue al del celular o la compu.
+- Archivo: las tareas terminadas hace mas de 3 meses se mueven solas a archivo/AAAA.json en tu repositorio de
+  datos, para que la lista no crezca sin fin.
+- Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
+  Seguir los pasos de repo-datos/INSTRUCCIONES.md.
 
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
