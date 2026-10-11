@@ -1,8 +1,8 @@
 ORGANIZADOR PERSONAL - SOLO GITHUB
 
 1) En GitHub crea un repositorio PUBLICO, por ejemplo "organizador-web".
-2) Sube al directorio raiz de ese repositorio: index.html, manifest.webmanifest, sw.js y la carpeta icons/ completa
-   (los cuatro son necesarios para instalarla como aplicacion y abrirla sin conexion).
+2) Sube al directorio raiz de ese repositorio: index.html, sync-core.js, manifest.webmanifest, sw.js y la carpeta
+   icons/ completa (todos son necesarios para instalarla como aplicacion, abrirla sin conexion y subir en segundo plano).
 3) Settings > Pages > Build and deployment: Deploy from a branch, main, /(root). Guarda.
 4) Crea OTRO repositorio, PRIVADO, por ejemplo "mis-tareas-datos". No necesitas subir archivos.
 5) En GitHub: Settings de tu cuenta > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token.
@@ -13,7 +13,10 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
 7) Toca el boton de estado (arriba a la derecha) para abrir Sincronizacion; escribe usuario, nombre del repo PRIVADO
    y token, y pulsa Guardar conexion. Opcional: carga tambien la fecha en que vence el token (la ves en GitHub, en la
-   lista de tus tokens): una semana antes la app te avisa para que lo renueves.
+   lista de tus tokens): una semana antes la app te avisa para que lo renueves (y el Telegram de la mañana tambien).
+   La fecha se guarda en ajustes.json del repositorio privado: la cargas una vez y la ven tus dos dispositivos.
+   En Chrome, al guardar la conexion te ofrece guardarla en tus contraseñas: en el otro dispositivo (misma cuenta
+   de Google) toca "Traer de mis contraseñas" y no hace falta copiar el token a mano.
 8) Abre la misma URL desde tu celular y configura los mismos datos una sola vez.
 
 INSTALAR COMO APLICACION
@@ -75,8 +78,16 @@ USO DIARIO
 - Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
   "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
-  Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
-  El boton de arriba a la derecha muestra el estado ("Al dia", "Pendiente", "Sin subir") y abre la configuracion de GitHub.
+  Se sube a GitHub sola; si no habia señal, Chrome la sube cuando vuelve la conexion, aunque hayas cerrado la app
+  (en Android, con la app instalada).
+  El boton de arriba a la derecha muestra el estado y abre Sincronizacion:
+    verde "Al dia": tenes lo ultimo de GitHub;
+    ambar "Pendiente", "Sin señal" o "Reintentando": hay algo sin subir, pero esta guardado y se sube solo;
+    rojo: hay que hacer algo (token vencido, permisos) o algo no sube hace mas de 30 minutos.
+  En Sincronizacion se ve que falta subir, "Sincronizar ahora", "Ver historial en GitHub" (cada cambio queda con
+  un mensaje como "+ Llamar al banco · cel") y, plegada, la cuenta de GitHub y el token.
+- Lo que llega del otro dispositivo (por ejemplo, lo que anotaste en el celular) se resalta en la compu hasta
+  que la mires, con un aviso "2 nuevas desde el celular · Ver".
 - En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir, Espacio terminar, E editar, H hoy, M mañana, Supr borrar.
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
   cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
@@ -99,7 +110,7 @@ USO DIARIO
 - Numero en el icono: en la compu (app instalada) muestra cuantas vencidas y para hoy hay. En Android, Chrome
   no muestra numeros en el icono. Se apaga en Sincronizacion.
 - Modo oscuro: sigue al del celular o la compu.
-- Archivo: las tareas terminadas hace mas de 3 meses se mueven solas a archivo/AAAA.json en tu repositorio de
+- Archivo: las tareas terminadas hace mas de un mes se mueven solas a archivo/AAAA.json en tu repositorio de
   datos, para que la lista no crezca sin fin.
 - Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
   Seguir los pasos de repo-datos/INSTRUCCIONES.md.
@@ -118,7 +129,8 @@ SEGURIDAD Y LIMITACIONES
   (mismos permisos), pegalo en Sincronizacion y carga su nueva fecha de vencimiento (asi la proxima vez tambien te
   avisa antes). Las tareas no se pierden: quedan en el dispositivo hasta que se suben.
 - GitHub Pages no es una plataforma de autenticacion privada; la seguridad de los datos depende de los permisos del repositorio y del token.
-- La aplicacion consulta cambios cada 20 segundos mientras esta abierta. Sin Internet se puede abrir y cargar tareas;
+- La aplicacion pregunta si hay cambios cada 5 segundos mientras la estas usando (cada 20 si esta quieta y cada
+  minuto si no la tocas hace rato); si no hay cambios, GitHub no manda nada. Sin Internet se puede abrir y cargar tareas;
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
 - Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
 - "Borrar conexion y datos de este dispositivo" (en Sincronizacion, pide confirmar con un segundo toque) borra la copia local de las tareas (avisa si habia cambios sin subir).

@@ -17,7 +17,7 @@
 <style>
 :root{color-scheme:light dark;
   --bg:#f4f6f9;--card:#fff;--border:#e0e5ec;--input:#ccd5df;--chip:#d5dce5;--divider:#edf0f4;
-  --text:#182433;--text2:#445468;--muted:#667588;--faint:#8a96a6;
+  --text:#182433;--text2:#445468;--muted:#5b6779;--faint:#647083;
   --accent:#4f46e5;--accent-h:#4338ca;--accent-soft:#eef2ff;--accent-text:#4338ca;--on-accent:#fff;--tag-text:#3730a3;--addcard-border:#d9ddf5;
   --red:#b42318;--red-soft:#fef3f2;--amber:#b45309;--amber-dot:#d97706;--green:#16a34a;--green-soft:#f0fdf4;--green-text:#15803d;
   --hover:#f4f6f9;--hover2:#f8f9fb;--sel:#eef1ff;--statusbox:#f6f7f9;--circle:#b9c2ce;--kbd:#dde2e9;--gray-dot:#98a2b3;
@@ -99,6 +99,28 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .swipe .task{background:var(--card);touch-action:pan-y}
 .swipe .task.sel{background:var(--sel)}
 .task.anim{transition:transform .15s ease}
+/* Lo que llegó del otro dispositivo, hasta que lo mirás; y la animación al terminar */
+.task.llego,.swipe .task.llego{background:var(--accent-soft);transition:background 1.2s ease}
+.task.llego.visto,.swipe .task.llego.visto{background:var(--card)}
+.task.closing .chk span{background:var(--accent);border-color:var(--accent);transition:background .18s,border-color .18s}
+.task.closing .ttext{text-decoration:line-through;color:var(--faint);transition:color .18s}
+.collapse{overflow:hidden;transition:max-height .15s ease,opacity .15s ease}
+@media (prefers-reduced-motion:reduce){.task.llego,.task.closing .chk span,.task.closing .ttext,.collapse{transition:none}}
+/* Zonas de toque más grandes en el celular */
+@media (pointer:coarse){
+  .chip{min-height:40px}
+  .person{padding:4px 8px 12px;margin:-4px -8px -12px}
+  .ghead .gbtn,.linkbtn,.donebtn,.toast button,.filterbar button,.tokenbar button{min-height:44px}
+  .xbtn{width:44px;height:44px}
+}
+/* Sincronización: estado arriba, la cuenta plegada */
+.pendlist{margin:0;padding:0 0 0 18px;font-size:13.5px;color:var(--text2);line-height:1.6}
+.pendlist .when{color:var(--faint)}
+.acct{border:1px solid var(--border);border-radius:12px;padding:0 14px}
+.acct summary{cursor:pointer;padding:12px 0;font-weight:600;font-size:14px;color:var(--text)}
+.acct[open]{padding-bottom:14px}
+.acct[open]>*:not(summary){margin-top:12px}
+.devsec{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--divider);padding-top:12px}
 .swbg{position:absolute;inset:0;display:none;align-items:center;padding:0 20px;color:#fff;font-weight:700;font-size:14px}
 .swbg.right{display:flex;background:#16a34a;justify-content:flex-start}
 .swbg.left{display:flex;background:#4f46e5;justify-content:flex-end}
@@ -318,7 +340,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <div id="doneWrap" class="hidden">
       <div id="doneList" class="card"></div>
       <button type="button" id="doneAll" class="linkbtn hidden"></button>
-      <p id="archiveNote" class="fine hidden" style="margin:4px 4px 0">Las de más de 3 meses están en archivo/ de tu repositorio.</p>
+      <p id="archiveNote" class="fine hidden" style="margin:4px 4px 0">Las de más de un mes están en archivo/ de tu repositorio.</p>
     </div>
   </div>
 
@@ -384,22 +406,33 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   <div class="modal sync" role="dialog" aria-modal="true" aria-labelledby="syncH">
     <div class="mhead"><h2 id="syncH">Sincronización</h2><button type="button" class="xbtn" id="syncX" aria-label="Cerrar">✕</button></div>
     <div class="statusbox"><span class="dot" id="syncDot"></span><span id="statusLong"></span></div>
-    <p class="muted">Cada tarea se guarda al instante en este dispositivo y se sube sola a GitHub. Sin señal, se sube la próxima vez que abras la app.</p>
-    <div class="cfggrid">
-      <label class="fcol">Usuario de GitHub<input id="owner" class="inp" autocomplete="off"></label>
-      <label class="fcol">Repositorio privado<input id="repo" class="inp" placeholder="mis-tareas-datos" autocomplete="off"></label>
-    </div>
-    <label class="fcol">Token<input id="token" class="inp" type="password" placeholder="Fine-grained · Contents: Read and write" autocomplete="off"></label>
-    <label class="fcol">El token vence el (opcional)<input id="tokenExp" class="inp" type="date"></label>
-    <p class="fine" style="margin-top:-6px">La fecha la ves en GitHub, en la lista de tus tokens (Settings → Developer settings → Fine-grained tokens). Una semana antes te avisamos para que lo renueves.</p>
-    <p class="fine">Usá un repositorio privado, distinto del de GitHub Pages, y un token fine-grained con acceso solo a ese repositorio (Contents: Read and write). El token queda guardado en este navegador: no cargues información confidencial.</p>
-    <div id="cfgMsg" class="cfgmsg hidden"></div>
+    <ul id="pendList" class="pendlist hidden"></ul>
     <div class="cfgbtns">
-      <button type="button" id="saveCfg" class="primary">Guardar conexión</button>
       <button type="button" id="syncNow" class="secbtn hidden">Sincronizar ahora</button>
+      <a id="histLink" class="linkbtn hidden" target="_blank" rel="noopener">Ver historial en GitHub</a>
     </div>
-    <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
-    <button type="button" id="clearCfg" class="clearbtn"></button>
+    <p class="muted">Cada tarea se guarda al instante en este dispositivo y se sube sola a GitHub. Sin señal, se sube cuando vuelve la conexión, aunque hayas cerrado la app.</p>
+    <details id="acct" class="acct">
+      <summary>Cuenta de GitHub y token</summary>
+      <div class="cfggrid">
+        <label class="fcol">Usuario de GitHub<input id="owner" class="inp" autocomplete="off"></label>
+        <label class="fcol">Repositorio privado<input id="repo" class="inp" placeholder="mis-tareas-datos" autocomplete="off"></label>
+      </div>
+      <label class="fcol">Token<input id="token" class="inp" type="password" placeholder="Fine-grained · Contents: Read and write" autocomplete="off"></label>
+      <label class="fcol">El token vence el (opcional)<input id="tokenExp" class="inp" type="date"></label>
+      <p class="fine">La fecha la ves en GitHub, en la lista de tus tokens (Settings → Developer settings → Fine-grained tokens). Una semana antes te avisamos, acá y en el Telegram de la mañana. Se carga una vez y la ven tus dos dispositivos.</p>
+      <p class="fine">Usá un repositorio privado, distinto del de GitHub Pages, y un token fine-grained con acceso solo a ese repositorio (Contents: Read and write). El token queda guardado en este navegador: no cargues información confidencial.</p>
+      <div id="cfgMsg" class="cfgmsg hidden"></div>
+      <div class="cfgbtns">
+        <button type="button" id="saveCfg" class="primary">Guardar conexión</button>
+        <button type="button" id="credBtn" class="secbtn hidden">Traer de mis contraseñas</button>
+      </div>
+    </details>
+    <div class="devsec">
+      <span class="lbl">Este dispositivo</span>
+      <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
+      <button type="button" id="clearCfg" class="clearbtn"></button>
+    </div>
   </div>
 </div>
 
@@ -436,13 +469,14 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
+<script src="sync-core.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
 const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero',K_ARCHIVE='ultimoArchivo',K_TOKENX='avisoToken';
-const ARCHIVE_DAYS=90,TRASH_DAYS=30;
+const ARCHIVE_DAYS=30,TRASH_DAYS=30;
 const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
@@ -466,10 +500,14 @@ function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 // Se leen siempre de localStorage para compartirlos entre pestañas.
 function getOutbox(){const v=load(K_OUTBOX,null);return Array.isArray(v)?v:outboxMem}
 function setOutbox(v){outboxMem=v;store(K_OUTBOX,v)}
+// sha y ETag de la versión de tareas.json que tenemos: para preguntarle a GitHub "¿cambió algo?" (si no,
+// responde 304 sin mandar nada y sin gastar el cupo) y para subir sin tener que bajar antes
+let remoteSha=null,remoteEtag=null;
 function loadCache(){
-  const c=load(K_CACHE,null);
-  remote=c&&c.owner&&c.owner===cfg.owner&&c.repo===cfg.repo&&Array.isArray(c.items)?c.items:[];
+  const c=load(K_CACHE,null),ok=c&&c.owner&&c.owner===cfg.owner&&c.repo===cfg.repo&&Array.isArray(c.items);
+  remote=ok?c.items:[];remoteSha=ok&&c.sha||null;remoteEtag=ok&&c.etag||null;
 }
+function saveCache(c){store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote,sha:remoteSha,etag:remoteEtag})}
 
 // ---- Fechas (siempre en hora local, formato YYYY-MM-DD) ----
 const WD=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -712,63 +750,22 @@ function parse(text,defaultDue){
   return out;
 }
 
-// ---- Cambios: cada acción es una operación que se puede reaplicar sobre la última versión ----
-function applyOp(a,op){
-  const item=op.id?a.find(x=>x.id===op.id):null;
-  switch(op.type){
-    case 'add':
-      // La próxima de una tarea que se repite se agrega una sola vez, aunque dos dispositivos la terminen
-      // (si la que había quedó en la papelera, no cuenta)
-      if(op.task.repeatOf&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id&&!x.deletedAt))break;
-      if(!a.some(x=>x.id===op.task.id)){
-        const order=op.task.order??(Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1);
-        a.push({...op.task,order});
-      }
-      break;
-    case 'done':
-      if(item&&!!item.done!==op.done){item.done=op.done;item.completedAt=op.done?op.at:null}
-      break;
-    case 'edit':
-      if(item)Object.assign(item,op.patch);
-      break;
-    case 'delete': {
-      const i=a.findIndex(x=>x.id===op.id);
-      // onlyDone (archivo): si mientras tanto alguien la volvió a pendientes, no se borra
-      if(i>=0&&!(op.onlyDone&&!a[i].done))a.splice(i,1);
-      break;
-    }
-    case 'move': {
-      // De la versión anterior (↑↓): se mantiene para subir cambios que hayan quedado pendientes
-      if(!item)break;
-      const d=item.due||null;
-      const list=a.filter(x=>!x.done&&(x.due||null)===d).sort(cmpPending);
-      const pos=x=>{const k=op.ids.indexOf(x.id);return k<0?op.ids.length+list.indexOf(x):k};
-      list.sort((x,y)=>pos(x)-pos(y)).forEach((x,k)=>x.order=k);
-      break;
-    }
-  }
-}
-function applyAll(base,ops){
-  const a=structuredClone(base);
-  for(const op of ops){try{applyOp(a,op)}catch{}}
-  return a;
-}
+// applyOp y applyAll están en sync-core.js (los usa también el service worker); acá, con el orden de la lista
+const applyHere=(base,ops)=>applyAll(base,ops,cmpPending);
 // Guarda el cambio en el dispositivo al instante y después intenta subirlo
-function act(op){
-  op.opId=crypto.randomUUID();
-  setOutbox([...getOutbox(),op]);
-  recompute();
-  sync();
-}
+function act(op){actMany([op])}
 // Varias operaciones juntas (una sola subida)
 function actMany(ops){
-  ops.forEach(o=>o.opId=crypto.randomUUID());
+  const now=Date.now();
+  ops.forEach(o=>{o.opId=crypto.randomUUID();o.ts=now});
   if(ops.length)setOutbox([...getOutbox(),...ops]);
   recompute();sync();
+  // "sin subir" aparece en la fila solo si la subida tarda más de 5 s
+  if(ops.length)setTimeout(()=>{if(getOutbox().length)renderList()},5100);
 }
 // Las borradas quedan en la papelera (deletedAt) hasta que pasan 30 días o se vacía
 function recompute(){
-  const all=applyAll(remote,getOutbox());
+  const all=applyHere(remote,getOutbox());
   tasks=all.filter(t=>!t.deletedAt);
   trash=all.filter(t=>t.deletedAt).sort((a,b)=>String(b.deletedAt).localeCompare(String(a.deletedAt)));
   render();
@@ -779,12 +776,10 @@ function repoUrl(c){return `https://api.github.com/repos/${encodeURIComponent(c.
 function headers(c){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28'}}
 // Si GitHub no responde en 20 s se corta, para no trabar las siguientes subidas
 function ghFetch(url,opts){return fetch(url,AbortSignal.timeout?{...opts,signal:AbortSignal.timeout(20000)}:opts)}
-function utf8b64(s){const a=new TextEncoder().encode(s);let b='';for(const x of a)b+=String.fromCharCode(x);return btoa(b)}
-function b64utf8(s){const b=atob(s.replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
 function configured(){return !!(cfg.owner&&cfg.repo&&cfg.token)}
 function httpError(r,what){
-  if(r.status===401)return Object.assign(Error('El token no es válido o venció'),{auth:true});
-  if(r.status===403||r.status===404)return Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token');
+  if(r.status===401)return Object.assign(Error('El token no es válido o venció'),{auth:true,hard:true});
+  if(r.status===403||r.status===404)return Object.assign(Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token'),{hard:true});
   return Error(what+' ('+r.status+')');
 }
 // Cualquier archivo JSON del repositorio (tareas.json o archivo/AAAA.json)
@@ -796,25 +791,19 @@ async function getFile(c,path){
   if(!Array.isArray(data))throw Error(path+' no contiene una lista válida');
   return {items:data,sha:j.sha};
 }
+// Devuelve el sha nuevo del archivo, o false si otro dispositivo guardó en el medio
 async function putFile(c,path,items,sha,message){
   const payload={message,content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
   const r=await ghFetch(repoUrl(c)+'/contents/'+path,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(r.status===409||r.status===422)return false;
   if(!r.ok)throw httpError(r,'No se pudo guardar');
-  return true;
-}
-// Si GitHub informa cuándo vence el token (y el navegador deja leerlo), se anota solo
-function noteExpiry(c,r){
-  const m=String(r.headers.get('github-authentication-token-expiration')||'').match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)\s*(UTC|Z|[+-]\d{2}:?\d{2})?/i);
-  if(!m)return;
-  const tz=!m[3]||/^(utc|z)$/i.test(m[3])?'Z':m[3].replace(/^([+-]\d{2})(\d{2})$/,'$1:$2');
-  const d=new Date(m[1]+'T'+m[2]+tz);
-  if(isNaN(d)||c!==cfg||cfg.tokenExp===ymd(d))return;
-  cfg.tokenExp=ymd(d);store(K_CFG,cfg);
+  const j=await r.json().catch(()=>({}));
+  return j.content&&j.content.sha||true;
 }
 async function getRemote(c){
-  const r=await ghFetch(repoUrl(c)+'/contents/'+file+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
-  noteExpiry(c,r);
+  const h=headers(c);if(remoteEtag)h['If-None-Match']=remoteEtag;
+  const r=await ghFetch(repoUrl(c)+'/contents/'+file,{headers:h,cache:'no-store'});
+  if(r.status===304)return {same:true};
   if(r.status===404){
     // El archivo todavía no existe, salvo que el repositorio tampoco sea accesible
     const repo=await ghFetch(repoUrl(c),{headers:headers(c),cache:'no-store'});
@@ -824,54 +813,147 @@ async function getRemote(c){
   if(!r.ok)throw httpError(r,'GitHub respondió');
   const j=await r.json();
   const data=JSON.parse(b64utf8(j.content));
-  if(!Array.isArray(data))throw Error('El archivo tareas.json no contiene una lista válida');
-  return {items:data,sha:j.sha};
+  if(!Array.isArray(data))throw Object.assign(Error('El archivo tareas.json no contiene una lista válida'),{hard:true});
+  return {items:data,sha:j.sha,etag:r.headers.get('ETag')};
 }
-function putRemote(c,items,sha){return putFile(c,file,items,sha,'Actualizar tareas')}
-// Trae la última versión y sube los cambios pendientes. Si otro dispositivo guardó
-// en el medio, vuelve a leer y reaplica los cambios. Si falla, quedan guardados acá
-// y se reintenta solo (cada 20 s, al volver a la app o al recuperar la conexión).
+const SRC=COARSE?'cel':'pc';
+function putRemote(c,items,sha,ops,base){return putFile(c,file,items,sha,commitMessage(ops,base,items,SRC))}
+// Trae la última versión y sube los cambios pendientes. Si ya tiene la última versión, sube directo
+// (un solo viaje); si otro dispositivo guardó en el medio, vuelve a leer y reaplica los cambios. Si falla,
+// quedan guardados acá y se reintentan solos (y, si cerrás la app sin señal, los sube Chrome al volver la
+// conexión: ver registerBackground).
+let lastPull=0,errorKind=null,lastRender=0;
 async function sync(){
   if(!configured()){recompute();purgeTrash();return}
   if(syncing){syncAgain=true;return}
   syncing=true;renderStatus();
-  let conflicts=0,synced=false;
+  let conflicts=0,synced=false,changed=false;
+  const c0=cfg;
   try{
-    do{
-      syncAgain=false;
-      // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
-      const c=cfg;
-      const latest=await getRemote(c);
-      if(cfg!==c){syncAgain=configured();continue}
-      const ops=getOutbox();
-      if(!ops.length){remote=latest.items}
-      else{
-        const next=applyAll(latest.items,ops);
-        const saved=await putRemote(c,next,latest.sha);
+    await withSyncLock(async()=>{
+      // Lo que ya subió el service worker en segundo plano sale de la cola
+      let forceGet=await takeBackgroundSent();
+      if(forceGet)changed=true;
+      do{
+        syncAgain=false;
+        // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
+        const c=cfg;
+        let ops=getOutbox(),base;
+        if(ops.length&&remoteSha&&!forceGet)base={items:remote,sha:remoteSha};
+        else{
+          const latest=await getRemote(c);
+          if(cfg!==c){syncAgain=configured();continue}
+          lastPull=Date.now();
+          if(latest.same)base={items:remote,sha:remoteSha};
+          else{
+            if(latest.sha!==remoteSha||!remoteSha){noteArrivals(remote,latest.items,!!remoteSha);remote=latest.items;remoteSha=latest.sha;changed=true}
+            remoteEtag=latest.etag||null;base=latest;
+            saveCache(c);
+          }
+          forceGet=false;ops=getOutbox();
+        }
+        if(!ops.length)continue;
+        const next=applyHere(base.items,ops);
+        const saved=await putRemote(c,next,base.sha,ops,base.items);
         if(cfg!==c){syncAgain=configured();continue}
         if(!saved){
           if(++conflicts>=5)throw Error('Otro dispositivo está guardando al mismo tiempo');
-          syncAgain=true;continue;
+          forceGet=true;syncAgain=true;continue;
         }
-        remote=next;
+        remote=next;remoteSha=typeof saved==='string'?saved:null;remoteEtag=null;lastPull=Date.now();changed=true;
         const sent=new Set(ops.map(o=>o.opId));
         setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
+        saveCache(c);
+        await updateBackground();
         if(getOutbox().length)syncAgain=true;
-      }
-      store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote});
-      lastSync=new Date();lastError=null;authError=false;
-    }while(syncAgain);
-    synced=true;
+      }while(syncAgain);
+    });
+    if(cfg===c0){lastSync=new Date();lastError=null;authError=false;errorKind=null;synced=true}
   }catch(e){
-    lastError=e instanceof TypeError?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
+    // offline: sin señal · soft: GitHub lento o con problemas (se reintenta solo) · hard: hay que hacer algo
+    errorKind=e instanceof TypeError?'offline':e.hard?'hard':'soft';
+    lastError=errorKind==='offline'?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
     authError=!!e.auth;
+    if(errorKind!=='hard')registerBackground();
   }finally{
-    syncing=false;recompute();
+    syncing=false;
+    // Sin cambios no se redibuja la lista (no se pierde el foco ni la selección), salvo cada minuto
+    // por las fechas y horas que se vencen
+    if(changed||Date.now()-lastRender>60000)recompute();else{renderStatus();renderTokenBar()}
+    schedulePoll();
   }
-  if(synced){purgeTrash();migrateTimes();archiveOld()}
+  if(synced){purgeTrash();migrateTimes();archiveOld();syncTokenDate()}
 }
+// ---- Cada cuánto se pregunta a GitHub ----
+// Cada 5 s si estás usando la app, cada 20 s si está abierta pero quieta, cada minuto si no la tocás
+// hace 10 min, y nada si está oculta. Al volver a la ventana, en el acto.
+let lastActivity=Date.now(),pollTimer=null;
+['pointerdown','keydown','input','wheel'].forEach(ev=>document.addEventListener(ev,()=>{lastActivity=Date.now()},{capture:true,passive:true}));
+function pollDelay(){
+  if(document.visibilityState!=='visible')return null;
+  const idle=Date.now()-lastActivity;
+  return document.hasFocus()&&idle<120000?5000:idle<600000?20000:60000;
+}
+function schedulePoll(){
+  clearTimeout(pollTimer);
+  const d=pollDelay();
+  if(d!=null&&configured())pollTimer=setTimeout(()=>sync(),d);
+}
+// ---- Subir en segundo plano (Background Sync) ----
+// Si no hay señal o cerrás la app con cambios sin subir, se le deja al service worker una copia de la
+// conexión y de la cola; Chrome lo despierta cuando vuelve la conexión, aunque la app esté cerrada.
+let bgRegistered=true;   // al abrir no se sabe si quedó una copia de antes: después de la primera subida se borra
+async function registerBackground(){
+  try{
+    if(!configured()||!getOutbox().length||!('serviceWorker' in navigator)||location.protocol==='file:')return;
+    const reg=await navigator.serviceWorker.ready;
+    if(!reg.sync)return;
+    await idbSet('pendiente',{cfg:{owner:cfg.owner,repo:cfg.repo,token:cfg.token},ops:getOutbox(),src:SRC});
+    await reg.sync.register('subir');bgRegistered=true;
+  }catch{}
+}
+// Después de una subida de la página: la copia para segundo plano queda igual a la cola (o se borra)
+async function updateBackground(){
+  if(!bgRegistered)return;
+  try{const ops=getOutbox();if(ops.length)await idbSet('pendiente',{cfg:{owner:cfg.owner,repo:cfg.repo,token:cfg.token},ops,src:SRC});else{await idbDel('pendiente');bgRegistered=false}}catch{}
+}
+// Los cambios que ya subió el service worker salen de la cola. Devuelve true si había alguno.
+let bgCheck=true;   // al abrir y cuando avisa el service worker
+async function takeBackgroundSent(){
+  if(!('indexedDB' in window)||!(bgCheck||bgRegistered))return false;
+  bgCheck=false;
+  const sent=await idbGet('enviadas');
+  if(!sent||!sent.length)return false;
+  const ids=new Set(sent);
+  setOutbox(getOutbox().filter(o=>!ids.has(o.opId)));
+  await idbDel('enviadas');
+  return true;
+}
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='subido'){bgCheck=true;sync()}});
+// ---- Lo que llega del otro dispositivo ----
+// Las tareas nuevas que aparecen en GitHub (no las de este dispositivo) se resaltan hasta que mirás la app
+const arrived=new Set();let arrivedTimer=null;
+function noteArrivals(prev,next,known){
+  if(!known)return;
+  const before=new Set(prev.map(t=>t.id)),mine=new Set(getOutbox().filter(o=>o.type==='add').map(o=>o.task.id));
+  const fresh=next.filter(t=>!before.has(t.id)&&!mine.has(t.id)&&!t.done&&!t.deletedAt);
+  if(!fresh.length)return;
+  fresh.forEach(t=>arrived.add(t.id));
+  const srcs=new Set(fresh.map(t=>t.src||'')),from=srcs.size===1&&srcs.has('cel')?' desde el celular':srcs.size===1&&srcs.has('pc')?' desde la compu':'';
+  if(document.visibilityState==='visible')toast((fresh.length===1?'1 nueva':fresh.length+' nuevas')+from,()=>{const r=document.querySelector('.task.llego');if(r)r.scrollIntoView({block:'center',behavior:'smooth'})},'Ver',6000);
+}
+// Se desvanecen recién cuando la ventana tiene el foco: si llegaron mientras no estabas, siguen marcadas
+function settleArrivals(){
+  if(!arrived.size||arrivedTimer||!document.hasFocus()||document.visibilityState!=='visible')return;
+  arrivedTimer=setTimeout(()=>{
+    arrivedTimer=null;
+    document.querySelectorAll('.task.llego').forEach(r=>r.classList.add('visto'));
+    setTimeout(()=>{arrived.clear();renderList()},1300);
+  },3500);
+}
+window.addEventListener('focus',()=>{settleArrivals();sync()});
 // ---- Archivo automático ----
-// Una vez por día en cada dispositivo: las terminadas hace más de 90 días se agregan a
+// Una vez por día en cada dispositivo: las terminadas hace más de 30 días se agregan a
 // archivo/AAAA.json (por año de terminación, sin duplicar) y recién cuando eso se guardó
 // bien se sacan de tareas.json.
 let archiving=false,archiveTried=0;
@@ -921,15 +1003,65 @@ function migrateTimes(){
   if(ops.length)actMany(ops);
 }
 
+// ---- Fecha de vencimiento del token, compartida ----
+// Se guarda en ajustes.json del repositorio de datos, por token (con una huella del token, nunca el token):
+// la cargás en un dispositivo y la ve el otro, y el Telegram de la mañana avisa antes de que venza.
+async function tokenKey(token){
+  if(!(window.crypto&&crypto.subtle))return null;
+  const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
+  return [...new Uint8Array(h)].slice(0,6).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function getSettings(c){
+  const r=await ghFetch(repoUrl(c)+'/contents/ajustes.json',{headers:headers(c),cache:'no-store'});
+  if(r.status===404)return {data:{},sha:null};
+  if(!r.ok)throw httpError(r,'GitHub respondió');
+  const j=await r.json();let d={};try{d=JSON.parse(b64utf8(j.content))}catch{}
+  return {data:d&&typeof d==='object'&&!Array.isArray(d)?d:{},sha:j.sha};
+}
+async function saveTokenDate(c){
+  try{
+    const k=await tokenKey(c.token);if(!k)return;
+    for(let i=0;i<3;i++){
+      const cur=await getSettings(c),prev=cur.data.tokens||{};
+      // Se guarda solo la del token actual: el anterior (si lo renovaste) ya no tiene que avisar
+      const tok=c.tokenExp?{[k]:c.tokenExp}:{};
+      if(JSON.stringify(prev)===JSON.stringify(tok))return;
+      const body={message:'Fecha de vencimiento del token',content:utf8b64(JSON.stringify({...cur.data,tokens:tok},null,1)),...(cur.sha?{sha:cur.sha}:{})};
+      const r=await ghFetch(repoUrl(c)+'/contents/ajustes.json',{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(r.ok||!(r.status===409||r.status===422))return;
+    }
+  }catch{}
+}
+// Una vez por sesión: si este dispositivo no tiene la fecha y el otro la cargó, se trae; si la tiene y
+// el repositorio todavía no tiene ninguna, se sube
+let tokenDateChecked=false;
+async function syncTokenDate(){
+  if(tokenDateChecked||!configured())return;
+  tokenDateChecked=true;
+  try{
+    const c=cfg,k=await tokenKey(c.token);if(!k)return;
+    const tok=(await getSettings(c)).data.tokens||{},d=tok[k];
+    if(cfg!==c)return;
+    if(d&&!c.tokenExp){c.tokenExp=d;store(K_CFG,c);renderTokenBar()}
+    else if(c.tokenExp&&!Object.keys(tok).length)saveTokenDate(c);   // nadie la cargó todavía en el repositorio
+  }catch{tokenDateChecked=false}
+}
+
 // ---- Estado de sincronización ----
 function cambios(n,guardados){return n===1?'1 cambio'+(guardados?' guardado':''):n+' cambios'+(guardados?' guardados':'')}
+function ago(ts){const s=Math.max(0,Math.round((Date.now()-ts)/1000));return s<60?'hace '+s+' s':s<3600?'hace '+Math.round(s/60)+' min':'a las '+timeNow(new Date(ts))}
+// Verde: tenés lo último. Ámbar: falta subir algo o no hay señal, pero está guardado y se sube solo.
+// Rojo: solo cuando hay que hacer algo (token, permisos) o algo no sube hace más de 30 min con señal.
 function status(){
-  const n=getOutbox().length;
+  const ops=getOutbox(),n=ops.length,pend=n?' '+(n===1?'1 cambio guardado en este dispositivo · se sube solo.':n+' cambios guardados en este dispositivo · se suben solos.'):'';
   if(!configured())return {dot:'var(--gray-dot)',short:'Solo acá',long:(n?cambios(n,true)+' en este dispositivo. ':'')+'Las tareas se guardan solo en este navegador. Conectá un repositorio privado de GitHub para tenerlas en la compu y el celular.'};
+  if(errorKind==='hard')return {dot:'var(--red)',short:authError?'Token':'Revisar',long:lastError+'. '+(authError?'Generá un token nuevo y pegalo abajo, en "Cuenta de GitHub".':'Revisá usuario, repositorio y permisos del token, abajo.')+pend};
+  const oldest=n?Math.min(...ops.map(o=>o.ts||Date.now())):0;
+  if(n&&errorKind!=='offline'&&navigator.onLine!==false&&Date.now()-oldest>30*60000)return {dot:'var(--red)',short:'Sin subir ('+n+')',long:'Hace más de 30 minutos que '+(n===1?'un cambio no se puede subir':n+' cambios no se pueden subir')+' a GitHub'+(lastError?' ('+lastError+')':'')+'. Probá "Sincronizar ahora"; si sigue igual, revisá la conexión.'};
+  if(errorKind)return {dot:'var(--amber-dot)',short:errorKind==='offline'?'Sin señal':'Reintentando',long:lastError+'.'+(pend||' Se reintenta solo.')};
   if(syncing&&n)return {dot:'var(--amber-dot)',short:'Subiendo…',long:'Subiendo '+cambios(n)+' a GitHub…'};
-  if(lastError)return {dot:'var(--red)',short:n?'Sin subir ('+n+')':'Error',long:lastError+'.'+(n?' Hay '+cambios(n,true)+' acá; '+(n===1?'se sube solo':'se suben solos')+' al reconectar.':'')};
   if(n)return {dot:'var(--amber-dot)',short:'Pendiente',long:cambios(n)+' sin subir todavía.'};
-  if(lastSync)return {dot:'var(--green)',short:'Al día',long:'Todo subido a GitHub · '+timeNow(lastSync)+'.'};
+  if(lastPull)return {dot:'var(--green)',short:'Al día',long:'Tenés lo último de GitHub · '+ago(lastPull)+'.'};
   return {dot:'var(--gray-dot)',short:'Conectando…',long:'Conectando con GitHub…'};
 }
 // Aviso arriba: el token de GitHub venció (GitHub lo rechaza) o vence en 7 días o menos
@@ -958,7 +1090,7 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();if(edit)renderEdit();updateBadge()}
+function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();if(edit)renderEdit();updateBadge();settleArrivals()}
 // Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
 // lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
 const BADGE='setAppBadge' in navigator;
@@ -986,7 +1118,7 @@ function renderAdd(){
   const raw=$('title').value,p=parse(raw,dueFor(chip));
   const eff=p.due!==undefined?p.due:dueFor(chip);
   // La fecha detectada en el texto pisa el chip elegido
-  document.querySelectorAll('#chips .chip').forEach(b=>b.classList.toggle('on',dueFor(b.dataset.v)===eff));
+  document.querySelectorAll('#chips .chip').forEach(b=>{const on=dueFor(b.dataset.v)===eff;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   const det=$('detected');det.replaceChildren();
   const tags=[];
   if(p.due)tags.push(shortDue(p.due));
@@ -1019,7 +1151,8 @@ function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();
 function renderList(){
   if(swiping){renderLater=true;return}
   const match=matcher(),q=$('search').value.trim();
-  const unsynced=new Set(configured()?getOutbox().map(o=>o.id||(o.task&&o.task.id)):[]);
+  const late=Date.now()-5000;
+  const unsynced=new Set(configured()?getOutbox().filter(o=>errorKind==='offline'||!(o.ts>late)).map(o=>o.id||(o.task&&o.task.id)):[]);
   const pending=tasks.filter(t=>!t.done&&!t.waiting&&match(t)).sort(cmpPending);
   const box=$('groups');box.replaceChildren();visibleIds=[];
   for(const g of GROUPS){
@@ -1080,9 +1213,9 @@ function personBtn(name,label){
   return b;
 }
 function taskRow(t,gid,unsynced){
-  const row=el('div','task'+(sel===t.id?' sel':''));row.dataset.id=t.id;
+  const row=el('div','task'+(sel===t.id?' sel':'')+(arrived.has(t.id)?' llego':''));row.dataset.id=t.id;
   const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Marcar terminada');
-  chk.append(el('span'));chk.onclick=()=>toggle(t);
+  chk.append(el('span'));chk.onclick=()=>doneAnimated(row,t);
   const body=el('div','body');body.onclick=()=>openEdit(t);
   body.append(el('div','ttext',t.title));
   // La fecha solo donde aporta: en Hoy y Mañana sería redundante
@@ -1225,6 +1358,18 @@ function nextDue(t){
   }
   return ymd(cand);
 }
+// Al tocar la casilla: se tilda y se tacha (180 ms), la fila se cierra (150 ms) y recién ahí se termina
+function doneAnimated(row,t){
+  if(row.classList.contains('closing'))return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){toggle(t);return}
+  row.classList.add('closing');
+  const box=row.parentElement&&row.parentElement.classList.contains('swipe')?row.parentElement:row;
+  setTimeout(()=>{
+    box.style.maxHeight=box.offsetHeight+'px';box.classList.add('collapse');
+    void box.offsetHeight;box.style.maxHeight='0px';box.style.opacity='0';
+    setTimeout(()=>toggle(t),150);
+  },180);
+}
 function toggle(t){
   const done=!t.done,prevAt=t.completedAt,ops=[{type:'done',id:t.id,done,at:new Date().toISOString()}];
   let next=null;
@@ -1332,10 +1477,11 @@ $('addForm').addEventListener('submit',e=>{
   // En el celular el cursor vuelve al campo solo si el teclado ya estaba abierto (se agregó con Enter)
   const refocus=FINE||document.activeElement===$('title');
   const p=parse(raw,dueFor(chip)),due=p.due!==undefined?p.due:dueFor(chip);
-  const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  const task={id:crypto.randomUUID(),src:SRC,title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   act({type:'add',task});
+  if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
   // "Agregada para mañana · 15:00 · @Laura", con Deshacer y Cambiar (por si se entendió mal).
   // Con hora o "recordame…", también un toque la pasa al calendario del teléfono para que avise.
   const more=[['Cambiar',()=>{const t=tasks.find(x=>x.id===task.id);if(t)openEdit(t)}]];
@@ -1552,7 +1698,7 @@ $('bulkForm').addEventListener('submit',e=>{
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
     const p=parse(line,def);
-    const task={id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,p.due!==undefined?p.due:def),notes:'',done:false,createdAt:now,completedAt:null};
+    const task={id:crypto.randomUUID(),src:SRC,title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,p.due!==undefined?p.due:def),notes:'',done:false,createdAt:now,completedAt:null};
     if(p.repeat)task.repeat=p.repeat;
     if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:now});
     return task;
@@ -1768,9 +1914,9 @@ function openEdit(t){
   if(FINE)$('eTitle').focus();   // en el celular no se abre el teclado solo
 }
 function renderEdit(){
-  document.querySelectorAll('#eChips .chip').forEach(b=>b.classList.toggle('on',(dueFor(b.dataset.v)||'')===edit.due));
+  document.querySelectorAll('#eChips .chip').forEach(b=>{const on=(dueFor(b.dataset.v)||'')===edit.due;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   $('eDue').value=edit.due;
-  document.querySelectorAll('#ePrios .prio').forEach(b=>b.classList.toggle('on',b.dataset.p===edit.priority));
+  document.querySelectorAll('#ePrios .prio').forEach(b=>{const on=b.dataset.p===edit.priority;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
 }
 function editPatch(){
   const vals={title:$('eTitle').value.trim(),due:edit.due||null,time:$('eTime').value||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
@@ -1804,6 +1950,9 @@ function openSettings(){
   closeMenu();settingsOpen=true;confirmClear=false;
   $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';$('tokenExp').value=cfg.tokenExp||'';
   $('cfgMsg').classList.add('hidden');$('syncOv').classList.remove('hidden');$('wrap').inert=true;
+  // La cuenta queda plegada, salvo que falte configurarla o haya que cambiar el token
+  $('acct').open=!configured()||errorKind==='hard';
+  $('credBtn').classList.toggle('hidden',!window.PasswordCredential);
   $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
   renderStatus();
 }
@@ -1812,6 +1961,13 @@ function renderSync(st){
   const n=getOutbox().length;
   $('syncDot').style.background=st.dot;$('statusLong').textContent=st.long;
   $('syncNow').classList.toggle('hidden',!configured());
+  $('histLink').classList.toggle('hidden',!configured());
+  if(configured())$('histLink').href='https://github.com/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+'/commits/HEAD/tareas.json';
+  // Qué falta subir, legible: "Llamar al banco · nueva · 10:42"
+  const ops=getOutbox(),pl=$('pendList');pl.replaceChildren();
+  ops.slice(0,8).forEach(o=>{const li=el('li',null,describeOp(o));if(o.ts)li.append(el('span','when',' · '+timeNow(new Date(o.ts))));pl.append(li)});
+  if(ops.length>8)pl.append(el('li',null,'y '+(ops.length-8)+' más'));
+  pl.classList.toggle('hidden',!ops.length);
   $('clearCfg').textContent=confirmClear?(n?'Hay '+cambios(n)+' sin subir que se van a perder. Tocá de nuevo para borrar.':'Tocá de nuevo para confirmar'):'Borrar conexión y datos de este dispositivo';
 }
 $('statusBtn').onclick=openSettings;
@@ -1824,17 +1980,36 @@ $('saveCfg').onclick=()=>{
   const exp=$('tokenExp').value;
   if(exp&&!(next.token!==cfg.token&&exp===(cfg.tokenExp||'')))next.tokenExp=exp;
   if(next.tokenExp!==cfg.tokenExp)try{localStorage.removeItem(K_TOKENX)}catch{}
-  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;
+  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;
   closeSettings();recompute();sync();
+  // Con fecha, se guarda para el otro dispositivo y el Telegram; sin fecha, se trae la que haya cargado el otro
+  if(next.tokenExp){tokenDateChecked=true;saveTokenDate(next)}else tokenDateChecked=false;
+  // Chrome ofrece guardarlo en el Administrador de contraseñas: así en el otro dispositivo (misma cuenta
+  // de Google) se trae con "Traer de mis contraseñas", sin copiar el token a mano
+  try{if(window.PasswordCredential)navigator.credentials.store(new PasswordCredential({id:next.owner+'/'+next.repo,password:next.token,name:'Mis tareas'})).catch(()=>{})}catch{}
 };
 $('syncNow').onclick=()=>sync();
+$('credBtn').onclick=()=>{
+  const msg=t=>{$('cfgMsg').textContent=t;$('cfgMsg').classList.remove('hidden')};
+  navigator.credentials.get({password:true,mediation:'optional'}).then(cr=>{
+    if(!cr||!cr.password||!String(cr.id).includes('/')){msg('No hay una conexión guardada en tus contraseñas de Chrome.');return}
+    const [o,...r]=String(cr.id).split('/');
+    $('owner').value=o;$('repo').value=r.join('/');$('token').value=cr.password;
+    msg('Datos traídos de tus contraseñas: revisá la fecha de vencimiento y tocá "Guardar conexión".');
+  }).catch(()=>msg('No se pudieron traer las contraseñas de Chrome.'));
+};
 // Al pegar un token nuevo, la fecha del anterior ya no sirve: se borra y se pide la del nuevo
 $('token').addEventListener('input',()=>{
   if(!cfg.tokenExp||$('token').value.trim()===(cfg.token||'')||$('tokenExp').value!==cfg.tokenExp)return;
   $('tokenExp').value='';
   $('cfgMsg').textContent='Token nuevo: cargá también su fecha de vencimiento, así te avisamos una semana antes.';$('cfgMsg').classList.remove('hidden');
 });
-$('tokenFix').onclick=()=>{openSettings();$('token').focus();$('token').select()};
+function describeOp(o){
+  const id=o.id||(o.task&&o.task.id),t=o.task||tasks.find(x=>x.id===id)||trash.find(x=>x.id===id)||remote.find(x=>x.id===id),name=t?t.title:'Tarea';
+  const what=o.type==='add'?'nueva':o.type==='done'?(o.done?'terminada':'reabierta'):o.type==='delete'?'eliminada':o.patch&&'deletedAt' in o.patch?(o.patch.deletedAt?'a la papelera':'recuperada'):'cambiada';
+  return name+' · '+what;
+}
+$('tokenFix').onclick=()=>{openSettings();$('acct').open=true;$('token').focus();$('token').select()};
 $('tokenX').onclick=()=>{store(K_TOKENX,ymd(new Date()));renderTokenBar()};
 $('badgeSw').addEventListener('change',()=>{
   const on=$('badgeSw').checked;store(K_BADGE,on);lastBadge=null;updateBadge();
@@ -1845,7 +2020,9 @@ $('badgeSw').addEventListener('change',()=>{
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
   try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
-  cfg={};remote=[];outboxMem=[];lastSync=null;lastError=null;authError=false;confirmClear=false;
+  cfg={};remote=[];remoteSha=null;remoteEtag=null;outboxMem=[];lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;confirmClear=false;
+  // La copia para subir en segundo plano tiene el token: también se borra
+  idbDel('pendiente');idbDel('enviadas');bgRegistered=false;
   $('owner').value='';$('repo').value='';$('token').value='';$('tokenExp').value='';
   try{localStorage.removeItem(K_TOKENX)}catch{}
   recompute();
@@ -1951,9 +2128,8 @@ if(shared){
     renderAdd();
   }
 }
-setInterval(()=>{if(document.visibilityState==='visible')sync()},20000);
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState!=='visible')return;
+  if(document.visibilityState!=='visible'){clearTimeout(pollTimer);registerBackground();return}
   sync();
   // Al volver después de un rato, en el celular: arriba de todo y lista para anotar
   if(COARSE&&hiddenAt&&Date.now()-hiddenAt>120000)readyToCapture();

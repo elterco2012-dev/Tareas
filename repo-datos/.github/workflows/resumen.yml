@@ -49,7 +49,17 @@ jobs:
           // Para hoy: primero las que tienen hora, en orden
           const paraHoy=pend.filter(t=>!t.waiting&&t.due===hoy).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
           const esperando=pend.filter(t=>t.waiting&&t.waitingSince&&dias(hoy,fecha(new Date(t.waitingSince)))>=3);
-          if(!vencidas.length&&!paraHoy.length&&!esperando.length){console.log('Nada vencido, para hoy ni esperando hace +3 días: no se envía nada.');process.exit(0)}
+          // Token de GitHub de la app: la fecha de vencimiento que se cargó en Sincronización (ajustes.json)
+          let aviso='';
+          try{
+            const tok=(JSON.parse(readFileSync('ajustes.json','utf8')).tokens)||{};
+            for(const f of Object.values(tok)){
+              const d=dias(String(f),hoy);if(!(d<=7&&d>=-3))continue;
+              const dm=String(f).slice(8,10).replace(/^0/,'')+'/'+String(f).slice(5,7).replace(/^0/,'');
+              aviso='⚠ El token de GitHub de la app '+(d<0?'venció el '+dm:d===0?'vence hoy':d===1?'vence mañana':'vence en '+d+' días ('+dm+')')+'. Generá uno nuevo y cargalo en Sincronización, con su fecha.';
+            }
+          }catch{}
+          if(!vencidas.length&&!paraHoy.length&&!esperando.length&&!aviso){console.log('Nada vencido, para hoy ni esperando hace +3 días: no se envía nada.');process.exit(0)}
 
           const plural=(n,a,b)=>n+' '+(n===1?a:b);
           const partes=[];
@@ -57,7 +67,7 @@ jobs:
           if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
           if(esperando.length)partes.push(esperando.length+' esperando hace +3 días');
           const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'');
-          let msg='Buen día. '+partes.join(', ');
+          let msg=(aviso?aviso+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
           if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
           if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');
           if(esperando.length)msg+='\n\nEsperando hace +3 días\n'+esperando.map(t=>'• '+t.title+' · '+(t.waitingOn||'sin nombre')+', hace '+dias(hoy,fecha(new Date(t.waitingSince)))+' días').join('\n');
@@ -106,7 +116,7 @@ jobs:
             await cmd('MAIL FROM:<'+user+'>',[250]);
             await cmd('RCPT TO:<'+to+'>',[250,251]);
             await cmd('DATA',[354]);
-            const asunto='=?UTF-8?B?'+Buffer.from('Mis tareas: '+partes.join(', ')).toString('base64')+'?=';
+            const asunto='=?UTF-8?B?'+Buffer.from('Mis tareas: '+(partes.join(', ')||'aviso del token')).toString('base64')+'?=';
             const cuerpo=msg.replace(/\r?\n/g,'\r\n').replace(/^\./gm,'..');
             await cmd('From: '+user+'\r\nTo: '+to+'\r\nSubject: '+asunto+'\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n'+cuerpo+'\r\n.',[250]);
             await cmd('QUIT',[221]).catch(()=>{});
