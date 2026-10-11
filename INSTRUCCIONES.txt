@@ -88,7 +88,18 @@ USO DIARIO
   un mensaje como "+ Llamar al banco · cel") y, plegada, la cuenta de GitHub y el token.
 - Lo que llega del otro dispositivo (por ejemplo, lo que anotaste en el celular) se resalta en la compu hasta
   que la mires, con un aviso "2 nuevas desde el celular · Ver".
-- En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir, Espacio terminar, E editar, H hoy, M mañana, Supr borrar.
+- En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir (con el campo vacio, flecha abajo pasa a la
+  lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
+  S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Supr borrar.
+  Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente.
+- Anotadas al pasar: lo que cargas en el celular (o dictas o compartis) sin elegir fecha queda para hoy con un punto
+  azul adelante. Cualquier decision lo saca.
+- Procesar (en la compu, arriba a la derecha, o tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas
+  pateadas primero) y lo que espera respuesta hace rato. Una tecla o un toque por decision y pasa sola a la
+  siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy.
+- Pateadas: si pasas una tarea vencida o de hoy para mas adelante, se cuenta. Desde la tercera vez la tarea dice
+  "pateada 3×" en ambar, "Todas a hoy" la deja afuera y el Telegram de la mañana la marca "(pospuesta 3 veces)".
+- En pantallas anchas (1200 px o mas), Esperando y Sin fecha quedan en una columna a la derecha, siempre a la vista.
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
   cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
 - Compartir desde WhatsApp o el mail (Android, con la app instalada): en el mensaje toca Compartir y elegi
@@ -101,6 +112,9 @@ USO DIARIO
 - Vencidas: si hay dos o mas, "Todas a hoy" (a la derecha del titulo) las pasa todas a hoy de un toque, con Deshacer.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
+  "Reclamar…" arma el mensaje ("Hola Juan, ¿pudiste ver lo de …?") para WhatsApp o lo que elijas, y queda anotado
+  ("Juan · reclamado hace 1 dia (2º)"). "Volver a mirar el…" le pone una fecha: hasta ese dia no se pone en ambar.
+- Revision de los viernes (opcional, por Telegram): ver repo-datos/INSTRUCCIONES.md.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.

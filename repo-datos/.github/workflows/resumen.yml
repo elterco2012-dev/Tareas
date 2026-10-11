@@ -6,6 +6,7 @@ name: Resumen diario
 on:
   schedule:
     - cron: "0 10 * * 1-5"   # 7:00 en Argentina (10:00 UTC), de lunes a viernes
+    - cron: "45 18 * * 5"    # viernes 15:45 en Argentina: revisión de la semana
   workflow_dispatch:          # botón "Run workflow" para probarlo
 
 permissions:
@@ -30,6 +31,8 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
           ZONA_HORARIA: America/Argentina/Buenos_Aires
+          PROGRAMA: ${{ github.event.schedule }}
+          APP_URL: ${{ vars.APP_URL }}
         run: |
           node --input-type=module <<'JS'
           import {readFileSync} from 'node:fs';
@@ -45,10 +48,31 @@ jobs:
           let tareas;
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para avisar.');process.exit(0)}
           const pend=tareas.filter(t=>t&&!t.done&&!t.deletedAt);   // sin las de la papelera
+          // Viernes 15:45: la revisión de la semana (lo que no tiene fecha, lo que espera respuesta, lo pateado)
+          if(E.PROGRAMA==='45 18 * * 5'){
+            const lunes=new Date(Date.parse(hoy+'T12:00:00Z'));lunes.setUTCDate(lunes.getUTCDate()-(lunes.getUTCDay()+6)%7);
+            const desde=lunes.toISOString().slice(0,10);
+            const hechas=tareas.filter(t=>t&&t.done&&!t.deletedAt&&t.completedAt&&fecha(new Date(t.completedAt))>=desde).length;
+            const sinFecha=pend.filter(t=>!t.waiting&&!t.due),viejas=sinFecha.filter(t=>t.createdAt&&dias(hoy,fecha(new Date(t.createdAt)))>30).length;
+            const esp=pend.filter(t=>t.waiting).length,pateadas=pend.filter(t=>!t.waiting&&(t.postponed||0)>=3).length;
+            if(!sinFecha.length&&!esp&&!pateadas){console.log('Nada para revisar esta semana.');process.exit(0)}
+            const items=[];
+            if(sinFecha.length)items.push(sinFecha.length+' sin fecha'+(viejas?' ('+viejas+' con más de un mes)':''));
+            if(esp)items.push(esp+' esperando respuesta');
+            if(pateadas)items.push(pateadas+(pateadas===1?' pateada':' pateadas')+' 3 veces o más');
+            const url=(E.APP_URL||'').trim();
+            const semanal='Revisión de la semana: '+items.join(', ')+'.'+(hechas?'\nEsta semana terminaste '+hechas+(hechas===1?' tarea.':' tareas.'):'')+'\n'+(url?'Revisalas en 2 minutos: '+url.replace(/\/?$/,'/')+'?revisar=1':'Abrí la app y tocá "Procesar".');
+            console.log(semanal);
+            const r=await fetch((E.TELEGRAM_API||'https://api.telegram.org')+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:semanal,disable_web_page_preview:true})});
+            const j=await r.json().catch(()=>({}));
+            if(!r.ok||!j.ok){console.error('Telegram respondió '+r.status+': '+(j.description||''));process.exit(1)}
+            process.exit(0);
+          }
           const vencidas=pend.filter(t=>!t.waiting&&t.due&&t.due<hoy).sort((a,b)=>a.due.localeCompare(b.due));
           // Para hoy: primero las que tienen hora, en orden
           const paraHoy=pend.filter(t=>!t.waiting&&t.due===hoy).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
-          const esperando=pend.filter(t=>t.waiting&&t.waitingSince&&dias(hoy,fecha(new Date(t.waitingSince)))>=3);
+          const desdeEspera=t=>t.lastNudge||t.waitingSince;
+          const esperando=pend.filter(t=>t.waiting&&(t.followUp?t.followUp<=hoy:desdeEspera(t)&&dias(hoy,fecha(new Date(desdeEspera(t))))>=3));
           // Token de GitHub de la app: la fecha de vencimiento que se cargó en Sincronización (ajustes.json)
           let aviso='';
           try{
@@ -66,11 +90,11 @@ jobs:
           if(vencidas.length)partes.push(plural(vencidas.length,'vencida','vencidas'));
           if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
           if(esperando.length)partes.push(esperando.length+' esperando hace +3 días');
-          const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'');
+          const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'')+((t.postponed||0)>=3?' (pospuesta '+t.postponed+' veces)':'');
           let msg=(aviso?aviso+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
           if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
           if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');
-          if(esperando.length)msg+='\n\nEsperando hace +3 días\n'+esperando.map(t=>'• '+t.title+' · '+(t.waitingOn||'sin nombre')+', hace '+dias(hoy,fecha(new Date(t.waitingSince)))+' días').join('\n');
+          if(esperando.length)msg+='\n\nEsperando hace +3 días\n'+esperando.map(t=>{const d=dias(hoy,fecha(new Date(desdeEspera(t))));return '• '+t.title+' · '+(t.waitingOn||'sin nombre')+', '+(t.followUp?'volver a mirar hoy':(t.lastNudge?'reclamado ':'')+(d===1?'hace 1 día':'hace '+d+' días'))}).join('\n');
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
           console.log(msg);
 

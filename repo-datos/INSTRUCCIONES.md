@@ -112,6 +112,26 @@ Además de Telegram (o en lugar de Telegram), puede llegarte por mail. Cargá es
 
 Revisá que tu empresa permita usar el mail de esta forma antes de cargar una cuenta del trabajo.
 
+## Opcional: revisión de los viernes
+
+Los viernes a las 15:45 te llega otro mensaje, solo si hay algo para revisar:
+
+```
+Revisión de la semana: 14 sin fecha (5 con más de un mes), 3 esperando respuesta, 2 pateadas 3 veces o más.
+Esta semana terminaste 23 tareas.
+Revisalas en 2 minutos: https://TU_USUARIO.github.io/organizador-web/?revisar=1
+```
+
+El enlace abre la app directamente en "Revisión de la semana": de a una tarea, decidís con un toque (hoy, mañana, otra fecha, esperando, terminada, borrar o "Sigue así").
+
+Viene incluido en `resumen.yml`: si ya lo copiaste (o lo actualizaste), no hay que hacer nada más. Para que el mensaje traiga el enlace, cargá la dirección de la app una vez:
+
+1. En el repositorio de datos: **Settings** → **Secrets and variables** → **Actions**.
+2. Pestaña **Variables** → **New repository variable**.
+3. Name: `APP_URL` — Value: la dirección de la app, por ejemplo `https://TU_USUARIO.github.io/organizador-web/`. Tocá **Add variable**.
+
+Sin esa variable, el mensaje llega igual y dice "Abrí la app y tocá Procesar".
+
 ---
 
 # Recordatorios a la hora

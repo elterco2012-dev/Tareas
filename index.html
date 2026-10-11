@@ -158,6 +158,31 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .trow .tt div+div{font-size:12.5px;color:var(--faint);margin-top:2px}
 .trow .linkbtn{flex:none;margin:0;padding:8px}
 
+/* Anotadas al pasar, pateadas, Procesar, dos columnas */
+.inboxdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:2px}
+#askIn{font-size:16px;padding:11px 12px;border-radius:10px;width:100%}
+#editOv{z-index:55}
+.modal.proc{max-width:560px}
+.mhead .n{margin-left:auto;margin-right:8px;font-size:13px;color:var(--faint)}
+.pcard{border:1px solid var(--border);border-radius:14px;padding:16px}
+.pcard .pt{font-size:18px;line-height:1.35;font-weight:600;color:var(--text);overflow-wrap:anywhere}
+.pcard .pm{margin-top:6px;font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 10px}
+.pcard .pn{margin-top:8px;font-size:13.5px;color:var(--faint);white-space:pre-wrap;overflow-wrap:anywhere}
+.procbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.procbtns button{display:flex;align-items:center;gap:8px;justify-content:flex-start;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--chip);background:var(--card);color:var(--text);font-size:14px;text-align:left}
+.procbtns button:hover{background:var(--hover)}
+.procbtns button.danger{color:var(--red)}
+.procbtns button.main{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.procbtns kbd{flex:none}
+.pdone{text-align:center;padding:12px 0}
+.pdone h3{margin:0 0 6px;font-size:20px}
+.side{display:none}
+@media (min-width:1200px){
+  .wrap{max-width:1140px}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:28px;align-items:start}
+  .side{display:block;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+}
+
 /* Persona (filtro), Esperando */
 .person{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .person:hover{color:var(--accent);text-decoration:underline}
@@ -286,6 +311,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <div class="sub"><span id="todayLabel"></span><span id="summary"></span></div>
     </div>
     <div class="hbtns">
+      <button type="button" id="procBtn" class="pill hidden" title="Procesar lo anotado, las vencidas y lo que espera respuesta ( P )">Procesar <span class="n" id="procCount" style="color:var(--accent);font-weight:700"></span></button>
       <button type="button" id="searchBtn" class="iconbtn" aria-label="Buscar" title="Buscar ( / )">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="5.5"/><line x1="11.8" y1="11.8" x2="16" y2="16"/></svg>
       </button>
@@ -322,6 +348,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 
   <div id="tokenBar" class="tokenbar hidden" role="status"><span id="tokenMsg"></span><button type="button" id="tokenFix">Renovar</button><button type="button" id="tokenX" class="hidden" aria-label="Ocultar hasta mañana" title="Ocultar hasta mañana">✕</button></div>
   <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
+  <div class="cols"><div class="maincol">
   <div id="empty" class="emptycard hidden"></div>
   <div id="groups"></div>
   <div id="waitingSec"></div>
@@ -355,6 +382,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <div id="trashList" class="card" style="margin-top:6px"></div>
       <button type="button" id="trashEmpty" class="linkbtn"></button>
     </div>
+  </div>
+
+  </div>
+  <!-- En pantallas anchas: Esperando y Sin fecha siempre a la vista -->
+  <aside id="side" class="side"><div id="sideWait"></div><div id="sideNone"></div></aside>
   </div>
 
   <div id="shortcuts" class="shortcuts hidden"></div>
@@ -436,6 +468,25 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   </div>
 </div>
 
+<div id="procOv" class="overlay hidden">
+  <div class="modal proc" role="dialog" aria-modal="true" aria-labelledby="procH">
+    <div class="mhead"><h2 id="procH">Procesar</h2><span class="n" id="procN"></span><button type="button" class="xbtn" id="procX" aria-label="Cerrar">✕</button></div>
+    <div id="procCard"></div>
+    <div id="procBtns" class="procbtns"></div>
+  </div>
+</div>
+
+<div id="askOv" class="overlay hidden">
+  <form id="askForm" class="modal small" role="dialog" aria-modal="true" aria-labelledby="askH">
+    <div class="mhead"><h2 id="askH"></h2><button type="button" class="xbtn" id="askX" aria-label="Cerrar">✕</button></div>
+    <p class="muted" id="askHint"></p>
+    <input id="askIn" class="inp" maxlength="100" autocomplete="off" aria-labelledby="askH">
+    <div id="askDet" class="detected hidden"></div>
+    <div class="mfoot"><span class="spacer"></span><button type="button" id="askCancel" class="secbtn">Cancelar</button><button type="submit" class="primary">Guardar</button></div>
+  </form>
+</div>
+<datalist id="peopleList"></datalist>
+
 <div id="waitOv" class="overlay hidden">
   <form id="waitForm" class="modal small" role="dialog" aria-modal="true" aria-labelledby="waitH">
     <div class="mhead"><h2 id="waitH">¿De quién?</h2><button type="button" class="xbtn" id="waitX" aria-label="Cerrar">✕</button></div>
@@ -480,14 +531,16 @@ const ARCHIVE_DAYS=30,TRASH_DAYS=30;
 const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
+const WIDE=window.matchMedia?matchMedia('(min-width:1200px)'):{matches:false,addEventListener(){}};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
-const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Espacio','terminar'],['E','editar'],['H','hoy'],['M','mañana'],['Supr','borrar']];
+const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','procesar'],['Supr','borrar']];
 let cfg={},remote=[],tasks=[],trash=[],outboxMem=[];
 let syncing=false,syncAgain=false,lastSync=null,lastError=null,authError=false;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
+let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
 const K_DRAFT='borrador',K_TIP='tipVisto';
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
@@ -1113,6 +1166,9 @@ function renderHeader(){
   if(tod)s.append(el('span','today',tod+' para hoy'));
   if(doneToday)s.append(el('span',null,doneToday+(doneToday===1?' hecha hoy':' hechas hoy')));
   if(!over&&!tod&&!doneToday&&pend.length)s.append(el('span',null,pend.length+(pend.length===1?' pendiente':' pendientes')));
+  // En la compu: "Procesar (N)" con lo anotado al pasar, las vencidas y lo que espera respuesta hace rato
+  const n=FINE?procQueue(false).length:0;
+  $('procBtn').classList.toggle('hidden',!n);$('procCount').textContent=n||'';
 }
 function renderAdd(){
   const raw=$('title').value,p=parse(raw,dueFor(chip));
@@ -1155,6 +1211,8 @@ function renderList(){
   const unsynced=new Set(configured()?getOutbox().filter(o=>errorKind==='offline'||!(o.ts>late)).map(o=>o.id||(o.task&&o.task.id)):[]);
   const pending=tasks.filter(t=>!t.done&&!t.waiting&&match(t)).sort(cmpPending);
   const box=$('groups');box.replaceChildren();visibleIds=[];
+  // En pantallas anchas, Sin fecha y Esperando van a la columna de la derecha, siempre a la vista
+  const wide=WIDE.matches;$('sideNone').replaceChildren();$('sideWait').replaceChildren();
   for(const g of GROUPS){
     const items=pending.filter(t=>groupOf(t)===g.id);
     if(!items.length)continue;
@@ -1162,14 +1220,14 @@ function renderList(){
     const head=el('div','ghead'+(g.id==='over'?' over':g.id==='today'?' today':''));
     head.append(el('span',null,g.title),el('span','n',String(items.length)));
     // Vencidas: pasarlas todas a hoy de un toque
-    if(g.id==='over'&&items.length>1){const b=el('button','gbtn','Todas a hoy');b.type='button';b.onclick=()=>allToToday(items);head.append(b)}
+    if(g.id==='over'&&items.length>1&&items.some(t=>(t.postponed||0)<3)){const b=el('button','gbtn','Todas a hoy');b.type='button';b.onclick=()=>allToToday(items);head.append(b)}
     const card=el('div','card');
     items.forEach(t=>{visibleIds.push(t.id);card.append(COARSE?swipeRow(taskRow(t,g.id,unsynced),t):taskRow(t,g.id,unsynced))});
-    grp.append(head,card);box.append(grp);
+    grp.append(head,card);(wide&&g.id==='none'?$('sideNone'):box).append(grp);
   }
   // Esperando: debajo de los pendientes, las más viejas primero
   const waiting=tasks.filter(t=>!t.done&&t.waiting&&match(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''));
-  const ws=$('waitingSec');ws.replaceChildren();
+  $('waitingSec').replaceChildren();const ws=wide?$('sideWait'):$('waitingSec');
   if(waiting.length){
     const grp=el('div','grp'),head=el('div','ghead'),card=el('div','card');
     head.append(el('span',null,'Esperando'),el('span','n',String(waiting.length)));
@@ -1217,17 +1275,21 @@ function taskRow(t,gid,unsynced){
   const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Marcar terminada');
   chk.append(el('span'));chk.onclick=()=>doneAnimated(row,t);
   const body=el('div','body');body.onclick=()=>openEdit(t);
-  body.append(el('div','ttext',t.title));
+  const tx=el('div','ttext');if(t.inbox)tx.append(el('span','inboxdot'));tx.append(t.title);body.append(tx);
+  // En la compu, al pasar el mouse: cuándo y dónde se anotó, y cuántas veces se pateó
+  if(FINE&&t.createdAt){const a=-daysUntil(ymd(new Date(t.createdAt)));body.title='Anotada '+(a===0?'hoy '+timeNow(new Date(t.createdAt)):a===1?'ayer '+timeNow(new Date(t.createdAt)):'hace '+a+' días')+(t.src==='cel'?' en el celu':t.src==='pc'?' en la compu':'')+(t.postponed?' · pateada '+t.postponed+(t.postponed===1?' vez':' veces'):'')}
   // La fecha solo donde aporta: en Hoy y Mañana sería redundante
   const showDue=!!t.due&&(gid==='over'||gid==='week'||gid==='later');
   const meta=el('div','meta');
   if(gid==='waiting'){
-    // "Juan · hace 3 días": desde los 3 días, en ámbar
-    const days=t.waitingSince?Math.max(0,-daysUntil(ymd(new Date(t.waitingSince)))):0;
-    const w=el('span',days>=3?'late':null);
+    // "Juan · hace 3 días" o "Juan · reclamado hace 1 día (2º)": tarde desde los 3 días, en ámbar.
+    // Con fecha para volver a mirarla, "mirar jue 15" (en ámbar ese día).
+    const ref=t.lastNudge||t.waitingSince,days=ref?Math.max(0,-daysUntil(ymd(new Date(ref)))):0,late=waitingLate(t);
+    const w=el('span',late?'late':null),ago=days===0?'hoy':days===1?'hace 1 día':'hace '+days+' días';
     if(t.waitingOn)w.append(personBtn(t.waitingOn,t.waitingOn),' · ');else w.append('Esperando · ');
-    w.append(days===0?'desde hoy':days===1?'hace 1 día':'hace '+days+' días');
+    w.append(t.lastNudge?'reclamado '+ago+(t.nudges>1?' ('+t.nudges+'º)':''):days===0?'desde hoy':ago);
     meta.append(w);
+    if(t.followUp)meta.append(el('span',late?'late':null,'mirar '+(daysUntil(t.followUp)<=0?'hoy':shortDue(t.followUp).toLowerCase())));
   }
   if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
   // Hora: en rojo si es para hoy y ya pasó
@@ -1235,12 +1297,13 @@ function taskRow(t,gid,unsynced){
   if(tt){const past=t.due===ymd(new Date())&&tt<timeNow(new Date());meta.append(el('span','time'+(past?' past':''),tt))}
   if(t.repeat&&REPEAT_LABEL[t.repeat])meta.append(el('span',null,'↻ '+REPEAT_LABEL[t.repeat]));
   if(t.priority==='Alta')meta.append(el('span','alta','Alta'));
+  if((t.postponed||0)>=3)meta.append(el('span','late','pateada '+t.postponed+'×'));
   if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
   if(unsynced.has(t.id))meta.append(el('span','unsynced','sin subir'));
   if(meta.childNodes.length)body.append(meta);
   if(t.notes)body.append(el('div','notes',t.notes));
   const more=el('button','more','⋯');more.type='button';more.setAttribute('aria-label','Más acciones');more.setAttribute('aria-haspopup','menu');
-  more.onclick=e=>{e.stopPropagation();openMenu(t.id)};
+  more.onclick=e=>{e.stopPropagation();openMenu(t.id,e.detail===0)};
   row.append(chk,body,more);
   return row;
 }
@@ -1293,7 +1356,7 @@ function swipeRow(row,t){
 document.addEventListener('click',e=>{if(swallowClick){swallowClick=false;e.stopPropagation();e.preventDefault()}},true);
 
 // ---- Menú ⋯ ----
-function openMenu(id){
+function openMenu(id,byKey){
   if(menuId===id){closeMenu();return}
   const t=tasks.find(x=>x.id===id);if(!t)return;
   menuId=id;
@@ -1302,11 +1365,14 @@ function openMenu(id){
   const item=(label,fn,cls)=>{const b=el('button',cls,label);b.type='button';b.setAttribute('role','menuitem');b.onclick=()=>{closeMenu();fn()};m.append(b)};
   if(t.waiting){
     item('Ya respondió',()=>setWaiting(t,false));
+    item('Reclamar…',()=>nudge(t));
+    item('Volver a mirar el…',()=>askDate(t));
     item('Terminar',()=>toggle(t));
   }else{
     if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
     if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
     if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
+    item('Otra fecha…',()=>askDate(t));
     item('Esperando respuesta…',()=>openWait(t));
     item('Agregar al calendario',()=>openCalendar(t));
   }
@@ -1318,12 +1384,14 @@ function openMenu(id){
   // La fila elegida (fondo celeste) es para los atajos de teclado: solo en la compu
   if(FINE){sel=id;renderList()}
   placeMenu();
+  // Abierto con el teclado: el foco va al menú (flechas, Enter, Esc)
+  if(byKey)m.querySelector('button').focus();
 }
 // Debajo del botón ⋯ de la fila; si no entra en la pantalla, arriba. Queda anclado a la
 // página (acompaña el scroll) y se vuelve a ubicar cada vez que la lista se redibuja.
 function placeMenu(){
   if(!menuId)return;
-  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task')].find(r=>r.dataset.id===menuId);
+  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task,#side .task')].find(r=>r.dataset.id===menuId);
   if(!row){closeMenu();return}
   const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
   let top=r.bottom+2;if(top+mh>innerHeight-8)top=Math.max(8,r.top-mh-2);
@@ -1390,34 +1458,195 @@ function toggle(t){
     actMany(undo);
   });
 }
-function reschedule(t,v){
-  const prev=t.due||null,due=dueFor(v);
-  if(prev===due)return;
-  act({type:'edit',id:t.id,patch:{due}});
-  toast(v==='0'?'Pasada a hoy':v==='1'?'Pasada a mañana':'Pasada al lunes',()=>act({type:'edit',id:t.id,patch:{due:prev}}));
+// Cambiar la fecha. Si estaba vencida o para hoy y se la pasa más adelante, cuenta como "pateada".
+// Cualquier decisión la saca de "anotadas al pasar".
+function duePatch(t,due){
+  const p={due:due||null},today=ymd(new Date());
+  if(t.due&&t.due<=today&&due&&due>t.due)p.postponed=(t.postponed||0)+1;
+  if(t.inbox)p.inbox=false;
+  return p;
 }
+// Lo que había antes de un cambio, para Deshacer
+function undoOf(t,patch){const u={};for(const k in patch)u[k]=k==='postponed'?(t.postponed||0):k==='inbox'?!!t.inbox:t[k]===undefined?null:t[k];return u}
+function editWithUndo(t,patch,msg){act({type:'edit',id:t.id,patch});toast(msg,()=>act({type:'edit',id:t.id,patch:undoOf(t,patch)}))}
+function reschedule(t,v){
+  const due=dueFor(v);
+  if((t.due||null)===due){if(t.inbox)editWithUndo(t,{inbox:false},'Queda para hoy');return}
+  editWithUndo(t,duePatch(t,due),v==='0'?'Pasada a hoy':v==='1'?'Pasada a mañana':v===''?'Pasada a sin fecha':'Pasada al lunes');
+}
+// Otra fecha, escrita como en el campo: "jueves", "15/10", "en 2 semanas", "mañana a las 3"
+function parseWhen(v){
+  const p=parse(String(v||''),addDays(0));
+  if(p.due===undefined&&!p.time)return null;
+  return whenFields(p,p.due!==undefined?p.due:addDays(0));
+}
+function setWhen(t,w){
+  // En espera, la fecha es para volver a mirarla (followUp), no la de la tarea
+  const patch=t.waiting?{followUp:w.due}:duePatch(t,w.due);
+  if(w.time&&!t.waiting)patch.time=w.time;
+  editWithUndo(t,patch,t.waiting?'Volvés a mirarla '+(w.due?shortDue(w.due).toLowerCase():''):addedMsg(w.due).replace('Agregada','Pasada'));
+}
+// Vencidas a hoy de un toque. Las pateadas 3 veces o más quedan afuera: esas hay que decidirlas.
 function allToToday(items){
-  const today=dueFor('0'),prev=items.map(t=>({id:t.id,due:t.due||null}));
-  actMany(prev.map(x=>({type:'edit',id:x.id,patch:{due:today}})));
-  toast(prev.length+' pasadas a hoy',()=>actMany(prev.map(x=>({type:'edit',id:x.id,patch:{due:x.due}}))));
+  const today=dueFor('0'),kick=items.filter(t=>(t.postponed||0)<3),left=items.length-kick.length;
+  const prev=kick.map(t=>({id:t.id,patch:duePatch(t,today),t}));
+  actMany(prev.map(x=>({type:'edit',id:x.id,patch:x.patch})));
+  toast(kick.length+' pasadas a hoy'+(left?' · '+(left===1?'1 quedó afuera: la pateaste':left+' quedaron afuera: las pateaste')+' 3 veces o más':''),()=>actMany(prev.map(x=>({type:'edit',id:x.id,patch:undoOf(x.t,x.patch)}))),'Deshacer',left?7000:4500);
 }
 // Esperando respuesta: sale de los grupos por fecha hasta que respondan
 function setWaiting(t,on,name){
-  const prev={waiting:!!t.waiting,waitingOn:t.waitingOn||'',waitingSince:t.waitingSince||null};
+  const prev={waiting:!!t.waiting,waitingOn:t.waitingOn||'',waitingSince:t.waitingSince||null,...(t.inbox?{inbox:true}:{}),...(t.followUp?{followUp:t.followUp}:{})};
   if(on){
-    act({type:'edit',id:t.id,patch:{waiting:true,waitingOn:name||'',waitingSince:new Date().toISOString()}});
+    act({type:'edit',id:t.id,patch:{waiting:true,waitingOn:name||'',waitingSince:new Date().toISOString(),...(t.inbox?{inbox:false}:{})}});
     toast(name?'En espera de '+name:'En espera',()=>act({type:'edit',id:t.id,patch:prev}));
   }else{
-    act({type:'edit',id:t.id,patch:{waiting:false}});
+    act({type:'edit',id:t.id,patch:{waiting:false,...(t.followUp?{followUp:null}:{})}});
     toast('Volvió a pendientes',()=>act({type:'edit',id:t.id,patch:prev}));
   }
+}
+// ---- Procesar: de a una tarea, una tecla por decisión ----
+// Cola: lo anotado al pasar, después las vencidas (las más pateadas primero) y lo que espera respuesta
+// hace rato. En la revisión semanal (?revisar=1): Sin fecha sin revisar hace un mes, Esperando y las pateadas.
+function procQueue(weekly){
+  const today=ymd(new Date()),month=Date.now()-30*86400000,pend=tasks.filter(t=>!t.done&&!t.waiting);
+  const byCreated=(a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+  const waitLate=tasks.filter(t=>!t.done&&t.waiting&&waitingLate(t));
+  let list;
+  if(weekly)list=[...pend.filter(t=>!t.due&&!(new Date(t.reviewedAt||0).getTime()>=month)).sort(byCreated),...tasks.filter(t=>!t.done&&t.waiting),...pend.filter(t=>(t.postponed||0)>=3).sort((a,b)=>b.postponed-a.postponed)];
+  else list=[...pend.filter(t=>t.inbox).sort(byCreated),...pend.filter(t=>!t.inbox&&t.due&&t.due<today).sort((a,b)=>(b.postponed||0)-(a.postponed||0)||a.due.localeCompare(b.due)),...waitLate];
+  return [...new Set(list.map(t=>t.id))];
+}
+function openProc(weekly){
+  closeMenu();
+  proc={queue:procQueue(weekly),i:0,n:0,weekly:!!weekly};
+  $('procH').textContent=weekly?'Revisión de la semana':'Procesar';
+  $('procOv').classList.remove('hidden');$('wrap').inert=true;
+  renderProc();
+}
+function closeProc(){proc=null;releaseFocus($('procOv'));$('procOv').classList.add('hidden');$('wrap').inert=false;render()}
+function procCur(){
+  while(proc&&proc.i<proc.queue.length){const t=tasks.find(x=>x.id===proc.queue[proc.i]&&!x.done);if(t)return t;proc.i++}
+  return null;
+}
+function procNext(){if(!proc)return;proc.n++;proc.i++;renderProc()}
+function procActions(t){
+  const A=(k,label,fn,cls)=>({k,label,fn,cls});
+  if(t.waiting)return [A('R','Ya respondió',()=>{setWaiting(t,false);procNext()},'main'),A('N','Reclamar',()=>{nudge(t);procNext()}),A('F','Volver a mirar el…',()=>askDate(t,procNext)),
+    A('Espacio','Terminada',()=>{toggle(t);procNext()}),A('Supr','Borrar',()=>{del(t);procNext()},'danger'),A('→',proc.weekly?'Sigue así':'Siguiente',()=>procKeep(t))];
+  return [A('H','Hoy',()=>{reschedule(t,'0');procNext()},t.inbox?'main':null),A('M','Mañana',()=>{reschedule(t,'1');procNext()}),A('L','Lunes',()=>{reschedule(t,'week');procNext()}),
+    A('F','Otra fecha…',()=>askDate(t,procNext)),A('S','Sin fecha',()=>{reschedule(t,'');procNext()}),A('W','Esperando…',()=>{waitDone=procNext;openWait(t)}),
+    A('Q','Quién…',()=>askWho(t,renderProc)),A('!',t.priority==='Alta'?'Media':'Alta',()=>{togglePrio(t);renderProc()}),A('E','Editar…',()=>openEdit(t)),
+    A('Espacio','Terminada',()=>{toggle(t);procNext()}),A('Supr','Borrar',()=>{del(t);procNext()},'danger'),A('→',proc.weekly?'Sigue así':'Siguiente',()=>procKeep(t))];
+}
+// "Siguiente": en la revisión semanal queda revisada por un mes; si estaba anotada al pasar, queda para hoy
+function procKeep(t){
+  const patch={};
+  if(proc.weekly)patch.reviewedAt=new Date().toISOString();
+  if(t.inbox)patch.inbox=false;
+  if(Object.keys(patch).length)act({type:'edit',id:t.id,patch});
+  procNext();
+}
+function renderProc(){
+  if(!proc)return;
+  const t=procCur(),card=$('procCard'),btns=$('procBtns');card.replaceChildren();btns.replaceChildren();
+  if(!t){
+    $('procN').textContent='';
+    const today=tasks.filter(x=>!x.done&&!x.waiting&&x.due===ymd(new Date())).length;
+    const d=el('div','pdone');d.append(el('h3',null,proc.n?'Listo':'Nada para '+(proc.weekly?'revisar':'procesar')),el('p','muted',(proc.n?proc.n+(proc.n===1?' procesada':' procesadas')+' · ':'')+'Hoy quedó con '+today+(today===1?' tarea':' tareas')+'.'));
+    card.append(d);
+    if(proc.weekly){const b=el('button',null,'Copiar resumen de la semana');b.type='button';b.onclick=()=>$('copySum').click();btns.append(b)}
+    const c=el('button','main','Cerrar');c.type='button';c.onclick=closeProc;btns.append(c);c.focus();
+    return;
+  }
+  $('procN').textContent=(proc.i+1)+' de '+proc.queue.length;
+  const pc=el('div','pcard'),pm=el('div','pm');
+  pc.append(el('div','pt',t.title));
+  if(t.inbox&&t.createdAt){const a=-daysUntil(ymd(new Date(t.createdAt)));pm.append(el('span',null,'anotada '+(a===0?'hoy':a===1?'ayer':'hace '+a+' días')+' '+timeNow(new Date(t.createdAt))+(t.src==='cel'?' en el celu':'')))}
+  if(t.waiting){const ref=t.lastNudge||t.waitingSince,dd=ref?-daysUntil(ymd(new Date(ref))):0;pm.append(el('span','late','esperando'+(t.waitingOn?' a '+t.waitingOn:'')+' · '+(t.lastNudge?'reclamado ':'')+(dd<=0?'hoy':dd===1?'hace 1 día':'hace '+dd+' días')))}
+  else if(t.due)pm.append(el('span',daysUntil(t.due)<0?'over':null,dueLabel(t.due)));
+  if(!t.due&&!t.waiting)pm.append(el('span',null,'Sin fecha'));
+  if(t.postponed)pm.append(el('span',t.postponed>=3?'late':null,'pateada '+t.postponed+'×'));
+  if(t.priority==='Alta')pm.append(el('span','alta','Alta'));
+  if(t.requester)pm.append(el('span',null,'@'+t.requester));
+  pc.append(pm);if(t.notes)pc.append(el('div','pn',t.notes));
+  card.append(pc);
+  procActions(t).forEach(a=>{
+    const b=el('button',a.cls||null);b.type='button';
+    if(FINE)b.append(el('kbd',null,a.k));
+    b.append(a.label);b.onclick=a.fn;btns.append(b);
+  });
+}
+function procKey(e){
+  const t=procCur();
+  if(!t){if(e.key==='Enter'||e.key===' '){e.preventDefault();closeProc()}return}
+  const k=e.key===' '?'Espacio':e.key==='Delete'||e.key==='Backspace'?'Supr':e.key==='ArrowRight'||e.key==='Enter'?'→':e.key.length===1?e.key.toUpperCase():e.key;
+  if((k==='Z'||k==='z')&&toastAction){e.preventDefault();const a=toastAction;hideToast();a();if(proc.i>0){proc.i--;proc.n=Math.max(0,proc.n-1)}renderProc();return}
+  const a=procActions(t).find(x=>x.k===k);
+  if(a){e.preventDefault();a.fn()}
+}
+$('procBtn').onclick=()=>openProc(false);
+$('procX').onclick=closeProc;
+$('procOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('procOv').addEventListener('click',e=>{if(e.target===$('procOv')&&downOn===e.target)closeProc()});
+
+// ---- Mini diálogo: "¿Para cuándo?" y "¿Quién la pidió?" ----
+function openAsk(o){
+  ask=o;$('askH').textContent=o.title;$('askHint').textContent=o.hint||'';
+  const i=$('askIn');i.value=o.value||'';i.placeholder=o.placeholder||'';
+  if(o.people){const dl=$('peopleList');dl.replaceChildren();personsKnown().forEach(p=>{const op=el('option');op.value=p.name;dl.append(op)});i.setAttribute('list','peopleList')}else i.removeAttribute('list');
+  renderAsk();
+  $('askOv').classList.remove('hidden');$('wrap').inert=true;
+  i.focus();i.select();
+}
+function closeAsk(){const o=ask;ask=null;releaseFocus($('askOv'));$('askOv').classList.add('hidden');if(!proc&&!edit)$('wrap').inert=false;return o}
+function renderAsk(){
+  const d=$('askDet');d.replaceChildren();
+  if(ask&&ask.date&&$('askIn').value.trim()){
+    const w=parseWhen($('askIn').value);
+    if(w)d.append(el('span','lbl','Detectado:'),el('span','tag',w.due?shortDue(w.due):'Sin fecha'),...(w.time?[el('span','tag',w.time)]:[]));
+    else d.append(el('span','lbl','No entendí la fecha'));
+  }
+  d.classList.toggle('hidden',!d.childNodes.length);
+}
+$('askIn').addEventListener('input',renderAsk);
+$('askForm').addEventListener('submit',e=>{
+  e.preventDefault();if(!ask)return;
+  const v=$('askIn').value.trim();
+  if(ask.date&&!parseWhen(v)){$('askIn').focus();return}
+  const o=closeAsk();o.ok(v);
+});
+$('askX').onclick=closeAsk;$('askCancel').onclick=closeAsk;
+$('askOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('askOv').addEventListener('click',e=>{if(e.target===$('askOv')&&downOn===e.target)closeAsk()});
+function askDate(t,then){
+  openAsk({date:true,title:t.waiting?'¿Cuándo volvés a mirarla?':'¿Para cuándo?',hint:'Escribí "jueves", "15/10", "en 2 semanas" o "mañana a las 3".',ok:v=>{setWhen(t,parseWhen(v));if(then)then()}});
+}
+function askWho(t,then){
+  openAsk({people:true,title:'¿Quién la pidió?',value:t.requester||'',placeholder:'Nombre',ok:v=>{if(v!==(t.requester||''))editWithUndo(t,{requester:v},v?'Pedida por '+v:'Sin quién la pidió');if(then)then()}});
+}
+function togglePrio(t){editWithUndo(t,{priority:t.priority==='Alta'?'Media':'Alta'},t.priority==='Alta'?'Prioridad media':'Prioridad alta')}
+
+// Reclamar: el mensaje armado para WhatsApp (o lo que elijas al compartir). Queda registrado.
+function nudge(t){
+  const who=t.waitingOn||t.requester||'',text=(who?'Hola '+who+', ':'Hola, ')+'¿pudiste ver lo de «'+t.title+'»?';
+  const mark=()=>{act({type:'edit',id:t.id,patch:{nudges:(t.nudges||0)+1,lastNudge:new Date().toISOString()}});toast('Reclamado'+(who?' a '+who:''))};
+  if(COARSE&&navigator.share){navigator.share({text}).then(mark,()=>{});return}
+  try{navigator.clipboard&&navigator.clipboard.writeText(text).catch(()=>{})}catch{}
+  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank','noopener');
+  mark();
+}
+// En espera: tarde desde los 3 días (desde el último reclamo), o el día que elegiste volver a mirarla
+function waitingLate(t){
+  if(t.followUp)return daysUntil(t.followUp)<=0;
+  const ref=t.lastNudge||t.waitingSince;
+  return !!ref&&-daysUntil(ymd(new Date(ref)))>=3;
 }
 function openWait(t){
   waitFor=t;$('waitName').value=t.waitingOn||t.requester||'';
   $('waitOv').classList.remove('hidden');$('wrap').inert=true;
   if(FINE){$('waitName').focus();$('waitName').select()}
 }
-function closeWait(){waitFor=null;releaseFocus($('waitOv'));$('waitOv').classList.add('hidden');$('wrap').inert=false}
+function closeWait(){waitFor=null;waitDone=null;releaseFocus($('waitOv'));$('waitOv').classList.add('hidden');if(!proc)$('wrap').inert=false}
 // Borrar la pasa a la papelera, de donde se puede recuperar durante 30 días
 function del(t){
   if(edit&&edit.id===t.id)closeEdit();
@@ -1480,6 +1709,8 @@ $('addForm').addEventListener('submit',e=>{
   const task={id:crypto.randomUUID(),src:SRC,title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
+  // Anotada al pasar (en el celular, compartida o dictada, sin elegir fecha): queda para hoy, marcada para procesar
+  if(p.due===undefined&&!p.time&&!chipTouched&&!p.waiting&&(COARSE||sharedFill||voiceFilled))task.inbox=true;
   act({type:'add',task});
   if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
   // "Agregada para mañana · 15:00 · @Laura", con Deshacer y Cambiar (por si se entendió mal).
@@ -1488,7 +1719,7 @@ $('addForm').addEventListener('submit',e=>{
   if(p.time||p.remind)more.push(['Al calendario',()=>openCalendar(task)]);
   toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
-  $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;saveDraft();
+  $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
   if(refocus)$('title').focus();
   renderAdd();
 });
@@ -1538,7 +1769,7 @@ $('title').addEventListener('blur',()=>{
   document.addEventListener('pointerup',after,true);document.addEventListener('pointercancel',after,true);
 });
 // Elegir otra fecha durante la cuenta regresiva la vuelve a empezar
-document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;if(autoSave)startAutoSave();renderAdd();if(!dock)$('title').focus()}));
+document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;chipTouched=true;if(autoSave)startAutoSave();renderAdd();if(!dock)$('title').focus()}));
 function setNote(on){
   $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar nota':'+ Nota';
   if(!on)$('note').value='';
@@ -1823,7 +2054,7 @@ $('search').addEventListener('input',renderList);
 $('filterX').onclick=()=>setPersonFilter(null);
 
 // ---- Mini diálogo "¿De quién?" ----
-$('waitForm').addEventListener('submit',e=>{e.preventDefault();const t=waitFor;closeWait();if(t)setWaiting(t,true,$('waitName').value.trim())});
+$('waitForm').addEventListener('submit',e=>{e.preventDefault();const t=waitFor,d=waitDone;closeWait();if(t){setWaiting(t,true,$('waitName').value.trim());if(d)d()}});
 $('waitX').onclick=closeWait;$('waitCancel').onclick=closeWait;
 $('waitOv').addEventListener('pointerdown',e=>{downOn=e.target});
 $('waitOv').addEventListener('click',e=>{if(e.target===$('waitOv')&&downOn===e.target)closeWait()});
@@ -1925,7 +2156,7 @@ function editPatch(){
 }
 // Al cerrar un modal se suelta el foco que quedó adentro, para que los atajos vuelvan a la lista
 function releaseFocus(ov){const a=document.activeElement;if(a&&ov.contains(a))a.blur()}
-function closeEdit(){edit=null;releaseFocus($('editOv'));$('editOv').classList.add('hidden');$('wrap').inert=false}
+function closeEdit(){edit=null;releaseFocus($('editOv'));$('editOv').classList.add('hidden');if(!proc)$('wrap').inert=false;else setTimeout(renderProc,0)}
 document.querySelectorAll('#eChips .chip').forEach(b=>b.addEventListener('click',()=>{edit.due=dueFor(b.dataset.v)||'';renderEdit()}));
 $('eDue').addEventListener('change',()=>{edit.due=$('eDue').value;renderEdit()});
 document.querySelectorAll('#ePrios .prio').forEach(b=>b.addEventListener('click',()=>{edit.priority=b.dataset.p;renderEdit()}));
@@ -1934,7 +2165,9 @@ $('editForm').addEventListener('submit',e=>{
   if(!edit)return;
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
-  const patch=editPatch();
+  const patch=editPatch(),t0=tasks.find(x=>x.id===edit.id);
+  if(t0&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
+  if(t0&&t0.inbox&&Object.keys(patch).length)patch.inbox=false;
   const id=edit.id;closeEdit();
   if(Object.keys(patch).length){act({type:'edit',id,patch});toast('Cambios guardados')}
 });
@@ -2034,6 +2267,10 @@ document.addEventListener('keydown',e=>{
   const typing=tag==='input'||tag==='textarea'||tag==='select'||tg.isContentEditable;
   if(e.key==='Escape'){
     if(listening)stopVoice(true);
+    else if(ask)closeAsk();
+    else if(waitFor)closeWait();
+    else if(edit)closeEdit();
+    else if(proc)closeProc();
     else if(autoSave)cancelAutoSave();
     else if(dock)closeDock();
     else if(!$('textOv').classList.contains('hidden'))closeText();
@@ -2048,11 +2285,24 @@ document.addEventListener('keydown',e=>{
     else if(sel){sel=null;renderList()}
     return;
   }
-  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||!$('textOv').classList.contains('hidden'))return;
+  // Procesar tiene sus propias teclas
+  if(proc&&!ask&&!waitFor&&!edit){if(!typing&&!e.metaKey&&!e.ctrlKey)procKey(e);return}
+  // En el menú ⋯: flechas para moverse
+  if(menuId&&$('menu').contains(document.activeElement)&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
+    e.preventDefault();const bs=[...$('menu').querySelectorAll('button')],i=bs.indexOf(document.activeElement);
+    bs[(i+(e.key==='ArrowDown'?1:bs.length-1))%bs.length].focus();return;
+  }
+  // "@" (AltGr+Q en el teclado latinoamericano, que llega con Ctrl+Alt): quién la pidió
+  if(e.key==='@'&&!typing&&!edit&&!settingsOpen&&!bulk&&!waitFor&&!ask){const t=tasks.find(x=>x.id===sel&&!x.done);if(t){e.preventDefault();askWho(t)}return}
+  // Con el campo vacío, ↓ pasa a la lista
+  if(e.key==='ArrowDown'&&tg===$('title')&&!$('title').value&&!sugg.length&&visibleIds.length){e.preventDefault();$('title').blur();sel=visibleIds[0];renderList();return}
+  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||ask||!$('textOv').classList.contains('hidden'))return;
   // Espacio/Enter sobre un botón con foco ya lo activan: no duplicar la acción
   if((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter'))return;
   const ids=visibleIds,i=ids.indexOf(sel),t=tasks.find(x=>x.id===sel&&!x.done);
   const next=()=>ids[i+1]||ids[i-1]||null;
+  // Pasar a otra fecha y seguir con la siguiente (si ya estaba en esa fecha, no hace nada)
+  const move=v=>{if(!t||(t.due||null)===dueFor(v)&&!t.inbox)return;sel=next();reschedule(t,v)};
   const select=id=>{const a=document.activeElement;if(a&&(a.tagName==='BUTTON'||a.tagName==='A'))a.blur();sel=id;renderList();const r=document.querySelector('.task.sel');if(r)r.scrollIntoView({block:'nearest'})};
   switch(e.key.toLowerCase()){
     case 'n':e.preventDefault();$('title').focus();break;
@@ -2061,8 +2311,18 @@ document.addEventListener('keydown',e=>{
     case 'arrowup':case 'k':if(ids.length){e.preventDefault();select(ids[Math.max(0,i-1)])}break;
     case ' ':case 'x':if(t){e.preventDefault();const nx=next();sel=nx;toggle(t)}break;
     case 'e':case 'enter':if(t){e.preventDefault();openEdit(t)}break;
-    case 'h':if(t)reschedule(t,'0');break;
-    case 'm':if(t)reschedule(t,'1');break;
+    // Decidir y pasar a la siguiente, como con Espacio
+    case 'h':move('0');break;
+    case 'm':move('1');break;
+    case 'l':move('week');break;
+    case 's':if(t&&!t.waiting)move('');break;
+    case 'w':if(t&&!t.waiting){e.preventDefault();openWait(t)}break;
+    case 'r':if(t&&t.waiting){e.preventDefault();nudge(t)}break;
+    case 'f':if(t){e.preventDefault();askDate(t)}break;
+    case 'q':if(t){e.preventDefault();askWho(t)}break;
+    case '!':if(t){e.preventDefault();togglePrio(t)}break;
+    case '.':if(t){e.preventDefault();openMenu(t.id,true)}break;
+    case 'p':if(FINE){e.preventDefault();openProc(false)}break;
     case 'delete':case 'backspace':if(t){e.preventDefault();const nx=next();sel=nx;del(t)}break;
   }
 });
@@ -2106,8 +2366,11 @@ sync();        // y después trae lo último de GitHub
 // Desde el acceso directo "Nueva tarea" (?nueva=1) el foco va al campo también en el celular
 const params=new URLSearchParams(location.search);
 // Al compartir, Chrome arma la dirección con title/text/url (reemplaza el ?share=1 del manifest)
-const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz');
-if(params.has('nueva')||shared||voz)history.replaceState(null,'',location.pathname+location.hash);
+const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar');
+if(params.has('nueva')||shared||voz||revisar)history.replaceState(null,'',location.pathname+location.hash);
+// Desde el Telegram de los viernes: la revisión de la semana
+if(revisar)setTimeout(()=>openProc(true),600);
+WIDE.addEventListener('change',renderList);
 if(!shared&&!voz)restoreDraft();
 // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
 if(voz)openDock();
@@ -2123,7 +2386,7 @@ if(shared){
   }else{
     const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
     const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
-    $('title').value=sp.title.slice(0,500);
+    $('title').value=sp.title.slice(0,500);sharedFill=true;
     if(sp.note){setNote(true);$('note').value=sp.note.slice(0,2000);toast('El resto del mensaje quedó en la nota')}
     renderAdd();
   }
