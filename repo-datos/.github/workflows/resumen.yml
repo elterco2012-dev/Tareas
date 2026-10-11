@@ -44,9 +44,10 @@ jobs:
 
           let tareas;
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para avisar.');process.exit(0)}
-          const pend=tareas.filter(t=>t&&!t.done);
+          const pend=tareas.filter(t=>t&&!t.done&&!t.deletedAt);   // sin las de la papelera
           const vencidas=pend.filter(t=>!t.waiting&&t.due&&t.due<hoy).sort((a,b)=>a.due.localeCompare(b.due));
-          const paraHoy=pend.filter(t=>!t.waiting&&t.due===hoy);
+          // Para hoy: primero las que tienen hora, en orden
+          const paraHoy=pend.filter(t=>!t.waiting&&t.due===hoy).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
           const esperando=pend.filter(t=>t.waiting&&t.waitingSince&&dias(hoy,fecha(new Date(t.waitingSince)))>=3);
           if(!vencidas.length&&!paraHoy.length&&!esperando.length){console.log('Nada vencido, para hoy ni esperando hace +3 días: no se envía nada.');process.exit(0)}
 
@@ -55,7 +56,7 @@ jobs:
           if(vencidas.length)partes.push(plural(vencidas.length,'vencida','vencidas'));
           if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
           if(esperando.length)partes.push(esperando.length+' esperando hace +3 días');
-          const linea=t=>'• '+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'');
+          const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'');
           let msg='Buen día. '+partes.join(', ');
           if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
           if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');

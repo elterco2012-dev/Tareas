@@ -119,6 +119,23 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .more{flex:none;width:40px;height:46px;background:none;border:0;border-radius:10px;color:var(--faint);font-size:20px;line-height:1;padding:0}
 .more:hover{background:var(--hover);color:var(--text2)}
 
+/* Hora, sugerencias, papelera */
+.meta .time{font-weight:600;color:var(--text2)}
+.meta .time.past{color:var(--red)}
+#eTime{font-size:13.5px;padding:6px 10px;border:1px solid var(--chip);border-radius:20px;color:var(--text2);background:var(--card)}
+.addcard{position:relative}
+.suggest{position:absolute;left:12px;right:12px;top:62px;z-index:15;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px var(--shadow);padding:4px;display:flex;flex-direction:column}
+.suggest button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:9px 10px;font-size:15px;color:var(--text);min-width:0}
+.suggest button span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.suggest button .who{flex:none;font-size:13px;color:var(--muted)}
+.suggest button.on,.suggest button:hover{background:var(--hover)}
+.trow{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px}
+.trow+.trow{border-top:1px solid var(--divider)}
+.trow .tt{flex:1;min-width:0;padding:4px 0}
+.trow .tt div:first-child{font-size:15px;color:var(--text2);overflow-wrap:anywhere}
+.trow .tt div+div{font-size:12.5px;color:var(--faint);margin-top:2px}
+.trow .linkbtn{flex:none;margin:0;padding:8px}
+
 /* Persona (filtro), Esperando */
 .person{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .person:hover{color:var(--accent);text-decoration:underline}
@@ -254,6 +271,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       </span>
       <button type="button" id="noteToggle" class="notebtn">+ Nota</button>
     </div>
+    <div id="suggest" class="suggest hidden" role="listbox" aria-label="Sugerencias"></div>
     <div id="detected" class="detected hidden"></div>
     <div id="tip" class="tip hidden">Tip: escribí “viernes”, “15/10”, “!alta” o “@Juan” y se completa solo.</div>
     <textarea id="note" class="inp hidden" placeholder="Nota / detalle (opcional)" maxlength="2000" rows="2"></textarea>
@@ -282,6 +300,19 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     </div>
   </div>
 
+  <div id="trashSec" class="donesec hidden" style="margin-top:14px">
+    <div class="donehead">
+      <button type="button" id="trashToggle" class="donebtn" aria-expanded="false">
+        <svg id="trashChev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>
+        <span>Papelera</span><span class="n" id="trashSub"></span>
+      </button>
+    </div>
+    <div id="trashWrap" class="hidden">
+      <div id="trashList" class="card" style="margin-top:6px"></div>
+      <button type="button" id="trashEmpty" class="linkbtn"></button>
+    </div>
+  </div>
+
   <div id="shortcuts" class="shortcuts hidden"></div>
 </div>
 
@@ -302,6 +333,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
           <button type="button" class="chip" data-v="">Sin fecha</button>
         </span>
         <input type="date" id="eDue" aria-label="Otra fecha">
+        <input type="time" id="eTime" aria-label="Hora">
       </div>
     </div>
     <div class="fcol">
@@ -385,18 +417,19 @@ const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
 const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero',K_ARCHIVE='ultimoArchivo';
-const ARCHIVE_DAYS=90;
+const ARCHIVE_DAYS=90,TRASH_DAYS=30;
 const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
 const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Espacio','terminar'],['E','editar'],['H','hoy'],['M','mañana'],['Supr','borrar']];
-let cfg={},remote=[],tasks=[],outboxMem=[];
+let cfg={},remote=[],tasks=[],trash=[],outboxMem=[];
 let syncing=false,syncAgain=false,lastSync=null,lastError=null;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
+let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1;
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
 
 // ---- Almacenamiento local ----
@@ -446,9 +479,9 @@ const GROUPS=[
   {id:'none',title:'Sin fecha',test:n=>n===null},
 ];
 function groupOf(t){const n=t.due?daysUntil(t.due):null;return GROUPS.find(g=>g.test(n)).id}
-// Orden dentro de cada grupo: fecha, luego order, luego prioridad
+// Orden dentro de cada grupo: fecha, hora (las que tienen hora primero), luego order, luego prioridad
 function cmpPending(a,b){
-  return (a.due||'9999').localeCompare(b.due||'9999')||(a.order??0)-(b.order??0)||(PRIO[a.priority]??1)-(PRIO[b.priority]??1);
+  return (a.due||'9999').localeCompare(b.due||'9999')||(taskTime(a)||'99:99').localeCompare(taskTime(b)||'99:99')||(a.order??0)-(b.order??0)||(PRIO[a.priority]??1)-(PRIO[b.priority]??1);
 }
 
 // ---- Texto libre, escrito o dictado: "Llamar proveedor viernes !alta @Juan" o
@@ -508,23 +541,45 @@ function wordDate(w){
   if(m&&!/^(?:que viene|proximo)$/.test(m[1]))return /^\d{1,2}$/.test(m[1])?dayOfMonth(+m[1]):baseDate(m[1]);
   return baseDate(n);
 }
-// Hora: "a las 3", "a las 15:30", "a las 9 y media", "a la una", "a las 8 de la noche"
-const TIME_RE=new RegExp('(?:^|\\s)a\\s+las?\\s+(\\d{1,2}|'+NUM_RE+')(?:[:.](\\d{2})|\\s+y\\s+(media|cuarto))?(?:\\s*(?:hs\\.?|horas?))?(?:\\s+de\\s+la\\s+(ma[ñn]ana|tarde|noche))?(?=[\\s,.;:]|$)','i');
+// Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto",
+// "a la una", "a las 8 de la noche", "a las 3 de la madrugada", "a las 8 p.m."
+const MIN_RE='(cuarto|\\d{1,2}|cinco|diez|veinte|veinticinco)';
+const TIME_RE=new RegExp('(?:^|\\s)a\\s+las?\\s+(\\d{1,2}|'+NUM_RE+')(?:[:.](\\d{2})|\\s+y\\s+(media|'+MIN_RE.slice(1)+'|\\s+menos\\s+'+MIN_RE+')?(?:\\s*(?:hs\\.?|horas?))?'+
+  '(?:\\s+de\\s+la\\s+(ma[ñn]ana|tarde|noche|madrugada)|\\s*([ap])\\.?\\s?m\\.?)?(?=[\\s,.;:]|$)','i');
+const MINW={media:30,cuarto:15,cinco:5,diez:10,veinte:20,veinticinco:25};
+function minOf(x){return /^\d+$/.test(x)?+x:MINW[norm(x)]}
 // day: el día de la tarea, para saber si "a las 9" de hoy ya pasó (entonces es a la noche)
 function timeOf(text,day){
   const m=text.match(TIME_RE);if(!m)return null;
   // "a las 3 sucursales", "a las 4 personas": es una cantidad, no una hora
   const nx=(text.slice(m.index+m[0].length).match(/^\s+([a-záéíóúüñ]+)(?=[\s,.;:]|$)/i)||[])[1];
-  if(!m[2]&&!m[3]&&!m[4]&&!/(?:hs\.?|horas?)$/i.test(m[0])&&nx&&nx.length>3&&/[aeo]s$/i.test(nx)&&!/^(?:menos|antes|todos|todas|ellos|ellas|horas|\w*mos)$/i.test(nx))return null;
-  let h=toNum(norm(m[1]));const min=m[2]?+m[2]:m[3]?(norm(m[3])==='media'?30:15):0;
-  if(h==null||h>23||min>59)return null;
-  const part=m[4]&&norm(m[4]);
-  if(part==='tarde'||part==='noche'){if(h<12)h+=12;else if(part==='noche'&&h===12)h=24}   // "las 12 de la noche" es medianoche
+  if(!m[2]&&!m[3]&&!m[4]&&!m[5]&&!m[6]&&!/(?:hs\.?|horas?)$/i.test(m[0])&&nx&&nx.length>3&&/[aeo]s$/i.test(nx)&&!/^(?:menos|antes|todos|todas|ellos|ellas|horas|\w*mos)$/i.test(nx))return null;
+  let h=toNum(norm(m[1])),min=m[2]?+m[2]:m[3]?minOf(m[3]):0;
+  if(h==null||h>23||!(min>=0&&min<=59))return null;
+  const part=m[5]&&norm(m[5]),ap=m[6]&&m[6].toLowerCase();
+  if(part==='tarde'||part==='noche'||ap==='p'){if(h<12)h+=12;else if(part==='noche'&&h===12)h=24}   // "las 12 de la noche" es medianoche
+  else if(part==='madrugada'||ap==='a'){if(h===12)h=24}
   else if(!part&&h>=1&&h<=7)h+=12;   // "a las 3", sin aclarar, es a la tarde
-  if(!part&&day&&day===ymd(new Date())&&h>=1&&h<12){const n=new Date();if(h*60+min<=n.getHours()*60+n.getMinutes())h+=12}
+  // "a la una menos cuarto": 12:45
+  if(m[4]){const x=minOf(m[4]);if(!(x>0&&x<60))return null;const tot=h*60-x;h=Math.floor(tot/60);min=tot%60;if(h<0)return null}
+  if(!part&&!ap&&day&&day===ymd(new Date())&&h>=1&&h<12){const n=new Date();if(h*60+min<=n.getHours()*60+n.getMinutes())h+=12}
   return {h,m:min,text:m[0].trim()};
 }
 function timeLabel(tm){return String(tm.h%24).padStart(2,'0')+':'+String(tm.m).padStart(2,'0')}
+// Fecha y hora para guardar. "A las 12 de la noche" es a las 00:00 del día siguiente.
+function whenFields(p,due){
+  if(!p.time)return {due:due||null};
+  const d=p.time.h>=24?ymd(addDaysTo(parseYmd(due||ymd(new Date())),1)):due||null;
+  return {due:d,time:timeLabel(p.time)};
+}
+// Hora de una tarea ("15:00" o null). Las cargadas antes de que la hora fuera un dato aparte
+// la tienen en el título ("Llamar al banco a las 3"): se toma de ahí.
+const titleTimes=new Map();
+function taskTime(t){
+  if(t.time!==undefined)return t.time||null;
+  if(!titleTimes.has(t.title)){const tm=timeOf(' '+t.title+' ');titleTimes.set(t.title,tm?timeLabel(tm):null)}
+  return titleTimes.get(t.title);
+}
 // Frases para pedir la tarea que no son parte del título. "Crear tarea en Jira", "Agregá a Juan al
 // grupo" o "Anotá el pedido" sí son la tarea: ahí "anotá"/"agregá" es el verbo y se deja.
 const ART_RE='(?:el|la|los|las|lo|un|una|unos|unas|al|en|del|con|a(?!\\s+las?\\s+(?:\\d|'+NUM_RE+')))(?![a-záéíóúñ])';
@@ -582,23 +637,29 @@ function parse(text,defaultDue){
     const d=wordDate(w);if(!d)return m;
     out.due=d;return ' ';
   });
-  let title=t.replace(/\s+/g,' ').replace(/\s([,.;:])/g,'$1').replace(/[,;:](?=[,.;:])/g,'').replace(/^[\s,.;:]+|[\s,.;:]+$/g,'');
-  // "recordame a las 5 que tengo que llamar a Juan" → "Llamar a Juan a las 5"
-  let cmd=false,moved='';
+  const tidy=x=>x.replace(/\s+/g,' ').replace(/\s([,.;:])/g,'$1').replace(/[,;:](?=[,.;:])/g,'').replace(/^[\s,.;:]+|[\s,.;:]+$/g,'');
+  let title=tidy(t);
+  // "recordame a las 5 que tengo que llamar a Juan" → "Llamar a Juan", a las 17:00
+  let cmd=false,lead='';
   for(let i=0;i<4;i++){
     const m=title.match(CMD_RE);
     if(m){if(/^(?:record|recu|acord|acu)/i.test(m[0]))out.remind=true;title=title.slice(m[0].length);cmd=true;continue}
-    const tm=!moved&&timeOf(' '+title+' ');
+    const tm=!lead&&timeOf(' '+title+' ');
     if(tm&&title.toLowerCase().startsWith(tm.text.toLowerCase())){
-      moved=tm.text.toLowerCase();title=title.slice(tm.text.length).replace(/^[\s,]+/,'');
+      lead=tm.text;title=title.slice(tm.text.length).replace(/^[\s,]+/,'');
       if(cmd)title=title.replace(/^(?:que|de)\s+/i,'');
       continue;
     }
     break;
   }
-  title=(title+' '+moved).trim();
-  const tm=timeOf(' '+title+' ',out.due||defaultDue);
-  if(tm)out.time=tm;
+  // La hora es un dato aparte: no queda en el título
+  const day=out.due||defaultDue;
+  const tm=lead?timeOf(' '+lead+' ',day):timeOf(' '+title+' ',day);
+  if(tm){
+    if(!lead){const i=title.toLowerCase().indexOf(tm.text.toLowerCase());if(i>=0)title=tidy(title.slice(0,i)+' '+title.slice(i+tm.text.length))}
+    out.time=tm;
+  }
+  title=title.trim();
   out.title=title?(cmd||up?cap(title):title):text.trim();
   return out;
 }
@@ -656,7 +717,13 @@ function actMany(ops){
   if(ops.length)setOutbox([...getOutbox(),...ops]);
   recompute();sync();
 }
-function recompute(){tasks=applyAll(remote,getOutbox());render()}
+// Las borradas quedan en la papelera (deletedAt) hasta que pasan 30 días o se vacía
+function recompute(){
+  const all=applyAll(remote,getOutbox());
+  tasks=all.filter(t=>!t.deletedAt);
+  trash=all.filter(t=>t.deletedAt).sort((a,b)=>String(b.deletedAt).localeCompare(String(a.deletedAt)));
+  render();
+}
 
 // ---- GitHub ----
 function repoUrl(c){return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`}
@@ -706,7 +773,7 @@ function putRemote(c,items,sha){return putFile(c,file,items,sha,'Actualizar tare
 // en el medio, vuelve a leer y reaplica los cambios. Si falla, quedan guardados acá
 // y se reintenta solo (cada 20 s, al volver a la app o al recuperar la conexión).
 async function sync(){
-  if(!configured()){recompute();return}
+  if(!configured()){recompute();purgeTrash();return}
   if(syncing){syncAgain=true;return}
   syncing=true;renderStatus();
   let conflicts=0,synced=false;
@@ -741,7 +808,7 @@ async function sync(){
   }finally{
     syncing=false;recompute();
   }
-  if(synced)archiveOld();
+  if(synced){purgeTrash();archiveOld()}
 }
 // ---- Archivo automático ----
 // Una vez por día en cada dispositivo: las terminadas hace más de 90 días se agregan a
@@ -755,7 +822,7 @@ async function archiveOld(){
   if(Date.now()-archiveTried<3600000)return;
   archiveTried=Date.now();
   const cutoff=Date.now()-ARCHIVE_DAYS*86400000;
-  const old=remote.filter(t=>t.done&&t.completedAt&&new Date(t.completedAt).getTime()<cutoff);
+  const old=remote.filter(t=>t.done&&!t.deletedAt&&t.completedAt&&new Date(t.completedAt).getTime()<cutoff);
   if(!old.length){store(K_ARCHIVE,today);return}
   archiving=true;
   try{
@@ -779,6 +846,13 @@ async function archiveOld(){
   finally{archiving=false}
 }
 
+// Las que están en la papelera hace más de 30 días se borran del todo
+function purgeTrash(){
+  const cutoff=Date.now()-TRASH_DAYS*86400000,queued=new Set(getOutbox().filter(o=>o.type==='delete').map(o=>o.id));
+  const old=trash.filter(t=>!(new Date(t.deletedAt).getTime()>=cutoff)&&!queued.has(t.id));
+  if(old.length)actMany(old.map(t=>({type:'delete',id:t.id})));
+}
+
 // ---- Estado de sincronización ----
 function cambios(n,guardados){return n===1?'1 cambio'+(guardados?' guardado':''):n+' cambios'+(guardados?' guardados':'')}
 function status(){
@@ -797,7 +871,7 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){renderHeader();renderAdd();renderList();renderStatus();if(edit)renderEdit();updateBadge()}
+function render(){renderHeader();renderAdd();renderList();renderTrash();renderStatus();if(edit)renderEdit();updateBadge()}
 // Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
 // lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
 const BADGE='setAppBadge' in navigator;
@@ -929,6 +1003,9 @@ function taskRow(t,gid,unsynced){
     meta.append(w);
   }
   if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
+  // Hora: en rojo si es para hoy y ya pasó
+  const tt=taskTime(t);
+  if(tt){const past=t.due===ymd(new Date())&&tt<timeNow(new Date());meta.append(el('span','time'+(past?' past':''),tt))}
   if(t.repeat&&REPEAT_LABEL[t.repeat])meta.append(el('span',null,'↻ '+REPEAT_LABEL[t.repeat]));
   if(t.priority==='Alta')meta.append(el('span','alta','Alta'));
   if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
@@ -1055,8 +1132,8 @@ function toggle(t){
   let next=null;
   // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
   // en otro dispositivo), no se crea otra
-  if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
-    next={id:crypto.randomUUID(),repeatOf:t.id,title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  if(done&&REPEAT_LABEL[t.repeat]&&!tasks.concat(trash).some(x=>x.repeatOf===t.id)){
+    next={id:crypto.randomUUID(),repeatOf:t.id,...(t.time?{time:t.time}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
     if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
     ops.push({type:'add',task:next});
   }
@@ -1093,29 +1170,30 @@ function openWait(t){
   if(FINE){$('waitName').focus();$('waitName').select()}
 }
 function closeWait(){waitFor=null;releaseFocus($('waitOv'));$('waitOv').classList.add('hidden');$('wrap').inert=false}
+// Borrar la pasa a la papelera, de donde se puede recuperar durante 30 días
 function del(t){
-  const copy={...t};
   if(edit&&edit.id===t.id)closeEdit();
-  const op={type:'delete',id:t.id};
-  act(op);
-  // Al deshacer, si el borrado todavía no se subió se cancela: así la tarea queda como está
-  // en GitHub (con lo que se haya cambiado desde otro dispositivo). Si ya se subió, se repone.
-  toast('Tarea borrada',()=>{setOutbox(getOutbox().filter(o=>o.opId!==op.opId));act({type:'add',task:copy})});
+  act({type:'edit',id:t.id,patch:{deletedAt:new Date().toISOString()}});
+  toast('Movida a la papelera',()=>act({type:'edit',id:t.id,patch:{deletedAt:null}}));
+}
+function restore(t){
+  act({type:'edit',id:t.id,patch:{deletedAt:null}});
+  toast('Tarea recuperada',()=>act({type:'edit',id:t.id,patch:{deletedAt:t.deletedAt}}));
 }
 // Calendario: se descarga un evento (.ics) que el calendario del teléfono (Samsung, Outlook,
 // Apple…) agrega con su aviso. Sin hora, el evento queda a las 9:00 (o en la próxima hora en
 // punto si es para hoy y ya pasaron las 9), así siempre avisa. Una tarea vencida va para hoy.
-function eventTime(t,tm){
-  const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today;
-  tm=tm||timeOf(' '+t.title+' ');
+function eventTime(t){
+  const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today,hhmm=taskTime(t);
+  let tm=hhmm?{h:+hhmm.slice(0,2),m:+hhmm.slice(3)}:null;
   let d=day;
   if(!tm){const n=new Date();tm=day===today&&n.getHours()>=9?{h:n.getHours()+1,m:0}:{h:9,m:0};if(tm.h>23){d=addDays(1);tm={h:9,m:0}}}
   const start=parseYmd(d);start.setHours(tm.h,tm.m);
   const end=new Date(start);end.setMinutes(end.getMinutes()+30);
   return {start,end};
 }
-function icsText(t,tm){
-  const {start,end}=eventTime(t,tm);
+function icsText(t){
+  const {start,end}=eventTime(t);
   const esc=x=>String(x||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
   const p2=n=>String(n).padStart(2,'0'),dt=d=>ymd(d).replace(/-/g,'')+'T'+p2(d.getHours())+p2(d.getMinutes())+'00';
   // Líneas de hasta 75 bytes, como pide el formato
@@ -1127,8 +1205,8 @@ function icsText(t,tm){
   L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+esc(t.title),'TRIGGER:-PT0M','END:VALARM','END:VEVENT','END:VCALENDAR');
   return L.map(fold).join('\r\n')+'\r\n';
 }
-function openCalendar(t,tm){
-  const blob=new Blob([icsText(t,tm)],{type:'text/calendar;charset=utf-8'});
+function openCalendar(t){
+  const blob=new Blob([icsText(t)],{type:'text/calendar;charset=utf-8'});
   const a=el('a');a.href=URL.createObjectURL(blob);
   a.download=(t.title.replace(/[\\/:*?"<>|\r\n]+/g,' ').trim().slice(0,40)||'tarea')+'.ics';
   document.body.append(a);a.click();a.remove();
@@ -1150,13 +1228,14 @@ $('addForm').addEventListener('submit',e=>{
   // En el celular el cursor vuelve al campo solo si el teclado ya estaba abierto (se agregó con Enter)
   const refocus=FINE||document.activeElement===$('title');
   const p=parse(raw,dueFor(chip)),due=p.due!==undefined?p.due:dueFor(chip);
-  const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',due:due||null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   act({type:'add',task});
   // Con hora o "recordame…", un toque la pasa al calendario del teléfono para que avise
-  if(p.time||p.remind)toast(addedMsg(due),()=>openCalendar(task,p.time),'Al calendario',7000);
-  else toast(addedMsg(due));
+  if(p.time||p.remind)toast(addedMsg(task.due),()=>openCalendar(task),'Al calendario',7000);
+  else toast(addedMsg(task.due));
+  hideSuggest();
   $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;
   if(refocus)$('title').focus();
   renderAdd();
@@ -1164,7 +1243,7 @@ $('addForm').addEventListener('submit',e=>{
 $('title').addEventListener('input',()=>{
   if(rec){rec.onresult=null;stopVoice(true)}   // escribir mientras escucha corta el dictado
   if(!$('title').value.trim())voiceFilled=false;
-  renderAdd();
+  suggSel=-1;renderAdd();renderSuggest();
 });
 $('title').addEventListener('focus',renderAdd);
 // Al salir del campo, el tip se oculta recién después del clic o toque: si se ocultara
@@ -1184,6 +1263,87 @@ function setNote(on){
   if(!on)$('note').value='';
 }
 $('noteToggle').onclick=()=>{const on=$('note').classList.contains('hidden');setNote(on);if(on)$('note').focus()};
+
+// ---- Sugerencias al escribir ----
+// Tareas que ya cargaste (con quién las pidió) y, después de "@", las personas.
+function personsKnown(){
+  const m=new Map();
+  tasks.concat(trash).forEach(t=>[t.requester,t.waitingOn].forEach(n=>{
+    n=(n||'').trim();if(!n)return;
+    const k=norm(n),e=m.get(k)||{name:n,count:0};e.count++;m.set(k,e);
+  }));
+  return [...m.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'es'));
+}
+function titlesKnown(){
+  const m=new Map();
+  tasks.forEach(t=>{
+    const k=norm(t.title||'');if(!k)return;
+    const e=m.get(k)||{title:t.title,requester:'',count:0,last:''};
+    e.count++;
+    if((t.createdAt||'')>=e.last){e.last=t.createdAt||'';e.title=t.title;e.requester=t.requester||''}
+    m.set(k,e);
+  });
+  return [...m.values()];
+}
+// La palabra que se está escribiendo, si empieza con "@"
+function atWord(){
+  const inp=$('title'),v=inp.value,c=inp.selectionStart??v.length;
+  const m=v.slice(0,c).match(/(?:^|\s)@([^\s@]*)$/);
+  return m?{start:c-m[1].length-1,end:c,q:m[1]}:null;
+}
+function computeSuggest(){
+  const v=$('title').value;
+  if(listening||voiceFilled||document.activeElement!==$('title'))return [];
+  const at=atWord();
+  if(at){
+    const q=norm(at.q.replace(/_/g,' '));
+    return personsKnown().filter(p=>{const n=norm(p.name);return n.startsWith(q)&&n!==q}).slice(0,4).map(p=>({kind:'person',name:p.name,at}));
+  }
+  const q=norm(v);
+  if(q.length<2||v.length>60)return [];
+  return titlesKnown().map(e=>{const n=norm(e.title);return {...e,n,score:n===q?0:n.startsWith(q)?2:n.includes(' '+q)?1:0}})
+    .filter(e=>e.score).sort((a,b)=>b.score-a.score||b.count-a.count||b.last.localeCompare(a.last)).slice(0,4).map(e=>({kind:'title',title:e.title,requester:e.requester}));
+}
+function renderSuggest(){
+  sugg=computeSuggest();
+  if(suggSel>=sugg.length)suggSel=-1;
+  const box=$('suggest');box.replaceChildren();
+  sugg.forEach((s,i)=>{
+    const b=el('button',i===suggSel?'on':null);b.type='button';b.setAttribute('role','option');b.setAttribute('aria-selected',String(i===suggSel));
+    if(s.kind==='person')b.append(el('span',null,'@'+s.name));
+    else{b.append(el('span',null,s.title));if(s.requester)b.append(el('span','who','@'+s.requester))}
+    // Que el toque no saque el foco del campo (en el celular se cerraría el teclado)
+    b.addEventListener('pointerdown',e=>e.preventDefault());
+    b.addEventListener('mousedown',e=>e.preventDefault());
+    b.onclick=()=>pickSuggest(i);
+    box.append(b);
+  });
+  box.classList.toggle('hidden',!sugg.length);
+}
+function hideSuggest(){sugg=[];suggSel=-1;$('suggest').replaceChildren();$('suggest').classList.add('hidden')}
+const atName=n=>'@'+n.trim().replace(/\s+/g,'_');
+function pickSuggest(i){
+  const s=sugg[i],inp=$('title');if(!s)return;
+  if(s.kind==='person'){
+    const v=inp.value,ins=atName(s.name)+' ',rest=v.slice(s.at.end).replace(/^\S*\s?/,'');
+    inp.value=v.slice(0,s.at.start)+ins+rest;
+    const c=s.at.start+ins.length;try{inp.setSelectionRange(c,c)}catch{}
+  }else{
+    inp.value=s.title+(s.requester?' '+atName(s.requester):'')+' ';
+    try{inp.setSelectionRange(inp.value.length,inp.value.length)}catch{}
+  }
+  hideSuggest();inp.focus();renderAdd();
+}
+$('title').addEventListener('keydown',e=>{
+  if(!sugg.length||e.isComposing)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    const n=sugg.length;suggSel=e.key==='ArrowDown'?(suggSel+1)%n:(suggSel<=0?n-1:suggSel-1);
+    renderSuggest();
+  }else if(e.key==='Enter'&&suggSel>=0){e.preventDefault();pickSuggest(suggSel)}
+  else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();hideSuggest()}
+});
+$('title').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('title'))hideSuggest()},150));
 
 // ---- Pegar varias líneas ----
 // Si se pegan 2 o más líneas, se ofrece cargar una tarea por línea (se pueden editar o destildar).
@@ -1230,7 +1390,7 @@ $('bulkForm').addEventListener('submit',e=>{
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
     const p=parse(line,def);
-    const task={id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',due:(p.due!==undefined?p.due:def)||null,notes:'',done:false,createdAt:now,completedAt:null};
+    const task={id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,p.due!==undefined?p.due:def),notes:'',done:false,createdAt:now,completedAt:null};
     if(p.repeat)task.repeat=p.repeat;
     if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:now});
     return task;
@@ -1348,6 +1508,33 @@ $('textOv').addEventListener('click',e=>{if(e.target===$('textOv')&&downOn===e.t
 
 // ---- Terminadas ----
 $('doneToggle').onclick=()=>{showDone=!showDone;renderList()};
+
+// ---- Papelera ----
+function renderTrash(){
+  $('trashSec').classList.toggle('hidden',!trash.length);
+  if(!trash.length){showTrash=false;confirmEmpty=false}
+  $('trashSub').textContent=String(trash.length);
+  $('trashChev').style.transform=showTrash?'rotate(90deg)':'rotate(0deg)';
+  $('trashToggle').setAttribute('aria-expanded',String(showTrash));
+  $('trashWrap').classList.toggle('hidden',!showTrash);
+  const list=$('trashList');list.replaceChildren();
+  if(!showTrash)return;
+  trash.forEach(t=>{
+    const ago=Math.max(0,-daysUntil(ymd(new Date(t.deletedAt)))),left=Math.max(0,TRASH_DAYS-ago);
+    const row=el('div','trow'),tt=el('div','tt');
+    tt.append(el('div',null,t.title),el('div',null,(ago===0?'Borrada hoy':ago===1?'Borrada ayer':'Borrada hace '+ago+' días')+' · '+(left<=1?'se elimina mañana':'se elimina en '+left+' días')));
+    const b=el('button','linkbtn','Recuperar');b.type='button';b.onclick=()=>restore(t);
+    row.append(tt,b);list.append(row);
+  });
+  $('trashEmpty').textContent=confirmEmpty?'Tocá de nuevo para eliminarlas para siempre':'Vaciar papelera';
+}
+$('trashToggle').onclick=()=>{showTrash=!showTrash;confirmEmpty=false;renderTrash()};
+$('trashEmpty').onclick=()=>{
+  if(!confirmEmpty){confirmEmpty=true;renderTrash();return}
+  const n=trash.length;confirmEmpty=false;
+  actMany(trash.map(t=>({type:'delete',id:t.id})));
+  toast(n===1?'1 tarea eliminada':n+' tareas eliminadas');
+};
 $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
 
 // ---- Menú y aviso ----
@@ -1359,7 +1546,9 @@ $('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToa
 function openEdit(t){
   closeMenu();
   edit={id:t.id,due:t.due||'',priority:t.priority||'Media',
-    orig:{title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
+    orig:{title:t.title,due:t.due||null,time:t.time||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
+  // Las viejas con la hora en el título: al guardar, la hora pasa a ser un dato aparte
+  $('eTime').value=taskTime(t)||'';
   $('eRepeat').value=edit.orig.repeat||'';
   $('eTitle').value=t.title;$('eRequester').value=t.requester||'';$('eNotes').value=t.notes||'';
   if(FINE)sel=t.id;
@@ -1382,7 +1571,7 @@ $('editForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(!edit)return;
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
-  const vals={title,due:edit.due||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
+  const vals={title,due:edit.due||null,time:$('eTime').value||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
   const patch={};for(const k in vals)if(vals[k]!==edit.orig[k])patch[k]=vals[k];
   const id=edit.id;closeEdit();
