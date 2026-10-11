@@ -239,10 +239,21 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .bulkrow.off .inp{opacity:.5}
 
 /* Aviso con Deshacer */
-.toast{position:fixed;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:12px;background:var(--toast-bg);color:var(--toast-text);border-radius:12px;padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgba(20,30,45,.3);font-size:14px;max-width:calc(100% - 24px)}
+.toast{position:fixed;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;background:var(--toast-bg);color:var(--toast-text);border-radius:12px;padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgba(20,30,45,.3);font-size:14px;max-width:calc(100% - 24px)}
 .toast .msg{padding:7px 10px 7px 0;overflow-wrap:break-word;min-width:0}
 .toast button{flex:none;white-space:nowrap;background:none;border:0;color:var(--toast-btn);font-weight:700;padding:8px 12px;border-radius:8px}
 .toast button:hover{background:rgba(255,255,255,.1)}
+.toast .tbtns{display:flex;margin-left:auto}
+/* Quién lo pidió en un toque (celular) */
+.whorow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--muted)}
+.whorow button{padding:7px 12px;border-radius:20px;font-size:13px;border:1px dashed var(--chip);background:var(--card);color:var(--text2);font-weight:500}
+.savehint{margin-top:8px;font-size:12.5px;color:var(--faint)}
+/* Dictar desde el atajo: un botón grande abajo, donde llega el pulgar */
+.voicedock{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:24px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 75%,transparent);display:flex;flex-direction:column;align-items:center;gap:6px}
+.dockmic{width:100%;max-width:520px;height:34vh;min-height:170px;border:0;border-radius:24px;background:var(--accent);color:var(--on-accent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:20px;font-weight:700;box-shadow:0 10px 28px var(--shadow)}
+.dockmic svg{width:56px;height:56px}
+.dockmic.listening{background:var(--red);animation:pulse 1.4s ease-out infinite}
+.dockclose{background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;padding:10px 16px}
 </style>
 </head>
 <body>
@@ -279,7 +290,9 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       </span>
       <button type="button" id="noteToggle" class="notebtn">+ Nota</button>
     </div>
+    <div id="whoRow" class="whorow hidden"></div>
     <div id="suggest" class="suggest hidden" role="listbox" aria-label="Sugerencias"></div>
+    <div id="saveHint" class="savehint hidden">Se guarda solo · tocá el texto para corregir</div>
     <div id="detected" class="detected hidden"></div>
     <div id="tip" class="tip hidden">Tip: escribí “viernes”, “15/10”, “!alta” o “@Juan” y se completa solo.</div>
     <textarea id="note" class="inp hidden" placeholder="Nota / detalle (opcional)" maxlength="2000" rows="2"></textarea>
@@ -420,7 +433,8 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   </form>
 </div>
 
-<div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><button type="button" id="toastUndo" class="hidden">Deshacer</button></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
+<div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
 <script>
 'use strict';
@@ -440,7 +454,9 @@ let syncing=false,syncAgain=false,lastSync=null,lastError=null,authError=false;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
-let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1;
+let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
+const K_DRAFT='borrador',K_TIP='tipVisto';
+const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
 
 // ---- Almacenamiento local ----
@@ -607,8 +623,10 @@ const REL_MIN={media:30,cuarto:15,cinco:5,diez:10,quince:15,veinte:20,veinticinc
 function parse(text,defaultDue){
   const out={title:text.trim()};
   if(!out.title)return out;
-  const up=/^[A-ZÁÉÍÓÚÑ]/.test(out.title);
-  let t=' '+text+' ';
+  const up=/^[\s¿¡]*[A-ZÁÉÍÓÚÑ]/.test(out.title);
+  // Los signos de pregunta y exclamación ("¿me lo mandás mañana?", "urgente!") no son parte de las
+  // palabras. Las direcciones web (que pueden tener "?") se dejan como están.
+  let t=' '+text.split(/(\s+)/).map(w=>/:\/\/|^www\./i.test(w)?w:w.replace(/[¿¡?]+/g,' ').replace(/(\S)!+/g,'$1 ')).join('')+' ';
   // Prioridad: "!alta", "!" … o dicho: "urgente", "importante", "prioridad baja"
   t=t.replace(/\s!(alta|urgente|media|baja|a|m|b)?(?=\s)/i,(m,p)=>{const v=(p||'alta').toLowerCase();out.priority=v[0]==='a'||v[0]==='u'?'Alta':v[0]==='b'?'Baja':'Media';return ' '});
   if(!out.priority)t=t.replace(/\s(?:(?:es|con)\s+)?(?:muy\s+)?(?:prioridad\s+(alta|media|baja)|urgente|importante)(?=[\s,.;:])/gi,(m,p,off,str)=>{
@@ -689,6 +707,7 @@ function parse(text,defaultDue){
     out.time=tm;
   }
   title=title.trim();
+  if(!title)out.bare=true;   // solo había fecha, hora o persona ("recordame mañana a las 3")
   out.title=title?(cmd||up?cap(title):title):text.trim();
   return out;
 }
@@ -980,7 +999,12 @@ function renderAdd(){
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
   if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(el('span','tag',x)))}
   det.classList.toggle('hidden',!det.childNodes.length);
-  $('tip').classList.toggle('hidden',listening||!(document.activeElement===$('title')&&!raw.trim()));
+  // El tip, solo las primeras 5 veces que se abre la app
+  const tip=!listening&&document.activeElement===$('title')&&!raw.trim()&&(tipCounted||load(K_TIP,0)<5);
+  if(tip&&!tipCounted){tipCounted=true;store(K_TIP,load(K_TIP,0)+1)}
+  $('tip').classList.toggle('hidden',!tip);
+  $('saveHint').classList.toggle('hidden',!autoSave||dock);
+  renderWho(p);
   updateAddBtn();
   placeMenu();
 }
@@ -1176,13 +1200,17 @@ function closeMenu(){menuId=null;$('menu').classList.add('hidden');$('menuBackdr
 
 // ---- Acciones ----
 // Aviso abajo; la acción por defecto es "Deshacer"
-function toast(msg,action,label,ms){
-  $('toastMsg').textContent=msg;toastAction=action||null;
+// more: más botones, [[texto, función], …]
+let toastMore=[];
+function toast(msg,action,label,ms,more){
+  $('toastMsg').textContent=msg;toastAction=action||null;toastMore=more||[];
   $('toastUndo').textContent=label||'Deshacer';
-  $('toastUndo').classList.toggle('hidden',!action);$('toast').classList.remove('hidden');
+  $('toastUndo').classList.toggle('hidden',!action);
+  ['toastB2','toastB3'].forEach((id,i)=>{const m=toastMore[i];$(id).classList.toggle('hidden',!m);$(id).textContent=m?m[0]:''});
+  $('toast').classList.remove('hidden');
   clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||4500);
 }
-function hideToast(){$('toast').classList.add('hidden');toastAction=null}
+function hideToast(){$('toast').classList.add('hidden');toastAction=null;toastMore=[]}
 // Próxima vez de una tarea que se repite, contada desde su fecha (o desde hoy si no tenía).
 // Si esa fecha ya pasó, la primera de hoy en adelante. Mensual: mismo día, o el último del mes.
 function addDaysTo(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -1297,6 +1325,7 @@ function addedMsg(due){
 // ---- Agregar ----
 $('addForm').addEventListener('submit',e=>{
   e.preventDefault();
+  cancelAutoSave();
   // Enter mientras escucha funciona como "Listo": el texto final queda en el campo para confirmar
   if(listening){stopVoice();return}
   const raw=$('title').value.trim();if(!raw)return;
@@ -1307,19 +1336,49 @@ $('addForm').addEventListener('submit',e=>{
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   act({type:'add',task});
-  // Con hora o "recordame…", un toque la pasa al calendario del teléfono para que avise
-  if(p.time||p.remind)toast(addedMsg(task.due),()=>openCalendar(task),'Al calendario',7000);
-  else toast(addedMsg(task.due));
+  // "Agregada para mañana · 15:00 · @Laura", con Deshacer y Cambiar (por si se entendió mal).
+  // Con hora o "recordame…", también un toque la pasa al calendario del teléfono para que avise.
+  const more=[['Cambiar',()=>{const t=tasks.find(x=>x.id===task.id);if(t)openEdit(t)}]];
+  if(p.time||p.remind)more.push(['Al calendario',()=>openCalendar(task)]);
+  toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
-  $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;
+  $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;saveDraft();
   if(refocus)$('title').focus();
   renderAdd();
 });
 $('title').addEventListener('input',()=>{
   if(rec){rec.onresult=null;stopVoice(true)}   // escribir mientras escucha corta el dictado
   if(!$('title').value.trim())voiceFilled=false;
+  cancelAutoSave();saveDraft();
   suggSel=-1;renderAdd();renderSuggest();
 });
+// Tocar el texto durante la cuenta regresiva la cancela, para corregirlo
+$('title').addEventListener('pointerdown',()=>cancelAutoSave());
+$('note').addEventListener('input',saveDraft);
+// ---- Borrador: lo que estabas escribiendo no se pierde si te interrumpen ----
+function saveDraft(){
+  const t=$('title').value,n=$('note').value;
+  if(t.trim()||n.trim())store(K_DRAFT,{t,n,at:Date.now()});else try{localStorage.removeItem(K_DRAFT)}catch{}
+}
+function restoreDraft(){
+  const d=load(K_DRAFT,null);
+  if(!d||!(Date.now()-d.at<12*3600000)||$('title').value.trim())return;
+  const i=$('title');i.value=d.t||'';if(d.n){setNote(true);$('note').value=d.n}
+  try{i.setSelectionRange(i.value.length,i.value.length)}catch{}
+  renderAdd();
+}
+// ---- Dictado: se guarda solo a los 3 s, salvo que toques el texto para corregirlo ----
+function startAutoSave(){
+  cancelAutoSave();
+  autoSave={n:3,timer:setInterval(()=>{
+    if(!autoSave)return;
+    if(--autoSave.n<=0){cancelAutoSave();$('addForm').requestSubmit();return}
+    updateAddBtn(true);
+  },1000)};
+  updateAddBtn(true);
+}
+function cancelAutoSave(){if(!autoSave)return;clearInterval(autoSave.timer);autoSave=null;updateAddBtn(true)}
+function saveNow(){cancelAutoSave();$('addForm').requestSubmit()}
 $('title').addEventListener('focus',renderAdd);
 // Al salir del campo, el tip se oculta recién después del clic o toque: si se ocultara
 // al apretar, la lista subiría bajo el puntero y el clic caería en otro lugar
@@ -1332,7 +1391,8 @@ $('title').addEventListener('blur',()=>{
   const after=()=>{document.removeEventListener('pointerup',after,true);document.removeEventListener('pointercancel',after,true);setTimeout(renderAdd,0)};
   document.addEventListener('pointerup',after,true);document.addEventListener('pointercancel',after,true);
 });
-document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;renderAdd();$('title').focus()}));
+// Elegir otra fecha durante la cuenta regresiva la vuelve a empezar
+document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;if(autoSave)startAutoSave();renderAdd();if(!dock)$('title').focus()}));
 function setNote(on){
   $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar nota':'+ Nota';
   if(!on)$('note').value='';
@@ -1348,6 +1408,32 @@ function personsKnown(){
     const k=norm(n),e=m.get(k)||{name:n,count:0};e.count++;m.set(k,e);
   }));
   return [...m.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'es'));
+}
+// Las que pidieron algo hace poco primero
+function personsRecent(){
+  const m=new Map();
+  tasks.concat(trash).forEach(t=>{const n=(t.requester||'').trim();if(!n)return;const k=norm(n),e=m.get(k)||{name:n,count:0,last:''};e.count++;if((t.createdAt||'')>e.last){e.last=t.createdAt||'';e.name=n}m.set(k,e)});
+  return [...m.values()].sort((a,b)=>b.last.localeCompare(a.last)||b.count-a.count);
+}
+// "De: Laura · Juan · Marcela · @…" debajo de las fechas, en el celular, si el texto no dice quién la pidió
+function renderWho(p){
+  const box=$('whoRow');
+  const show=COARSE&&!dock&&!listening&&!!$('title').value.trim()&&!p.requester&&!p.waiting&&!sugg.length;
+  const ppl=show?personsRecent().slice(0,3):[];
+  box.classList.toggle('hidden',!ppl.length);
+  if(!ppl.length){box.replaceChildren();delete box.dataset.k;return}
+  const key=ppl.map(x=>x.name).join('|');
+  if(box.dataset.k===key)return;
+  box.dataset.k=key;box.replaceChildren(el('span',null,'De:'));
+  const keep=b=>{b.type='button';b.addEventListener('pointerdown',e=>e.preventDefault());b.addEventListener('mousedown',e=>e.preventDefault());return b};
+  ppl.forEach(x=>{const b=keep(el('button',null,x.name));b.onclick=()=>pickWho(x.name);box.append(b)});
+  const at=keep(el('button',null,'@…'));at.onclick=()=>{const i=$('title');i.value=i.value.replace(/\s+$/,'')+' @';i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch{}renderAdd();renderSuggest()};box.append(at);
+}
+function pickWho(name){
+  const i=$('title');i.value=i.value.replace(/\s+$/,'')+' '+atName(name)+' ';
+  saveDraft();
+  if(autoSave){saveNow();return}   // durante la cuenta regresiva, elegir quién es una confirmación
+  renderAdd();
 }
 function titlesKnown(){
   const m=new Map();
@@ -1394,6 +1480,7 @@ function renderSuggest(){
     box.append(b);
   });
   box.classList.toggle('hidden',!sugg.length);
+  renderWho(parse($('title').value,dueFor(chip)));
 }
 function hideSuggest(){sugg=[];suggSel=-1;$('suggest').replaceChildren();$('suggest').classList.add('hidden')}
 const atName=n=>'@'+n.trim().replace(/\s+/g,'_');
@@ -1490,9 +1577,11 @@ $('bulkOv').addEventListener('click',e=>{if(e.target===$('bulkOv')&&downOn===e.t
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const MIC_SVG='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0"/><line x1="10" y1="15.5" x2="10" y2="18"/></svg>';
 const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
-function updateAddBtn(){
-  const b=$('addBtn'),mode=listening?'listening':SR&&!$('title').value.trim()?'mic':'add';
-  if(b.dataset.mode===mode)return;
+function updateAddBtn(force){
+  const b=$('addBtn'),mode=listening?'listening':autoSave?'saving':SR&&!$('title').value.trim()?'mic':'add';
+  renderDock();
+  if(b.dataset.mode===mode&&!force)return;
+  if(mode==='saving'){b.dataset.mode=mode;b.type='button';b.classList.remove('listening');b.textContent='Guardar · '+autoSave.n;b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora';return}
   b.dataset.mode=mode;b.type=mode==='add'?'submit':'button';
   b.classList.toggle('listening',mode==='listening');
   if(mode==='add'){b.textContent='Agregar';b.removeAttribute('aria-label');b.removeAttribute('title')}
@@ -1503,6 +1592,8 @@ function updateAddBtn(){
 const VOICE_ERR={'not-allowed':'Permití el uso del micrófono para dictar','service-not-allowed':'Permití el uso del micrófono para dictar','no-speech':'No se escuchó nada. Probá de nuevo','audio-capture':'No se encontró un micrófono','network':'El dictado necesita conexión a internet'};
 function startVoice(){
   if(listening||!SR)return;
+  if(navigator.onLine===false){voiceOffline();return}
+  cancelAutoSave();
   const base=$('title').value.trim();
   try{
     const r=rec=new SR();r.lang='es-AR';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
@@ -1511,25 +1602,69 @@ function startVoice(){
       let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
       $('title').value=((base?base+' ':'')+txt).trim();voiceFilled=true;renderAdd();
     };
-    r.onerror=e=>{if(rec===r&&e.error!=='aborted')toast(VOICE_ERR[e.error]||'No se pudo usar el dictado')};
-    r.onend=()=>{if(rec===r)endVoice()};
+    r.onerror=e=>{
+      if(rec!==r||e.error==='aborted')return;
+      r._err=true;
+      if(e.error==='network')voiceOffline();else toast(VOICE_ERR[e.error]||'No se pudo usar el dictado');
+    };
+    r.onend=()=>{if(rec===r)endVoice(!r._abort&&!r._err)};
     r.start();listening=true;
   }catch{rec=null;listening=false;toast('No se pudo usar el dictado')}
   renderAdd();
 }
-function endVoice(){listening=false;rec=null;renderAdd()}
+// finished: terminó de escuchar normalmente (no se cortó ni dio error). Si se entendió una tarea,
+// arranca la cuenta regresiva para guardarla sola; si solo se dijo "recordame mañana", sigue esperando.
+function endVoice(finished){
+  listening=false;rec=null;
+  if(finished&&voiceFilled&&$('title').value.trim()){
+    if(parse($('title').value,dueFor(chip)).bare)toast('Decí también qué hay que hacer: tocá el micrófono y seguí');
+    else startAutoSave();
+  }
+  renderAdd();
+}
 function stopVoice(abort){
   const r=rec;if(!r)return;
+  if(abort)r._abort=true;
   try{abort?r.abort():r.stop()}catch{}
   // Si el navegador no avisa que terminó, el botón se libera igual
-  setTimeout(()=>{if(rec===r)endVoice()},abort?1000:4000);
+  setTimeout(()=>{if(rec===r)endVoice(!abort&&!r._err)},abort?1000:4000);
 }
 $('addBtn').addEventListener('click',e=>{
   const mode=$('addBtn').dataset.mode;
   if(mode==='mic'){e.preventDefault();startVoice()}
   else if(mode==='listening'){e.preventDefault();stopVoice()}
+  else if(mode==='saving'){e.preventDefault();saveNow()}
 });
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')stopVoice(true)});
+// Al salir de la app: si había una cuenta regresiva, se guarda ya; el dictado se corta
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')return;
+  hiddenAt=Date.now();
+  if(autoSave)saveNow();
+  stopVoice(true);
+});
+// Sin señal, el dictado del navegador no anda: el del teclado sí puede
+function voiceOffline(){
+  closeDock();$('title').focus();
+  toast('Sin señal: tocá el micrófono del teclado para dictar',null,null,6000);
+}
+// ---- Atajo "Dictar tarea" (?voz=1): un botón grande abajo ----
+function openDock(){
+  if(!SR){$('title').focus();return}
+  if(navigator.onLine===false){voiceOffline();return}
+  dock=true;$('voiceDock').classList.remove('hidden');renderAdd();
+}
+function closeDock(){if(!dock)return;dock=false;$('voiceDock').classList.add('hidden');renderAdd()}
+function renderDock(){
+  if(!dock)return;
+  const b=$('dockMic'),st=listening?'listening':autoSave?'saving':'idle';
+  b.classList.toggle('listening',st==='listening');
+  const lbl=st==='listening'?'Escuchando… tocá para terminar':st==='saving'?'Guardando… tocá para guardar ya':'Tocá y hablá';
+  if(b.dataset.lbl===lbl)return;
+  b.dataset.lbl=lbl;b.innerHTML=st==='listening'?STOP_SVG.replace(/width="12" height="12"/,'width="44" height="44"'):MIC_SVG;
+  b.append(el('span',null,lbl));
+}
+$('dockMic').onclick=()=>{if(listening)stopVoice();else if(autoSave)saveNow();else startVoice()};
+$('dockClose').onclick=closeDock;
 
 // ---- Buscar ----
 function openSearch(){searchOpen=true;$('searchBar').classList.remove('hidden');$('search').focus()}
@@ -1616,6 +1751,7 @@ $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
 $('menuBackdrop').onclick=closeMenu;
 window.addEventListener('resize',()=>{if(menuId)closeMenu()});
 $('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToast();if(a)a()};
+['toastB2','toastB3'].forEach((id,i)=>$(id).onclick=()=>{const m=toastMore[i];clearTimeout(toastTimer);hideToast();if(m)m[1]()});
 
 // ---- Editar ----
 function openEdit(t){
@@ -1636,6 +1772,11 @@ function renderEdit(){
   $('eDue').value=edit.due;
   document.querySelectorAll('#ePrios .prio').forEach(b=>b.classList.toggle('on',b.dataset.p===edit.priority));
 }
+function editPatch(){
+  const vals={title:$('eTitle').value.trim(),due:edit.due||null,time:$('eTime').value||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
+  const patch={};for(const k in vals)if(vals[k]!==edit.orig[k])patch[k]=vals[k];
+  return patch;
+}
 // Al cerrar un modal se suelta el foco que quedó adentro, para que los atajos vuelvan a la lista
 function releaseFocus(ov){const a=document.activeElement;if(a&&ov.contains(a))a.blur()}
 function closeEdit(){edit=null;releaseFocus($('editOv'));$('editOv').classList.add('hidden');$('wrap').inert=false}
@@ -1646,9 +1787,8 @@ $('editForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(!edit)return;
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
-  const vals={title,due:edit.due||null,time:$('eTime').value||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
-  const patch={};for(const k in vals)if(vals[k]!==edit.orig[k])patch[k]=vals[k];
+  const patch=editPatch();
   const id=edit.id;closeEdit();
   if(Object.keys(patch).length){act({type:'edit',id,patch});toast('Cambios guardados')}
 });
@@ -1717,6 +1857,8 @@ document.addEventListener('keydown',e=>{
   const typing=tag==='input'||tag==='textarea'||tag==='select'||tg.isContentEditable;
   if(e.key==='Escape'){
     if(listening)stopVoice(true);
+    else if(autoSave)cancelAutoSave();
+    else if(dock)closeDock();
     else if(!$('textOv').classList.contains('hidden'))closeText();
     else if(waitFor)closeWait();
     else if(bulk)closeBulk();
@@ -1753,6 +1895,32 @@ if(FINE){
   sc.classList.remove('hidden');
 }
 
+// ---- Compartido desde WhatsApp o el mail ----
+// Se sacan el saludo y el agradecimiento ("Che, ¿me mandás el remito? Gracias!")
+function cleanShared(s){
+  let x=String(s||'').replace(/\s+/g,' ').trim(),prev;
+  const HI=/^(?:hola|holis|che|buen(?:as|os)?(?:\s+(?:d[ií]as?|tardes|noches))?|qu[eé]\s+tal|c[oó]mo\s+(?:est[aá]s|and[aá]s|va))(?![a-záéíóúñ0-9])\s*[,.!¡?¿:;]*\s*/i;
+  do{
+    prev=x;
+    const y=x.replace(HI,'');
+    // "Hola Juan, …": el nombre también, si lo sigue una coma o un signo
+    if(y!==x&&/\S/.test(y))x=y.replace(/^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s*[,.!¡:;]+\s*(?=\S)/,'');
+    x=x.replace(/\s*[,.;:!¡?]+\s*(?:(?:muchas\s+|mil\s+)?gracias|grax|saludos|slds|un\s+saludo|abrazos?|besos?|desde\s+ya(?:\s+muchas)?\s+gracias)[\s!.?]*$/i,'');
+    x=x.replace(/[\s,]+(?:porfa|por\s+favor|plis)[\s!.?]*$/i,'');
+  }while(x!==prev&&x);
+  // Sin los signos de pregunta de los costados y con mayúscula: "Me mandás el remito"
+  x=cap(x.replace(/^[¿¡\s]+/,'').replace(/(?<![?!])[?!]+$/,'').replace(/^¿?(.*)\?$/,'$1').trim());
+  return x||String(s||'').trim();
+}
+// Un mensaje largo: la primera oración es la tarea y el resto va a la nota
+function splitLong(s){
+  if(s.length<=120)return {title:s,note:''};
+  const m=s.slice(15,140).match(/[.!?](?=\s)/);
+  if(!m)return {title:s,note:''};
+  const i=15+m.index+1;
+  return {title:s.slice(0,i).trim(),note:s.slice(i).trim()};
+}
+
 // ---- Inicio ----
 cfg=load(K_CFG,{})||{};
 loadCache();
@@ -1761,9 +1929,12 @@ sync();        // y después trae lo último de GitHub
 // Desde el acceso directo "Nueva tarea" (?nueva=1) el foco va al campo también en el celular
 const params=new URLSearchParams(location.search);
 // Al compartir, Chrome arma la dirección con title/text/url (reemplaza el ?share=1 del manifest)
-const shared=['share','title','text','url'].some(k=>params.has(k));
-if(params.has('nueva')||shared)history.replaceState(null,'',location.pathname+location.hash);
-if(FINE||params.has('nueva')||shared)$('title').focus();   // si no, en el celular no se abre el teclado al entrar
+const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz');
+if(params.has('nueva')||shared||voz)history.replaceState(null,'',location.pathname+location.hash);
+if(!shared&&!voz)restoreDraft();
+// En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
+if(voz)openDock();
+else if(FINE||params.has('nueva')||shared||COARSE&&STANDALONE)$('title').focus();
 // Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
 // Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
 if(shared){
@@ -1773,12 +1944,28 @@ if(shared){
     const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
     openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
   }else{
-    const parts=[];[title,text,url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
-    $('title').value=parts.join(' ').replace(/\s+/g,' ').slice(0,500);renderAdd();
+    const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
+    const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
+    $('title').value=sp.title.slice(0,500);
+    if(sp.note){setNote(true);$('note').value=sp.note.slice(0,2000);toast('El resto del mensaje quedó en la nota')}
+    renderAdd();
   }
 }
 setInterval(()=>{if(document.visibilityState==='visible')sync()},20000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')return;
+  sync();
+  // Al volver después de un rato, en el celular: arriba de todo y lista para anotar
+  if(COARSE&&hiddenAt&&Date.now()-hiddenAt>120000)readyToCapture();
+});
+function readyToCapture(){
+  closeMenu();
+  if(searchOpen&&!$('search').value.trim())closeSearch();
+  if(edit&&!Object.keys(editPatch()).length)closeEdit();
+  if(edit||bulk||waitFor||settingsOpen||dock||!$('textOv').classList.contains('hidden'))return;
+  window.scrollTo(0,0);
+  if(STANDALONE)$('title').focus();
+}
 window.addEventListener('online',sync);
 window.addEventListener('storage',e=>{if(e.key===K_OUTBOX||e.key===K_CACHE){loadCache();recompute()}});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
