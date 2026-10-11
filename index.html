@@ -195,6 +195,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .cfgbtns{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .clearbtn{align-self:flex-start;background:none;border:0;color:var(--red);font-size:13px;padding:4px 0;text-align:left}
 
+/* Se repite / interruptor */
+#eRepeat{font-size:14px;padding:8px 10px;border:1px solid var(--chip);border-radius:10px;background:var(--card);color:var(--text)}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;color:var(--text)}
+.switchrow input{width:40px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+
 /* Mini diálogo y texto para copiar */
 .modal.small{max-width:400px}
 #waitName{font-size:16px;padding:11px 12px;border-radius:10px;width:100%}
@@ -305,6 +310,9 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
         <button type="button" class="prio Baja" data-p="Baja">Baja</button>
       </div>
     </div>
+    <label class="fcol">Se repite
+      <select id="eRepeat"><option value="">No</option><option value="daily">Diaria</option><option value="weekdays">Lun a vie</option><option value="weekly">Semanal</option><option value="monthly">Mensual</option></select>
+    </label>
     <label class="fcol">Pedida por<input id="eRequester" class="inp" maxlength="100" placeholder="(opcional)"></label>
     <label class="fcol">Notas<textarea id="eNotes" class="inp" maxlength="2000" rows="3" placeholder="(opcional)"></textarea></label>
     <div class="mfoot">
@@ -332,6 +340,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <button type="button" id="saveCfg" class="primary">Guardar conexión</button>
       <button type="button" id="syncNow" class="secbtn hidden">Sincronizar ahora</button>
     </div>
+    <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
     <button type="button" id="clearCfg" class="clearbtn"></button>
   </div>
 </div>
@@ -373,7 +382,8 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
-const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes';
+const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero';
+const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
@@ -530,6 +540,12 @@ function parse(text,defaultDue){
     // "no es urgente", "nada urgente", "lo más importante": no marcan prioridad
     if(out.priority||/(?:^|\s)(?:no|nada|poco|tan|lo|m[áa]s)$/i.test(str.slice(0,off)))return m;
     out.priority=p?cap(p.toLowerCase()):'Alta';return ' ';
+  });
+  // Se repite: "todos los días", "de lunes a viernes", "cada lunes" (semanal, desde el próximo lunes), "cada semana", "cada mes"
+  t=t.replace(/\s(?:(todos\s+los\s+d[íi]as\s+h[áa]biles|de\s+lunes\s+a\s+viernes|d[íi]as\s+h[áa]biles)|(todos\s+los\s+d[íi]as|cada\s+d[íi]a|diariamente|todas\s+las\s+ma[ñn]anas|cada\s+ma[ñn]ana)|(?:cada|todos\s+los)\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bados?|domingos?)|(cada\s+semana|todas\s+las\s+semanas|semanalmente)|(cada\s+mes|todos\s+los\s+meses|mensualmente))(?=[\s,.;:])/i,(m,wk,dl,wd,ww,mm)=>{
+    out.repeat=wk?'weekdays':dl?'daily':wd||ww?'weekly':'monthly';
+    if(wd)out.due=baseDate(wd.replace(/^(s[áa]bado|domingo)s$/i,'$1'));
+    return ' ';
   });
   // Esperando respuesta: "#esperando" (con "@Juan" queda de quién) o dicho: "esperando respuesta de Juan"
   t=t.replace(/\s#esperando(?=[\s,.;:])/i,()=>{out.waiting=true;return ' '});
@@ -728,7 +744,19 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){renderHeader();renderAdd();renderList();renderStatus();if(edit)renderEdit()}
+function render(){renderHeader();renderAdd();renderList();renderStatus();if(edit)renderEdit();updateBadge()}
+// Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
+// lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
+const BADGE='setAppBadge' in navigator;
+let lastBadge=null;
+function badgeOn(){return load(K_BADGE,true)!==false}
+function updateBadge(){
+  if(!BADGE)return;
+  const n=badgeOn()?tasks.filter(t=>!t.done&&!t.waiting&&t.due&&daysUntil(t.due)<=0).length:0;
+  if(n===lastBadge)return;
+  lastBadge=n;
+  try{(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{})}catch{}
+}
 function renderHeader(){
   const today=ymd(new Date()),pend=tasks.filter(t=>!t.done&&!t.waiting);
   $('todayLabel').textContent=cap(new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}));
@@ -751,6 +779,7 @@ function renderAdd(){
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
   if(p.time)tags.push(timeLabel(p.time));
   if(p.requester)tags.push('@'+p.requester);
+  if(p.repeat)tags.push('↻ '+cap(REPEAT_LABEL[p.repeat]));
   if(p.waiting){const w=p.waitingOn||p.requester;tags.push(w?'Esperando a '+w:'Esperando')}
   // Lo dictado no entra en el campo: se muestra completo el título que se va a guardar
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
@@ -846,6 +875,7 @@ function taskRow(t,gid,unsynced){
     meta.append(w);
   }
   if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
+  if(t.repeat&&REPEAT_LABEL[t.repeat])meta.append(el('span',null,'↻ '+REPEAT_LABEL[t.repeat]));
   if(t.priority==='Alta')meta.append(el('span','alta','Alta'));
   if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
   if(unsynced.has(t.id))meta.append(el('span','unsynced','sin subir'));
@@ -952,10 +982,35 @@ function toast(msg,action,label,ms){
   clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||4500);
 }
 function hideToast(){$('toast').classList.add('hidden');toastAction=null}
+// Próxima vez de una tarea que se repite, contada desde su fecha (o desde hoy si no tenía).
+// Si esa fecha ya pasó, la primera de hoy en adelante. Mensual: mismo día, o el último del mes.
+function addDaysTo(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function nextDue(t){
+  const today=ymd(new Date()),base=parseYmd(t.due||today),anchor=base.getDate();
+  let cand=base;
+  for(let k=1;k<4000;k++){
+    if(t.repeat==='monthly'){const x=new Date(base.getFullYear(),base.getMonth()+k,1);x.setDate(Math.min(anchor,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));cand=x}
+    else if(t.repeat==='weekly')cand=addDaysTo(base,7*k);
+    else{cand=addDaysTo(cand,1);if(t.repeat==='weekdays')while(cand.getDay()===0||cand.getDay()===6)cand=addDaysTo(cand,1)}
+    if(ymd(cand)>=today)break;
+  }
+  return ymd(cand);
+}
 function toggle(t){
-  const done=!t.done,prevAt=t.completedAt;
-  act({type:'done',id:t.id,done,at:new Date().toISOString()});
-  toast(done?'Tarea terminada':'Volvió a pendientes',()=>act({type:'done',id:t.id,done:!done,at:prevAt||new Date().toISOString()}));
+  const done=!t.done,prevAt=t.completedAt,ops=[{type:'done',id:t.id,done,at:new Date().toISOString()}];
+  let next=null;
+  if(done&&REPEAT_LABEL[t.repeat]){
+    next={id:crypto.randomUUID(),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    ops.push({type:'add',task:next});
+  }
+  actMany(ops);
+  const msg=!done?'Volvió a pendientes':next?'Tarea terminada · la próxima '+(daysUntil(next.due)<=1?'es '+dueLabel(next.due).toLowerCase():'el '+shortDue(next.due).toLowerCase()):'Tarea terminada';
+  // Deshacer: vuelve a como estaba y saca la próxima (si no se subió, se cancela)
+  toast(msg,()=>{
+    const undo=[{type:'done',id:t.id,done:!done,at:prevAt||new Date().toISOString()}];
+    if(next){const addOp=ops[1],ob=getOutbox();if(ob.some(o=>o.opId===addOp.opId))setOutbox(ob.filter(o=>o.opId!==addOp.opId));else undo.push({type:'delete',id:next.id})}
+    actMany(undo);
+  });
 }
 function reschedule(t,v){
   const prev=t.due||null,due=dueFor(v);
@@ -989,24 +1044,38 @@ function del(t){
   // en GitHub (con lo que se haya cambiado desde otro dispositivo). Si ya se subió, se repone.
   toast('Tarea borrada',()=>{setOutbox(getOutbox().filter(o=>o.opId!==op.opId));act({type:'add',task:copy})});
 }
-// Google Calendar con el evento ya completo; el calendario se encarga del aviso
-// tm: la hora entendida al agregar; si no viene, se lee del título
-function calendarUrl(t,tm){
-  // Una tarea vencida va al calendario para hoy, así todavía puede avisar
-  const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today,fmt=d=>ymd(d).replace(/-/g,'');
+// Calendario: se descarga un evento (.ics) que el calendario del teléfono (Samsung, Outlook,
+// Apple…) agrega con su aviso. Sin hora, el evento queda a las 9:00 (o en la próxima hora en
+// punto si es para hoy y ya pasaron las 9), así siempre avisa. Una tarea vencida va para hoy.
+function eventTime(t,tm){
+  const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today;
   tm=tm||timeOf(' '+t.title+' ');
-  let dates;
-  if(tm){
-    const a=parseYmd(day);a.setHours(tm.h,tm.m);const b=new Date(a);b.setMinutes(b.getMinutes()+30);
-    const hm=d=>'T'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'00';
-    dates=fmt(a)+hm(a)+'/'+fmt(b)+hm(b);
-  }else{const b=parseYmd(day);b.setDate(b.getDate()+1);dates=day.replace(/-/g,'')+'/'+fmt(b)}
-  const q=new URLSearchParams({action:'TEMPLATE',text:t.title,dates});
-  if(t.notes)q.set('details',t.notes);
-  try{q.set('ctz',Intl.DateTimeFormat().resolvedOptions().timeZone)}catch{}
-  return 'https://calendar.google.com/calendar/render?'+q;
+  if(!tm){const n=new Date();tm=day===today&&n.getHours()>=9?{h:n.getHours()+1,m:0}:{h:9,m:0}}
+  const start=parseYmd(day);start.setHours(tm.h,tm.m);
+  const end=new Date(start);end.setMinutes(end.getMinutes()+30);
+  return {start,end};
 }
-function openCalendar(t,tm){window.open(calendarUrl(t,tm),'_blank','noopener')}
+function icsText(t,tm){
+  const {start,end}=eventTime(t,tm);
+  const esc=x=>String(x||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  const p2=n=>String(n).padStart(2,'0'),dt=d=>ymd(d).replace(/-/g,'')+'T'+p2(d.getHours())+p2(d.getMinutes())+'00';
+  // Líneas de hasta 75 bytes, como pide el formato
+  const fold=line=>{const enc=new TextEncoder(),out=[];let cur='',n=0;for(const ch of line){const b=enc.encode(ch).length;if(n+b>(out.length?74:75)){out.push(cur);cur='';n=0}cur+=ch;n+=b}out.push(cur);return out.join('\r\n ')};
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mis tareas//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    'UID:'+t.id+'@mis-tareas','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''),
+    'DTSTART:'+dt(start),'DTEND:'+dt(end),'SUMMARY:'+esc(t.title)];
+  if(t.notes)L.push('DESCRIPTION:'+esc(t.notes));
+  L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+esc(t.title),'TRIGGER:-PT0M','END:VALARM','END:VEVENT','END:VCALENDAR');
+  return L.map(fold).join('\r\n')+'\r\n';
+}
+function openCalendar(t,tm){
+  const blob=new Blob([icsText(t,tm)],{type:'text/calendar;charset=utf-8'});
+  const a=el('a');a.href=URL.createObjectURL(blob);
+  a.download=(t.title.replace(/[\\/:*?"<>|\r\n]+/g,' ').trim().slice(0,40)||'tarea')+'.ics';
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  toast('Abrí el archivo descargado para agregarlo al calendario',null,null,6000);
+}
 function addedMsg(due){
   if(!due)return 'Agregada sin fecha';
   const n=daysUntil(due);
@@ -1023,9 +1092,10 @@ $('addForm').addEventListener('submit',e=>{
   const refocus=FINE||document.activeElement===$('title');
   const p=parse(raw,dueFor(chip)),due=p.due!==undefined?p.due:dueFor(chip);
   const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',due:due||null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   act({type:'add',task});
-  // Con hora o "recordame…", un toque la pasa a Google Calendar para que avise
+  // Con hora o "recordame…", un toque la pasa al calendario del teléfono para que avise
   if(p.time||p.remind)toast(addedMsg(due),()=>openCalendar(task,p.time),'Al calendario',7000);
   else toast(addedMsg(due));
   $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;
@@ -1093,7 +1163,10 @@ $('bulkForm').addEventListener('submit',e=>{
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
     const p=parse(line,def);
-    return {id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',due:(p.due!==undefined?p.due:def)||null,notes:'',done:false,createdAt:now,completedAt:null};
+    const task={id:crypto.randomUUID(),title:p.title,requester:p.requester||'',priority:p.priority||'Media',due:(p.due!==undefined?p.due:def)||null,notes:'',done:false,createdAt:now,completedAt:null};
+    if(p.repeat)task.repeat=p.repeat;
+    if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:now});
+    return task;
   });
   closeBulk();
   if(!added.length)return;
@@ -1221,7 +1294,8 @@ $('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToa
 function openEdit(t){
   closeMenu();
   edit={id:t.id,due:t.due||'',priority:t.priority||'Media',
-    orig:{title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||''}};
+    orig:{title:t.title,due:t.due||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
+  $('eRepeat').value=edit.orig.repeat||'';
   $('eTitle').value=t.title;$('eRequester').value=t.requester||'';$('eNotes').value=t.notes||'';
   if(FINE)sel=t.id;
   $('editOv').classList.remove('hidden');$('wrap').inert=true;
@@ -1243,7 +1317,7 @@ $('editForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(!edit)return;
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
-  const vals={title,due:edit.due||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim()};
+  const vals={title,due:edit.due||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
   const patch={};for(const k in vals)if(vals[k]!==edit.orig[k])patch[k]=vals[k];
   const id=edit.id;closeEdit();
@@ -1261,6 +1335,7 @@ function openSettings(){
   closeMenu();settingsOpen=true;confirmClear=false;
   $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';
   $('cfgMsg').classList.add('hidden');$('syncOv').classList.remove('hidden');$('wrap').inert=true;
+  $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
   renderStatus();
 }
 function closeSettings(){settingsOpen=false;confirmClear=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
@@ -1280,6 +1355,12 @@ $('saveCfg').onclick=()=>{
   closeSettings();recompute();sync();
 };
 $('syncNow').onclick=()=>sync();
+$('badgeSw').addEventListener('change',()=>{
+  const on=$('badgeSw').checked;store(K_BADGE,on);lastBadge=null;updateBadge();
+  // En iPhone el número necesita permiso de notificaciones: se pide solo al activarlo
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(on&&ios&&window.Notification&&Notification.permission==='default')Notification.requestPermission().then(()=>{lastBadge=null;updateBadge()}).catch(()=>{});
+});
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
   try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
@@ -1338,7 +1419,20 @@ sync();        // y después trae lo último de GitHub
 // Desde el acceso directo "Nueva tarea" (?nueva=1) el foco va al campo también en el celular
 const params=new URLSearchParams(location.search);
 if(params.has('nueva')||params.has('share'))history.replaceState(null,'',location.pathname+location.hash);
-if(FINE||params.has('nueva'))$('title').focus();   // si no, en el celular no se abre el teclado al entrar
+if(FINE||params.has('nueva')||params.has('share'))$('title').focus();   // si no, en el celular no se abre el teclado al entrar
+// Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
+// Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
+if(params.has('share')){
+  const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
+  const lines=splitLines(text);
+  if(lines.length>=2){
+    const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
+    openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
+  }else{
+    const parts=[];[title,text,url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
+    $('title').value=parts.join(' ').replace(/\s+/g,' ').slice(0,500);renderAdd();
+  }
+}
 setInterval(()=>{if(document.visibilityState==='visible')sync()},20000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
 window.addEventListener('online',sync);
