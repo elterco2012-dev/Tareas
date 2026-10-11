@@ -277,6 +277,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <div id="doneWrap" class="hidden">
       <div id="doneList" class="card"></div>
       <button type="button" id="doneAll" class="linkbtn hidden"></button>
+      <p id="archiveNote" class="fine hidden" style="margin:4px 4px 0">Las de más de 3 meses están en archivo/ de tu repositorio.</p>
     </div>
   </div>
 
@@ -382,7 +383,8 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
-const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero';
+const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero',K_ARCHIVE='ultimoArchivo';
+const ARCHIVE_DAYS=90;
 const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
@@ -618,7 +620,8 @@ function applyOp(a,op){
       break;
     case 'delete': {
       const i=a.findIndex(x=>x.id===op.id);
-      if(i>=0)a.splice(i,1);
+      // onlyDone (archivo): si mientras tanto alguien la volvió a pendientes, no se borra
+      if(i>=0&&!(op.onlyDone&&!a[i].done))a.splice(i,1);
       break;
     }
     case 'move': {
@@ -665,6 +668,22 @@ function httpError(r,what){
   if(r.status===403||r.status===404)return Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token');
   return Error(what+' ('+r.status+')');
 }
+// Cualquier archivo JSON del repositorio (tareas.json o archivo/AAAA.json)
+async function getFile(c,path){
+  const r=await ghFetch(repoUrl(c)+'/contents/'+path+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
+  if(r.status===404)return {items:[],sha:null};
+  if(!r.ok)throw httpError(r,'GitHub respondió');
+  const j=await r.json(),data=JSON.parse(b64utf8(j.content));
+  if(!Array.isArray(data))throw Error(path+' no contiene una lista válida');
+  return {items:data,sha:j.sha};
+}
+async function putFile(c,path,items,sha,message){
+  const payload={message,content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
+  const r=await ghFetch(repoUrl(c)+'/contents/'+path,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(r.status===409||r.status===422)return false;
+  if(!r.ok)throw httpError(r,'No se pudo guardar');
+  return true;
+}
 async function getRemote(c){
   const r=await ghFetch(repoUrl(c)+'/contents/'+file+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
   if(r.status===404){
@@ -679,13 +698,7 @@ async function getRemote(c){
   if(!Array.isArray(data))throw Error('El archivo tareas.json no contiene una lista válida');
   return {items:data,sha:j.sha};
 }
-async function putRemote(c,items,sha){
-  const payload={message:'Actualizar tareas',content:utf8b64(JSON.stringify(items,null,2)),...(sha?{sha}:{})};
-  const r=await ghFetch(repoUrl(c)+'/contents/'+file,{method:'PUT',headers:{...headers(c),'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  if(r.status===409||r.status===422)return false;
-  if(!r.ok)throw httpError(r,'No se pudo guardar');
-  return true;
-}
+function putRemote(c,items,sha){return putFile(c,file,items,sha,'Actualizar tareas')}
 // Trae la última versión y sube los cambios pendientes. Si otro dispositivo guardó
 // en el medio, vuelve a leer y reaplica los cambios. Si falla, quedan guardados acá
 // y se reintenta solo (cada 20 s, al volver a la app o al recuperar la conexión).
@@ -693,7 +706,7 @@ async function sync(){
   if(!configured()){recompute();return}
   if(syncing){syncAgain=true;return}
   syncing=true;renderStatus();
-  let conflicts=0;
+  let conflicts=0,synced=false;
   try{
     do{
       syncAgain=false;
@@ -719,11 +732,48 @@ async function sync(){
       store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote});
       lastSync=new Date();lastError=null;
     }while(syncAgain);
+    synced=true;
   }catch(e){
     lastError=e instanceof TypeError?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
   }finally{
     syncing=false;recompute();
   }
+  if(synced)archiveOld();
+}
+// ---- Archivo automático ----
+// Una vez por día en cada dispositivo: las terminadas hace más de 90 días se agregan a
+// archivo/AAAA.json (por año de terminación, sin duplicar) y recién cuando eso se guardó
+// bien se sacan de tareas.json.
+let archiving=false,archiveTried=0;
+async function archiveOld(){
+  const c=cfg,today=ymd(new Date());
+  if(archiving||!configured()||load(K_ARCHIVE,null)===today)return;
+  // Si falla (por ejemplo, sin permiso), se reintenta como mucho una vez por hora
+  if(Date.now()-archiveTried<3600000)return;
+  archiveTried=Date.now();
+  const cutoff=Date.now()-ARCHIVE_DAYS*86400000;
+  const old=remote.filter(t=>t.done&&t.completedAt&&new Date(t.completedAt).getTime()<cutoff);
+  if(!old.length){store(K_ARCHIVE,today);return}
+  archiving=true;
+  try{
+    const byYear={};
+    old.forEach(t=>{const y=new Date(t.completedAt).getFullYear();(byYear[y]=byYear[y]||[]).push(t)});
+    for(const y of Object.keys(byYear)){
+      const path='archivo/'+y+'.json';
+      for(let i=0;;i++){
+        const cur=await getFile(c,path);
+        if(cfg!==c)return;
+        const ids=new Set(cur.items.map(t=>t.id)),add=byYear[y].filter(t=>!ids.has(t.id));
+        if(!add.length)break;
+        if(await putFile(c,path,cur.items.concat(add),cur.sha,'Archivar tareas terminadas de '+y))break;
+        if(i>=4)throw Error('Conflicto al archivar');
+      }
+    }
+    if(cfg!==c)return;
+    store(K_ARCHIVE,today);
+    actMany(old.map(t=>({type:'delete',id:t.id,onlyDone:true})));
+  }catch{}   // se reintenta en la próxima sincronización
+  finally{archiving=false}
 }
 
 // ---- Estado de sincronización ----
@@ -849,6 +899,7 @@ function renderList(){
   const older=doneMatch.length>recent.length||showAllDone;
   $('doneAll').classList.toggle('hidden',!older);
   $('doneAll').textContent=showAllDone?'Ver solo últimos '+DONE_DAYS+' días':'Ver todas ('+doneMatch.length+')';
+  $('archiveNote').classList.toggle('hidden',!configured());
   placeMenu();
 }
 // Tocar "@Laura" filtra por esa persona (sin abrir la edición)

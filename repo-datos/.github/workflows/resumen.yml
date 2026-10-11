@@ -1,0 +1,124 @@
+# Resumen diario de "Mis tareas" por Telegram (y opcionalmente por mail).
+# Va en el repositorio PRIVADO de datos, en .github/workflows/resumen.yml.
+# Pasos para configurarlo: ver INSTRUCCIONES.md.
+name: Resumen diario
+
+on:
+  schedule:
+    - cron: "0 10 * * 1-5"   # 7:00 en Argentina (10:00 UTC), de lunes a viernes
+  workflow_dispatch:          # botón "Run workflow" para probarlo
+
+permissions:
+  contents: read
+
+jobs:
+  resumen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Enviar resumen
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_TO: ${{ secrets.SMTP_TO }}
+          ZONA_HORARIA: America/Argentina/Buenos_Aires
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import net from 'node:net';
+          import tls from 'node:tls';
+          const E=process.env;
+          const zona=E.ZONA_HORARIA||'America/Argentina/Buenos_Aires';
+          // Fecha (AAAA-MM-DD) en la zona horaria de la persona, no en la del servidor
+          const fecha=d=>new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+          const hoy=fecha(new Date());
+          const dias=(a,b)=>Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/86400000);
+
+          let tareas;
+          try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para avisar.');process.exit(0)}
+          const pend=tareas.filter(t=>t&&!t.done);
+          const vencidas=pend.filter(t=>!t.waiting&&t.due&&t.due<hoy).sort((a,b)=>a.due.localeCompare(b.due));
+          const paraHoy=pend.filter(t=>!t.waiting&&t.due===hoy);
+          const esperando=pend.filter(t=>t.waiting&&t.waitingSince&&dias(hoy,fecha(new Date(t.waitingSince)))>=3);
+          if(!vencidas.length&&!paraHoy.length&&!esperando.length){console.log('Nada vencido, para hoy ni esperando hace +3 días: no se envía nada.');process.exit(0)}
+
+          const plural=(n,a,b)=>n+' '+(n===1?a:b);
+          const partes=[];
+          if(vencidas.length)partes.push(plural(vencidas.length,'vencida','vencidas'));
+          if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
+          if(esperando.length)partes.push(esperando.length+' esperando hace +3 días');
+          const linea=t=>'• '+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'');
+          let msg='Buen día. '+partes.join(', ');
+          if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
+          if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');
+          if(esperando.length)msg+='\n\nEsperando hace +3 días\n'+esperando.map(t=>'• '+t.title+' · '+(t.waitingOn||'sin nombre')+', hace '+dias(hoy,fecha(new Date(t.waitingSince)))+' días').join('\n');
+          if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
+          console.log(msg);
+
+          async function telegram(){
+            const api=E.TELEGRAM_API||'https://api.telegram.org';
+            const r=await fetch(api+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:msg,disable_web_page_preview:true})});
+            const j=await r.json().catch(()=>({}));
+            if(!r.ok||!j.ok)throw new Error('Telegram respondió '+r.status+': '+(j.description||'')+'. Revisá TELEGRAM_TOKEN y TELEGRAM_CHAT_ID.');
+            console.log('Enviado por Telegram.');
+          }
+
+          // Mail sin dependencias: puerto 465 (TLS directo) o 587 (STARTTLS)
+          async function mail(){
+            const host=E.SMTP_HOST,port=Number(E.SMTP_PORT||465),user=E.SMTP_USER,to=E.SMTP_TO||user;
+            let sock=port===465?tls.connect({host,port,servername:host}):net.connect({host,port});
+            let buf='',lines=[],wake=null,fail=null;
+            const hook=s=>{s.setEncoding('utf8');s.on('data',d=>{buf+=d;let i;while((i=buf.indexOf('\r\n'))>=0){lines.push(buf.slice(0,i));buf=buf.slice(i+2)}wake&&wake()});s.on('error',e=>{fail=e;wake&&wake()})};
+            hook(sock);
+            const reply=async()=>{
+              const limite=Date.now()+20000;
+              for(;;){
+                if(fail)throw fail;
+                const i=lines.findIndex(l=>/^\d{3} /.test(l));
+                if(i>=0){const r=lines.splice(0,i+1);return {code:Number(r[i].slice(0,3)),text:r.join(' | ')}}
+                if(Date.now()>limite)throw new Error('El servidor de mail no responde');
+                await new Promise(res=>{wake=res;setTimeout(res,500)});wake=null;
+              }
+            };
+            const cmd=async(c,ok)=>{if(c!==null)sock.write(c+'\r\n');const r=await reply();if(!ok.includes(r.code))throw new Error('Mail: '+r.text);return r};
+            await cmd(null,[220]);
+            let ehlo=await cmd('EHLO mis-tareas',[250]);
+            if(port!==465&&/STARTTLS/i.test(ehlo.text)){
+              await cmd('STARTTLS',[220]);
+              sock.removeAllListeners('data');sock.removeAllListeners('error');
+              sock=tls.connect({socket:sock,servername:host});hook(sock);
+              await new Promise((res,rej)=>{sock.once('secureConnect',res);sock.once('error',rej)});
+              await cmd('EHLO mis-tareas',[250]);
+            }
+            await cmd('AUTH LOGIN',[334]);
+            await cmd(Buffer.from(user).toString('base64'),[334]);
+            await cmd(Buffer.from(E.SMTP_PASS||'').toString('base64'),[235]);
+            await cmd('MAIL FROM:<'+user+'>',[250]);
+            await cmd('RCPT TO:<'+to+'>',[250,251]);
+            await cmd('DATA',[354]);
+            const asunto='=?UTF-8?B?'+Buffer.from('Mis tareas: '+partes.join(', ')).toString('base64')+'?=';
+            const cuerpo=msg.replace(/\r?\n/g,'\r\n').replace(/^\./gm,'..');
+            await cmd('From: '+user+'\r\nTo: '+to+'\r\nSubject: '+asunto+'\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n'+cuerpo+'\r\n.',[250]);
+            await cmd('QUIT',[221]).catch(()=>{});
+            sock.end();
+            console.log('Enviado por mail a '+to+'.');
+          }
+
+          const conTelegram=!!(E.TELEGRAM_TOKEN&&E.TELEGRAM_CHAT_ID),conMail=!!(E.SMTP_HOST&&E.SMTP_USER&&E.SMTP_PASS);
+          if(!conTelegram&&!conMail){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID (o los SMTP_* para mail). Ver INSTRUCCIONES.md.');process.exit(1)}
+          let error=false;
+          for(const [ok,fn] of [[conTelegram,telegram],[conMail,mail]]){
+            if(!ok)continue;
+            try{await fn()}catch(e){console.error(e.message);error=true}
+          }
+          process.exit(error?1:0);
+          JS
