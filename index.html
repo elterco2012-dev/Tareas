@@ -118,6 +118,15 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .more{flex:none;width:40px;height:46px;background:none;border:0;border-radius:10px;color:var(--faint);font-size:20px;line-height:1;padding:0}
 .more:hover{background:var(--hover);color:var(--text2)}
 
+/* Persona (filtro), Esperando */
+.person{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.person:hover{color:var(--accent);text-decoration:underline}
+.late{color:var(--amber);font-weight:600}
+.filterbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-soft);color:var(--accent-text);border-radius:12px;padding:6px 6px 6px 14px;margin-bottom:14px;font-size:14px}
+.filterbar b{font-weight:700}
+.filterbar button{width:32px;height:32px;border:0;border-radius:50%;background:none;color:inherit;font-size:14px;flex:none}
+.filterbar button:hover{background:var(--hover)}
+
 /* Menú ⋯ */
 .backdrop{position:fixed;inset:0;z-index:20}
 .menu{position:absolute;z-index:30;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px var(--shadow);padding:5px;min-width:190px;display:flex;flex-direction:column}
@@ -129,6 +138,10 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 
 /* Terminadas */
 .donesec{margin-top:26px}
+.donehead{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.donetools{margin-left:auto;display:flex;align-items:center;gap:4px}
+.donetools select{font-size:13px;padding:5px 8px;border:1px solid var(--chip);border-radius:8px;background:var(--card);color:var(--text2)}
+.donetools .linkbtn{margin:0}
 .donebtn{display:flex;align-items:baseline;gap:7px;background:none;border:0;padding:6px 4px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
 .donebtn svg{flex:none;align-self:center;transition:transform .15s}
 .donebtn .n{font-weight:500;letter-spacing:0;text-transform:none;color:var(--faint)}
@@ -181,6 +194,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .cfgmsg{font-size:13px;color:var(--red)}
 .cfgbtns{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .clearbtn{align-self:flex-start;background:none;border:0;color:var(--red);font-size:13px;padding:4px 0;text-align:left}
+
+/* Mini diálogo y texto para copiar */
+.modal.small{max-width:400px}
+#waitName{font-size:16px;padding:11px 12px;border-radius:10px;width:100%}
+#textBox{width:100%;min-height:220px;font-size:14px;padding:10px 12px;border-radius:10px;resize:vertical;font-family:inherit}
 
 /* Pegar varias líneas */
 .bulklist{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;margin:0 -4px;padding:2px 4px}
@@ -235,14 +253,22 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <textarea id="note" class="inp hidden" placeholder="Nota / detalle (opcional)" maxlength="2000" rows="2"></textarea>
   </form>
 
+  <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
   <div id="empty" class="emptycard hidden"></div>
   <div id="groups"></div>
+  <div id="waitingSec"></div>
 
   <div class="donesec">
-    <button type="button" id="doneToggle" class="donebtn" aria-expanded="false">
-      <svg id="doneChev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>
-      <span>Terminadas</span><span class="n" id="doneSub"></span>
-    </button>
+    <div class="donehead">
+      <button type="button" id="doneToggle" class="donebtn" aria-expanded="false">
+        <svg id="doneChev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>
+        <span>Terminadas</span><span class="n" id="doneSub"></span>
+      </button>
+      <div class="donetools">
+        <select id="sumWeek" aria-label="Semana del resumen"><option value="0">Esta semana</option><option value="1">Semana pasada</option></select>
+        <button type="button" id="copySum" class="linkbtn">Copiar resumen</button>
+      </div>
+    </div>
     <div id="doneWrap" class="hidden">
       <div id="doneList" class="card"></div>
       <button type="button" id="doneAll" class="linkbtn hidden"></button>
@@ -310,6 +336,23 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   </div>
 </div>
 
+<div id="waitOv" class="overlay hidden">
+  <form id="waitForm" class="modal small" role="dialog" aria-modal="true" aria-labelledby="waitH">
+    <div class="mhead"><h2 id="waitH">¿De quién?</h2><button type="button" class="xbtn" id="waitX" aria-label="Cerrar">✕</button></div>
+    <p class="muted">La tarea pasa a "Esperando" hasta que te respondan.</p>
+    <input id="waitName" class="inp" maxlength="100" placeholder="Nombre (opcional)" aria-label="De quién esperás respuesta">
+    <div class="mfoot"><span class="spacer"></span><button type="button" id="waitCancel" class="secbtn">Cancelar</button><button type="submit" class="primary">Guardar</button></div>
+  </form>
+</div>
+
+<div id="textOv" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="textH">
+    <div class="mhead"><h2 id="textH">Resumen</h2><button type="button" class="xbtn" id="textX" aria-label="Cerrar">✕</button></div>
+    <p class="muted">No se pudo copiar solo: seleccioná el texto y copialo.</p>
+    <textarea id="textBox" class="inp" readonly></textarea>
+  </div>
+</div>
+
 <div id="bulkOv" class="overlay hidden">
   <form id="bulkForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkH">
     <div class="mhead"><h2 id="bulkH">¿Cargar tareas?</h2><button type="button" class="xbtn" id="bulkX" aria-label="Cerrar">✕</button></div>
@@ -341,7 +384,7 @@ let syncing=false,syncAgain=false,lastSync=null,lastError=null;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
-let downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
+let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
 
 // ---- Almacenamiento local ----
 function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch{return def}}
@@ -488,6 +531,9 @@ function parse(text,defaultDue){
     if(out.priority||/(?:^|\s)(?:no|nada|poco|tan|lo|m[áa]s)$/i.test(str.slice(0,off)))return m;
     out.priority=p?cap(p.toLowerCase()):'Alta';return ' ';
   });
+  // Esperando respuesta: "#esperando" (con "@Juan" queda de quién) o dicho: "esperando respuesta de Juan"
+  t=t.replace(/\s#esperando(?=[\s,.;:])/i,()=>{out.waiting=true;return ' '});
+  if(!out.waiting)t=t.replace(/\s(?:en\s+)?espera(?:ndo)?\s+(?:respuesta|confirmaci[óo]n)(?:\s+de\s+([A-ZÁÉÍÓÚÑ][^\s,.;:]*))?(?=[\s,.;:])/,(m,n)=>{out.waiting=true;if(n)out.waitingOn=n;return ' '});
   // Quién la pide: "@Juan" … o dicho: "me lo pidió Laura", "pedido por Juan", "de parte de mi jefe"
   t=t.replace(/\s@([^\s@!]+)/,(m,r)=>{out.requester=r.replace(/[.,;:)]+$/,'').replace(/_/g,' ');return ' '});
   if(!out.requester)t=t.replace(/\s(me\s+(?:lo|la)\s+pidi[óo]|pedid[oa]\s+por|de\s+parte\s+de)\s+((?:(?:el|la|mi|su|tu)\s+)?[^\s,.;:]+)((?:\s+[^\s,.;:]+)?)(?=[\s,.;:])/i,(m,k,n1,n2,off,str)=>{
@@ -684,7 +730,7 @@ function renderStatus(){
 // ---- Render ----
 function render(){renderHeader();renderAdd();renderList();renderStatus();if(edit)renderEdit()}
 function renderHeader(){
-  const today=ymd(new Date()),pend=tasks.filter(t=>!t.done);
+  const today=ymd(new Date()),pend=tasks.filter(t=>!t.done&&!t.waiting);
   $('todayLabel').textContent=cap(new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}));
   const over=pend.filter(t=>groupOf(t)==='over').length,tod=pend.filter(t=>groupOf(t)==='today').length;
   const doneToday=tasks.filter(t=>t.done&&t.completedAt&&ymd(new Date(t.completedAt))===today).length;
@@ -705,6 +751,7 @@ function renderAdd(){
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
   if(p.time)tags.push(timeLabel(p.time));
   if(p.requester)tags.push('@'+p.requester);
+  if(p.waiting){const w=p.waitingOn||p.requester;tags.push(w?'Esperando a '+w:'Esperando')}
   // Lo dictado no entra en el campo: se muestra completo el título que se va a guardar
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
   if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(el('span','tag',x)))}
@@ -713,15 +760,19 @@ function renderAdd(){
   updateAddBtn();
   placeMenu();
 }
+const samePerson=(a,b)=>!!a&&!!b&&norm(a)===norm(b);
+// La pidió esa persona, o se está esperando su respuesta
+function byPerson(t){return !personFilter||samePerson(t.requester,personFilter)||(t.waiting&&!t.done&&samePerson(t.waitingOn,personFilter))}
 function matcher(){
   const q=$('search').value.trim().toLowerCase().replace(/^@/,'');
-  return t=>!q||(t.title+' '+(t.requester||'')+' '+(t.notes||'')).toLowerCase().includes(q);
+  return t=>byPerson(t)&&(!q||(t.title+' '+(t.requester||'')+' '+(t.waitingOn||'')+' '+(t.notes||'')).toLowerCase().includes(q));
 }
+function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
   if(swiping){renderLater=true;return}
   const match=matcher(),q=$('search').value.trim();
   const unsynced=new Set(configured()?getOutbox().map(o=>o.id||(o.task&&o.task.id)):[]);
-  const pending=tasks.filter(t=>!t.done&&match(t)).sort(cmpPending);
+  const pending=tasks.filter(t=>!t.done&&!t.waiting&&match(t)).sort(cmpPending);
   const box=$('groups');box.replaceChildren();visibleIds=[];
   for(const g of GROUPS){
     const items=pending.filter(t=>groupOf(t)===g.id);
@@ -733,8 +784,18 @@ function renderList(){
     items.forEach(t=>{visibleIds.push(t.id);card.append(COARSE?swipeRow(taskRow(t,g.id,unsynced),t):taskRow(t,g.id,unsynced))});
     grp.append(head,card);box.append(grp);
   }
-  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.':'Nada pendiente. Buen trabajo.';
-  $('empty').classList.toggle('hidden',pending.length>0);
+  // Esperando: debajo de los pendientes, las más viejas primero
+  const waiting=tasks.filter(t=>!t.done&&t.waiting&&match(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''));
+  const ws=$('waitingSec');ws.replaceChildren();
+  if(waiting.length){
+    const grp=el('div','grp'),head=el('div','ghead'),card=el('div','card');
+    head.append(el('span',null,'Esperando'),el('span','n',String(waiting.length)));
+    waiting.forEach(t=>{visibleIds.push(t.id);card.append(taskRow(t,'waiting',unsynced))});
+    grp.append(head,card);ws.append(grp);
+  }
+  $('filterBar').classList.toggle('hidden',!personFilter);$('filterName').textContent=personFilter||'';
+  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.':personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
+  $('empty').classList.toggle('hidden',pending.length+waiting.length>0);
   if(sel&&!visibleIds.includes(sel))sel=null;
   if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done))closeMenu();
 
@@ -761,6 +822,12 @@ function renderList(){
   $('doneAll').textContent=showAllDone?'Ver solo últimos '+DONE_DAYS+' días':'Ver todas ('+doneMatch.length+')';
   placeMenu();
 }
+// Tocar "@Laura" filtra por esa persona (sin abrir la edición)
+function personBtn(name,label){
+  const b=el('button','person',label);b.type='button';b.title='Ver solo las de '+name;
+  b.onclick=e=>{e.stopPropagation();setPersonFilter(name)};
+  return b;
+}
 function taskRow(t,gid,unsynced){
   const row=el('div','task'+(sel===t.id?' sel':''));row.dataset.id=t.id;
   const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Marcar terminada');
@@ -770,9 +837,17 @@ function taskRow(t,gid,unsynced){
   // La fecha solo donde aporta: en Hoy y Mañana sería redundante
   const showDue=!!t.due&&(gid==='over'||gid==='week'||gid==='later');
   const meta=el('div','meta');
+  if(gid==='waiting'){
+    // "Juan · hace 3 días": desde los 3 días, en ámbar
+    const days=t.waitingSince?Math.max(0,-daysUntil(ymd(new Date(t.waitingSince)))):0;
+    const w=el('span',days>=3?'late':null);
+    if(t.waitingOn)w.append(personBtn(t.waitingOn,t.waitingOn),' · ');else w.append('Esperando · ');
+    w.append(days===0?'desde hoy':days===1?'hace 1 día':'hace '+days+' días');
+    meta.append(w);
+  }
   if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
   if(t.priority==='Alta')meta.append(el('span','alta','Alta'));
-  if(t.requester)meta.append(el('span',null,'@'+t.requester));
+  if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
   if(unsynced.has(t.id))meta.append(el('span','unsynced','sin subir'));
   if(meta.childNodes.length)body.append(meta);
   if(t.notes)body.append(el('div','notes',t.notes));
@@ -837,10 +912,16 @@ function openMenu(id){
   const m=$('menu');m.replaceChildren();
   const n=t.due?daysUntil(t.due):null;
   const item=(label,fn,cls)=>{const b=el('button',cls,label);b.type='button';b.setAttribute('role','menuitem');b.onclick=()=>{closeMenu();fn()};m.append(b)};
-  if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
-  if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
-  if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
-  item('Agregar al calendario',()=>openCalendar(t));
+  if(t.waiting){
+    item('Ya respondió',()=>setWaiting(t,false));
+    item('Terminar',()=>toggle(t));
+  }else{
+    if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
+    if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
+    if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
+    item('Esperando respuesta…',()=>openWait(t));
+    item('Agregar al calendario',()=>openCalendar(t));
+  }
   item('Editar…',()=>openEdit(t));
   m.append(el('div','sep'));
   item('Borrar',()=>del(t),'danger');
@@ -854,7 +935,7 @@ function openMenu(id){
 // página (acompaña el scroll) y se vuelve a ubicar cada vez que la lista se redibuja.
 function placeMenu(){
   if(!menuId)return;
-  const row=[...document.querySelectorAll('#groups .task')].find(r=>r.dataset.id===menuId);
+  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task')].find(r=>r.dataset.id===menuId);
   if(!row){closeMenu();return}
   const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
   let top=r.bottom+2;if(top+mh>innerHeight-8)top=Math.max(8,r.top-mh-2);
@@ -882,6 +963,23 @@ function reschedule(t,v){
   act({type:'edit',id:t.id,patch:{due}});
   toast(v==='0'?'Pasada a hoy':v==='1'?'Pasada a mañana':'Pasada al lunes',()=>act({type:'edit',id:t.id,patch:{due:prev}}));
 }
+// Esperando respuesta: sale de los grupos por fecha hasta que respondan
+function setWaiting(t,on,name){
+  const prev={waiting:!!t.waiting,waitingOn:t.waitingOn||'',waitingSince:t.waitingSince||null};
+  if(on){
+    act({type:'edit',id:t.id,patch:{waiting:true,waitingOn:name||'',waitingSince:new Date().toISOString()}});
+    toast(name?'En espera de '+name:'En espera',()=>act({type:'edit',id:t.id,patch:prev}));
+  }else{
+    act({type:'edit',id:t.id,patch:{waiting:false}});
+    toast('Volvió a pendientes',()=>act({type:'edit',id:t.id,patch:prev}));
+  }
+}
+function openWait(t){
+  waitFor=t;$('waitName').value=t.waitingOn||t.requester||'';
+  $('waitOv').classList.remove('hidden');$('wrap').inert=true;
+  if(FINE){$('waitName').focus();$('waitName').select()}
+}
+function closeWait(){waitFor=null;releaseFocus($('waitOv'));$('waitOv').classList.add('hidden');$('wrap').inert=false}
 function del(t){
   const copy={...t};
   if(edit&&edit.id===t.id)closeEdit();
@@ -925,6 +1023,7 @@ $('addForm').addEventListener('submit',e=>{
   const refocus=FINE||document.activeElement===$('title');
   const p=parse(raw,dueFor(chip)),due=p.due!==undefined?p.due:dueFor(chip);
   const task={id:crypto.randomUUID(),title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',due:due||null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   act({type:'add',task});
   // Con hora o "recordame…", un toque la pasa a Google Calendar para que avise
   if(p.time||p.remind)toast(addedMsg(due),()=>openCalendar(task,p.time),'Al calendario',7000);
@@ -1066,6 +1165,49 @@ $('searchBtn').onclick=()=>searchOpen?closeSearch():openSearch();
 $('searchClose').onclick=closeSearch;
 $('search').addEventListener('input',renderList);
 
+// ---- Filtro por persona ----
+$('filterX').onclick=()=>setPersonFilter(null);
+
+// ---- Mini diálogo "¿De quién?" ----
+$('waitForm').addEventListener('submit',e=>{e.preventDefault();const t=waitFor;closeWait();if(t)setWaiting(t,true,$('waitName').value.trim())});
+$('waitX').onclick=closeWait;$('waitCancel').onclick=closeWait;
+$('waitOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('waitOv').addEventListener('click',e=>{if(e.target===$('waitOv')&&downOn===e.target)closeWait()});
+
+// ---- Copiar resumen de la semana ----
+// Terminadas desde el lunes (o la semana pasada), agrupadas por quién las pidió
+function dm(d){return d.getDate()+'/'+(d.getMonth()+1)}
+function weekSummary(off){
+  const now=new Date(),mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-(now.getDay()+6)%7-7*off);
+  const end=off?new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+6):new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const from=ymd(mon),to=ymd(end);
+  const done=tasks.filter(t=>t.done&&t.completedAt&&byPerson(t)).filter(t=>{const d=ymd(new Date(t.completedAt));return d>=from&&d<=to})
+    .sort((a,b)=>a.completedAt.localeCompare(b.completedAt));
+  if(!done.length)return null;
+  const groups=new Map();
+  done.forEach(t=>{const name=(t.requester||'').trim(),k=name?norm(name):'';if(!groups.has(k))groups.set(k,{name:name||'Sin asignar',items:[]});groups.get(k).items.push(t.title)});
+  const keys=[...groups.keys()].sort((a,b)=>a===''?1:b===''?-1:a.localeCompare(b,'es'));
+  const lines=['Resumen semana '+dm(mon)+' al '+dm(end)];
+  keys.forEach(k=>{const g=groups.get(k);lines.push('',g.name,...g.items.map(x=>'• '+x))});
+  const waiting=tasks.filter(t=>!t.done&&t.waiting&&byPerson(t));
+  if(waiting.length){lines.push('');waiting.forEach(t=>lines.push('En espera: '+t.title+(t.waitingOn?' (esperando a '+t.waitingOn+')':' (esperando respuesta)')))}
+  return lines.join('\n');
+}
+function showText(text){
+  $('textBox').value=text;$('textOv').classList.remove('hidden');$('wrap').inert=true;
+  $('textBox').focus();$('textBox').select();
+}
+function closeText(){releaseFocus($('textOv'));$('textOv').classList.add('hidden');$('wrap').inert=false}
+$('copySum').onclick=()=>{
+  const off=Number($('sumWeek').value),text=weekSummary(off);
+  if(!text){toast(off?'No hay tareas terminadas la semana pasada':'Todavía no hay tareas terminadas esta semana');return}
+  const fail=()=>showText(text);
+  try{navigator.clipboard.writeText(text).then(()=>toast('Resumen copiado'),fail)}catch{fail()}
+};
+$('textX').onclick=closeText;
+$('textOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('textOv').addEventListener('click',e=>{if(e.target===$('textOv')&&downOn===e.target)closeText()});
+
 // ---- Terminadas ----
 $('doneToggle').onclick=()=>{showDone=!showDone;renderList()};
 $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
@@ -1152,16 +1294,19 @@ document.addEventListener('keydown',e=>{
   const typing=tag==='input'||tag==='textarea'||tag==='select'||tg.isContentEditable;
   if(e.key==='Escape'){
     if(listening)stopVoice(true);
+    else if(!$('textOv').classList.contains('hidden'))closeText();
+    else if(waitFor)closeWait();
     else if(bulk)closeBulk();
     else if(edit)closeEdit();
     else if(settingsOpen)closeSettings();
     else if(menuId)closeMenu();
     else if(searchOpen)closeSearch();
+    else if(personFilter)setPersonFilter(null);
     else if(typing&&tg.blur)tg.blur();
     else if(sel){sel=null;renderList()}
     return;
   }
-  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk)return;
+  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||!$('textOv').classList.contains('hidden'))return;
   // Espacio/Enter sobre un botón con foco ya lo activan: no duplicar la acción
   if((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter'))return;
   const ids=visibleIds,i=ids.indexOf(sel),t=tasks.find(x=>x.id===sel&&!x.done);
