@@ -144,6 +144,14 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .filterbar b{font-weight:700}
 .filterbar button{width:32px;height:32px;border:0;border-radius:50%;background:none;color:inherit;font-size:14px;flex:none}
 .filterbar button:hover{background:var(--hover)}
+.ghead .gbtn{margin-left:auto;background:none;border:0;padding:4px 4px;font:inherit;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);cursor:pointer}
+.ghead .gbtn:hover{text-decoration:underline}
+/* Aviso del token de GitHub */
+.tokenbar{display:flex;align-items:center;gap:6px;background:var(--red-soft);color:var(--red);border-radius:12px;padding:6px 6px 6px 14px;margin-bottom:14px;font-size:14px;line-height:1.4}
+.tokenbar span{flex:1;min-width:0;padding:4px 0}
+.tokenbar button{flex:none;border:0;background:none;color:inherit;font-weight:700;border-radius:8px;padding:8px 10px}
+.tokenbar #tokenX{width:32px;height:32px;padding:0;border-radius:50%;font-weight:400}
+.tokenbar button:hover{background:var(--hover)}
 
 /* Menú ⋯ */
 .backdrop{position:fixed;inset:0;z-index:20}
@@ -277,6 +285,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <textarea id="note" class="inp hidden" placeholder="Nota / detalle (opcional)" maxlength="2000" rows="2"></textarea>
   </form>
 
+  <div id="tokenBar" class="tokenbar hidden" role="status"><span id="tokenMsg"></span><button type="button" id="tokenFix">Renovar</button><button type="button" id="tokenX" class="hidden" aria-label="Ocultar hasta mañana" title="Ocultar hasta mañana">✕</button></div>
   <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
   <div id="empty" class="emptycard hidden"></div>
   <div id="groups"></div>
@@ -368,6 +377,8 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <label class="fcol">Repositorio privado<input id="repo" class="inp" placeholder="mis-tareas-datos" autocomplete="off"></label>
     </div>
     <label class="fcol">Token<input id="token" class="inp" type="password" placeholder="Fine-grained · Contents: Read and write" autocomplete="off"></label>
+    <label class="fcol">El token vence el (opcional)<input id="tokenExp" class="inp" type="date"></label>
+    <p class="fine" style="margin-top:-6px">La fecha la ves en GitHub, en la lista de tus tokens (Settings → Developer settings → Fine-grained tokens). Una semana antes te avisamos para que lo renueves.</p>
     <p class="fine">Usá un repositorio privado, distinto del de GitHub Pages, y un token fine-grained con acceso solo a ese repositorio (Contents: Read and write). El token queda guardado en este navegador: no cargues información confidencial.</p>
     <div id="cfgMsg" class="cfgmsg hidden"></div>
     <div class="cfgbtns">
@@ -416,7 +427,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
-const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero',K_ARCHIVE='ultimoArchivo';
+const K_CFG='githubTasksConfig',K_CACHE='tareasCache',K_OUTBOX='tareasPendientes',K_BADGE='iconoNumero',K_ARCHIVE='ultimoArchivo',K_TOKENX='avisoToken';
 const ARCHIVE_DAYS=90,TRASH_DAYS=30;
 const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly:'mensual'};
 const PRIO={Alta:0,Media:1,Baja:2};
@@ -425,7 +436,7 @@ const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
 const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Espacio','terminar'],['E','editar'],['H','hoy'],['M','mañana'],['Supr','borrar']];
 let cfg={},remote=[],tasks=[],trash=[],outboxMem=[];
-let syncing=false,syncAgain=false,lastSync=null,lastError=null;
+let syncing=false,syncAgain=false,lastSync=null,lastError=null,authError=false;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
@@ -586,6 +597,8 @@ const ART_RE='(?:el|la|los|las|lo|un|una|unos|unas|al|en|del|con|a(?!\\s+las?\\s
 const CMD_RE=new RegExp('^(?:(?:crear|cre[áa]|agregar|agreg[áa]|anotar|anot[áa]|nueva)\\s+(?:una\\s+)?tarea(?![\\s,:]+(?:en|de|del|para|con|a|al|sobre)(?![a-záéíóúñ]))'+
   '|(?:anot[áa]|agreg[áa])(?![\\s,:]+'+ART_RE+')'+
   '|record[áa]me|recu[ée]rdame|acordate|acu[ée]rdate|tengo\\s+que|hay\\s+que)(?=[\\s,:]|$)[\\s,:]*(?:(?:de|que)\\s+)?','i');
+// Dentro de un rato: "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media"
+const REL_RE=new RegExp('\\s(?:en|dentro\\s+de)\\s+(?:(media)\\s+hora|(\\d{1,3}|'+NUM_RE+')\\s+(minutos?|mins?\\.?|horas?|hs\\.?|h)(?:\\s+y\\s+(media|cuarto))?)(?=[\\s,.;:])','i');
 // defaultDue: la fecha elegida con los chips, si el texto no dice otra
 function parse(text,defaultDue){
   const out={title:text.trim()};
@@ -621,6 +634,15 @@ function parse(text,defaultDue){
     out.requester=cap(n1+(both?n2:''));
     return ' '+(both?'':n2)+' ';
   });
+  t=t.replace(REL_RE,(m,half,n,unit,extra)=>{
+    const k=half?30:toNum(norm(n)),hours=!half&&/^h/i.test(unit);
+    if(!k||extra&&!hours)return m;
+    const mins=hours?k*60+(extra?(norm(extra)==='media'?30:15):0):k;
+    if(mins>72*60)return m;
+    const at=new Date(Date.now()+mins*60000);
+    out.rel={h:at.getHours(),m:at.getMinutes(),text:m.trim(),day:ymd(at)};
+    return ' ';
+  });
   // Fecha
   t=t.replace(DATE_RE,(m,w,off,str)=>{
     if(out.due)return m;
@@ -652,10 +674,12 @@ function parse(text,defaultDue){
     }
     break;
   }
+  // "En 30 minutos": hoy (o mañana, si pasa la medianoche) a esa hora
+  if(out.rel){out.time={h:out.rel.h,m:out.rel.m,text:out.rel.text};if(out.due===undefined)out.due=out.rel.day;delete out.rel}
   // La hora es un dato aparte: no queda en el título
   const day=out.due||defaultDue;
   const tm=lead?timeOf(' '+lead+' ',day):timeOf(' '+title+' ',day);
-  if(tm){
+  if(tm&&!out.time){
     if(!lead){const i=title.toLowerCase().indexOf(tm.text.toLowerCase());if(i>=0)title=tidy(title.slice(0,i)+' '+title.slice(i+tm.text.length))}
     out.time=tm;
   }
@@ -735,7 +759,7 @@ function utf8b64(s){const a=new TextEncoder().encode(s);let b='';for(const x of 
 function b64utf8(s){const b=atob(s.replace(/\s/g,''));return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
 function configured(){return !!(cfg.owner&&cfg.repo&&cfg.token)}
 function httpError(r,what){
-  if(r.status===401)return Error('El token no es válido o venció');
+  if(r.status===401)return Object.assign(Error('El token no es válido o venció'),{auth:true});
   if(r.status===403||r.status===404)return Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token');
   return Error(what+' ('+r.status+')');
 }
@@ -755,8 +779,18 @@ async function putFile(c,path,items,sha,message){
   if(!r.ok)throw httpError(r,'No se pudo guardar');
   return true;
 }
+// Si GitHub informa cuándo vence el token (y el navegador deja leerlo), se anota solo
+function noteExpiry(c,r){
+  const m=String(r.headers.get('github-authentication-token-expiration')||'').match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)\s*(UTC|Z|[+-]\d{2}:?\d{2})?/i);
+  if(!m)return;
+  const tz=!m[3]||/^(utc|z)$/i.test(m[3])?'Z':m[3].replace(/^([+-]\d{2})(\d{2})$/,'$1:$2');
+  const d=new Date(m[1]+'T'+m[2]+tz);
+  if(isNaN(d)||c!==cfg||cfg.tokenExp===ymd(d))return;
+  cfg.tokenExp=ymd(d);store(K_CFG,cfg);
+}
 async function getRemote(c){
   const r=await ghFetch(repoUrl(c)+'/contents/'+file+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
+  noteExpiry(c,r);
   if(r.status===404){
     // El archivo todavía no existe, salvo que el repositorio tampoco sea accesible
     const repo=await ghFetch(repoUrl(c),{headers:headers(c),cache:'no-store'});
@@ -801,11 +835,12 @@ async function sync(){
         if(getOutbox().length)syncAgain=true;
       }
       store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote});
-      lastSync=new Date();lastError=null;
+      lastSync=new Date();lastError=null;authError=false;
     }while(syncAgain);
     synced=true;
   }catch(e){
     lastError=e instanceof TypeError?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
+    authError=!!e.auth;
   }finally{
     syncing=false;recompute();
   }
@@ -873,6 +908,25 @@ function status(){
   if(lastSync)return {dot:'var(--green)',short:'Al día',long:'Todo subido a GitHub · '+timeNow(lastSync)+'.'};
   return {dot:'var(--gray-dot)',short:'Conectando…',long:'Conectando con GitHub…'};
 }
+// Aviso arriba: el token de GitHub venció (GitHub lo rechaza) o vence en 7 días o menos
+function tokenNotice(){
+  if(!configured())return null;
+  if(authError)return {msg:'GitHub no acepta el token: venció o no es válido. Generá uno nuevo y pegalo en Sincronización.',hard:true};
+  if(!cfg.tokenExp)return null;
+  const n=daysUntil(cfg.tokenExp),d=dm(parseYmd(cfg.tokenExp));
+  if(load(K_TOKENX,null)===ymd(new Date()))return null;   // ocultado hasta mañana
+  if(n<0&&!lastSync&&!lastError)return null;   // todavía no se sabe si GitHub lo acepta
+  if(n<0)return lastSync&&!lastError?{msg:'El token sigue andando, pero la fecha de vencimiento que cargaste ('+d+') ya pasó. Si lo renovaste, actualizala en Sincronización.'}:{msg:'El token de GitHub venció el '+d+'. Generá uno nuevo y pegalo en Sincronización.'};
+  if(n<=7)return {msg:'El token de GitHub vence '+(n===0?'hoy':n===1?'mañana':'en '+n+' días')+' ('+d+'). Renovalo antes, así la app sigue subiendo las tareas.'};
+  return null;
+}
+function renderTokenBar(){
+  const nt=tokenNotice();
+  $('tokenBar').classList.toggle('hidden',!nt);
+  if(!nt)return;
+  $('tokenMsg').textContent=nt.msg;
+  $('tokenX').classList.toggle('hidden',!!nt.hard);
+}
 function renderStatus(){
   const st=status();
   $('dot').style.background=st.dot;$('statusShort').textContent=st.short;
@@ -880,7 +934,7 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){renderHeader();renderAdd();renderList();renderTrash();renderStatus();if(edit)renderEdit();updateBadge()}
+function render(){renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();if(edit)renderEdit();updateBadge()}
 // Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
 // lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
 const BADGE='setAppBadge' in navigator;
@@ -945,6 +999,8 @@ function renderList(){
     const grp=el('div','grp');
     const head=el('div','ghead'+(g.id==='over'?' over':g.id==='today'?' today':''));
     head.append(el('span',null,g.title),el('span','n',String(items.length)));
+    // Vencidas: pasarlas todas a hoy de un toque
+    if(g.id==='over'&&items.length>1){const b=el('button','gbtn','Todas a hoy');b.type='button';b.onclick=()=>allToToday(items);head.append(b)}
     const card=el('div','card');
     items.forEach(t=>{visibleIds.push(t.id);card.append(COARSE?swipeRow(taskRow(t,g.id,unsynced),t):taskRow(t,g.id,unsynced))});
     grp.append(head,card);box.append(grp);
@@ -1161,6 +1217,11 @@ function reschedule(t,v){
   if(prev===due)return;
   act({type:'edit',id:t.id,patch:{due}});
   toast(v==='0'?'Pasada a hoy':v==='1'?'Pasada a mañana':'Pasada al lunes',()=>act({type:'edit',id:t.id,patch:{due:prev}}));
+}
+function allToToday(items){
+  const today=dueFor('0'),prev=items.map(t=>({id:t.id,due:t.due||null}));
+  actMany(prev.map(x=>({type:'edit',id:x.id,patch:{due:today}})));
+  toast(prev.length+' pasadas a hoy',()=>actMany(prev.map(x=>({type:'edit',id:x.id,patch:{due:x.due}}))));
 }
 // Esperando respuesta: sale de los grupos por fecha hasta que respondan
 function setWaiting(t,on,name){
@@ -1596,7 +1657,7 @@ $('eDel').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);if(t)del(t);e
 // ---- Sincronización ----
 function openSettings(){
   closeMenu();settingsOpen=true;confirmClear=false;
-  $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';
+  $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';$('tokenExp').value=cfg.tokenExp||'';
   $('cfgMsg').classList.add('hidden');$('syncOv').classList.remove('hidden');$('wrap').inert=true;
   $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
   renderStatus();
@@ -1614,10 +1675,16 @@ $('syncOv').addEventListener('click',e=>{if(e.target===$('syncOv')&&downOn===e.t
 $('saveCfg').onclick=()=>{
   const next={owner:$('owner').value.trim(),repo:$('repo').value.trim(),token:$('token').value.trim()};
   if(!next.owner||!next.repo||!next.token){$('cfgMsg').textContent='Completá los tres campos.';$('cfgMsg').classList.remove('hidden');return}
-  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;
+  // Un token nuevo con la fecha del anterior: esa fecha ya no sirve
+  const exp=$('tokenExp').value;
+  if(exp&&!(next.token!==cfg.token&&exp===(cfg.tokenExp||'')))next.tokenExp=exp;
+  if(next.tokenExp!==cfg.tokenExp)try{localStorage.removeItem(K_TOKENX)}catch{}
+  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;
   closeSettings();recompute();sync();
 };
 $('syncNow').onclick=()=>sync();
+$('tokenFix').onclick=()=>{openSettings();$('token').focus();$('token').select()};
+$('tokenX').onclick=()=>{store(K_TOKENX,ymd(new Date()));renderTokenBar()};
 $('badgeSw').addEventListener('change',()=>{
   const on=$('badgeSw').checked;store(K_BADGE,on);lastBadge=null;updateBadge();
   // En iPhone el número necesita permiso de notificaciones: se pide solo al activarlo
@@ -1627,7 +1694,7 @@ $('badgeSw').addEventListener('change',()=>{
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
   try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
-  cfg={};remote=[];outboxMem=[];lastSync=null;lastError=null;confirmClear=false;
+  cfg={};remote=[];outboxMem=[];lastSync=null;lastError=null;authError=false;confirmClear=false;
   $('owner').value='';$('repo').value='';$('token').value='';
   recompute();
 };

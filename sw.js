@@ -1,6 +1,6 @@
 // Permite abrir la app sin conexión. Siempre intenta traer la última versión de la red;
 // si no hay señal (o tarda más de 3 s) usa la copia guardada. No toca las llamadas a GitHub.
-const CACHE='tareas-v6';
+const CACHE='tareas-v7';
 const SHELL=['./','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
 
 self.addEventListener('install',e=>{

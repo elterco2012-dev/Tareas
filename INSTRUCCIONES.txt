@@ -12,7 +12,8 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
    - NO compartas el token, ni lo subas al repositorio publico, ni lo pegues en conversaciones.
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
 7) Toca el boton de estado (arriba a la derecha) para abrir Sincronizacion; escribe usuario, nombre del repo PRIVADO
-   y token, y pulsa Guardar conexion.
+   y token, y pulsa Guardar conexion. Opcional: carga tambien la fecha en que vence el token (la ves en GitHub, en la
+   lista de tus tokens): una semana antes la app te avisa para que lo renueves.
 8) Abre la misma URL desde tu celular y configura los mismos datos una sola vez.
 
 INSTALAR COMO APLICACION
@@ -31,6 +32,8 @@ USO DIARIO
 - Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto" o "a las 8 de la noche"
   se guarda aparte (no queda en el texto). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
   y la hora se pone en rojo cuando ya paso. Se cambia o se quita en Editar.
+  Tambien entiende "en 30 minutos", "en media hora", "dentro de 2 horas" o "en una hora y media" (hoy, a esa hora).
+  El aviso de Telegram llega entre 10 y 40 minutos antes: para algo de menos de una hora, usa "Al calendario".
 - Sugerencias: mientras escribis aparecen tareas que ya cargaste antes, con quien las pidio. Toca una (o elegila
   con las flechas y Enter) y queda en el campo para agregarla. Despues de "@" sugiere las personas que ya usaste.
 - Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo, deci la tarea y toca "Listo"
@@ -64,6 +67,7 @@ USO DIARIO
   Si "Tareas" no aparece al compartir o no ves "Nueva tarea", el celular todavia no actualizo la app instalada:
   esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
+- Vencidas: si hay dos o mas, "Todas a hoy" (a la derecha del titulo) las pasa todas a hoy de un toque, con Deshacer.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
@@ -90,6 +94,8 @@ SEGURIDAD Y LIMITACIONES
 - El token se guarda en localStorage en CADA navegador para evitar volver a ingresarlo. No es adecuado para dispositivos compartidos ni informacion confidencial empresarial. Un script malicioso, extension comprometida o persona con acceso al navegador podria extraerlo.
 - NO pongas el token en index.html ni en commits de GitHub.
 - Si el token se filtra, revocalo inmediatamente en GitHub.
+- Si el token vence o GitHub lo rechaza, arriba aparece un aviso en rojo con "Renovar": genera uno nuevo en GitHub
+  (mismos permisos) y pegalo en Sincronizacion. Las tareas no se pierden: quedan en el dispositivo hasta que se suben.
 - GitHub Pages no es una plataforma de autenticacion privada; la seguridad de los datos depende de los permisos del repositorio y del token.
 - La aplicacion consulta cambios cada 20 segundos mientras esta abierta. Sin Internet se puede abrir y cargar tareas;
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
