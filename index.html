@@ -291,6 +291,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .toast button{flex:none;white-space:nowrap;background:none;border:0;color:var(--toast-btn);font-weight:700;padding:8px 12px;border-radius:8px}
 .toast button:hover{background:rgba(255,255,255,.1)}
 .toast .tbtns{display:flex;margin-left:auto}
+.docked .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 /* Quién lo pidió en un toque (celular) */
 .whorow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--muted)}
 .whorow button{padding:7px 12px;border-radius:20px;font-size:13px;border:1px dashed var(--chip);background:var(--card);color:var(--text2);font-weight:500}
@@ -543,6 +544,7 @@ let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toa
 let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
 const K_DRAFT='borrador',K_TIP='tipVisto';
+let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
 
@@ -1731,11 +1733,12 @@ $('title').addEventListener('input',()=>{
 });
 // Tocar el texto durante la cuenta regresiva la cancela, para corregirlo
 $('title').addEventListener('pointerdown',()=>cancelAutoSave());
-$('note').addEventListener('input',saveDraft);
+$('note').addEventListener('input',()=>{cancelAutoSave();saveDraft()});
+$('note').addEventListener('focus',()=>cancelAutoSave());
 // ---- Borrador: lo que estabas escribiendo no se pierde si te interrumpen ----
 function saveDraft(){
   const t=$('title').value,n=$('note').value;
-  if(t.trim()||n.trim())store(K_DRAFT,{t,n,at:Date.now()});else try{localStorage.removeItem(K_DRAFT)}catch{}
+  if(t.trim()||n.trim())store(K_DRAFT,{t,n,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
 }
 function restoreDraft(){
   const d=load(K_DRAFT,null);
@@ -1774,7 +1777,7 @@ function setNote(on){
   $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar nota':'+ Nota';
   if(!on)$('note').value='';
 }
-$('noteToggle').onclick=()=>{const on=$('note').classList.contains('hidden');setNote(on);if(on)$('note').focus()};
+$('noteToggle').onclick=()=>{cancelAutoSave();const on=$('note').classList.contains('hidden');setNote(on);if(on)$('note').focus();else saveDraft()};
 
 // ---- Sugerencias al escribir ----
 // Tareas que ya cargaste (con quién las pidió) y, después de "@", las personas.
@@ -1804,7 +1807,7 @@ function renderWho(p){
   box.dataset.k=key;box.replaceChildren(el('span',null,'De:'));
   const keep=b=>{b.type='button';b.addEventListener('pointerdown',e=>e.preventDefault());b.addEventListener('mousedown',e=>e.preventDefault());return b};
   ppl.forEach(x=>{const b=keep(el('button',null,x.name));b.onclick=()=>pickWho(x.name);box.append(b)});
-  const at=keep(el('button',null,'@…'));at.onclick=()=>{const i=$('title');i.value=i.value.replace(/\s+$/,'')+' @';i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch{}renderAdd();renderSuggest()};box.append(at);
+  const at=keep(el('button',null,'@…'));at.onclick=()=>{cancelAutoSave();const i=$('title');i.value=i.value.replace(/\s+$/,'')+' @';i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch{}renderAdd();renderSuggest()};box.append(at);
 }
 function pickWho(name){
   const i=$('title');i.value=i.value.replace(/\s+$/,'')+' '+atName(name)+' ';
@@ -1831,8 +1834,9 @@ function atWord(){
 }
 function computeSuggest(){
   const v=$('title').value;
-  if(listening||voiceFilled||document.activeElement!==$('title'))return [];
+  if(listening||document.activeElement!==$('title'))return [];
   const at=atWord();
+  if(!at&&voiceFilled)return [];
   if(at){
     const q=norm(at.q.replace(/_/g,' '));
     return personsKnown().filter(p=>{const n=norm(p.name);return n.startsWith(q)&&n!==q}).slice(0,4).map(p=>({kind:'person',name:p.name,at}));
@@ -1898,7 +1902,7 @@ $('title').addEventListener('beforeinput',e=>{
   const lines=splitLines(e.data);if(lines.length<2)return;
   const t=e.target,prev=t.value;
   e.preventDefault();
-  if(!e.cancelable)setTimeout(()=>{t.value=prev;renderAdd()},0);   // si no se pudo cancelar, se deja como estaba
+  if(!e.cancelable)setTimeout(()=>{t.value=prev;saveDraft();renderAdd()},0);   // si no se pudo cancelar, se deja como estaba
   openBulk(lines);
 });
 function openBulk(lines){
@@ -1938,7 +1942,7 @@ $('bulkForm').addEventListener('submit',e=>{
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
   actMany(ops);
-  $('title').value='';renderAdd();
+  $('title').value='';saveDraft();renderAdd();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   toast(added.length===1?'1 tarea agregada':added.length+' tareas agregadas',()=>{
     actMany(added.map(x=>({type:'delete',id:x.id})));
@@ -1955,7 +1959,7 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const MIC_SVG='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0"/><line x1="10" y1="15.5" x2="10" y2="18"/></svg>';
 const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
 function updateAddBtn(force){
-  const b=$('addBtn'),mode=listening?'listening':autoSave?'saving':SR&&!$('title').value.trim()?'mic':'add';
+  const b=$('addBtn'),v=$('title').value,mode=listening?'listening':autoSave?'saving':SR&&(!v.trim()||voiceFilled&&parse(v,dueFor(chip)).bare)?'mic':'add';
   renderDock();
   if(b.dataset.mode===mode&&!force)return;
   if(mode==='saving'){b.dataset.mode=mode;b.type='button';b.classList.remove('listening');b.textContent='Guardar · '+autoSave.n;b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora';return}
@@ -1970,14 +1974,14 @@ const VOICE_ERR={'not-allowed':'Permití el uso del micrófono para dictar','ser
 function startVoice(){
   if(listening||!SR)return;
   if(navigator.onLine===false){voiceOffline();return}
-  cancelAutoSave();
+  cancelAutoSave();hideToast();
   const base=$('title').value.trim();
   try{
     const r=rec=new SR();r.lang='es-AR';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
     r.onresult=e=>{
       if(rec!==r)return;
       let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
-      $('title').value=((base?base+' ':'')+txt).trim();voiceFilled=true;renderAdd();
+      $('title').value=((base?base+' ':'')+txt).trim();voiceFilled=true;saveDraft();renderAdd();
     };
     r.onerror=e=>{
       if(rec!==r||e.error==='aborted')return;
@@ -2016,6 +2020,11 @@ $('addBtn').addEventListener('click',e=>{
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')return;
   hiddenAt=Date.now();
+  // Si todavía escuchaba y ya entendió una tarea, se guarda igual (no se pierde al bloquear el celular)
+  if(listening&&rec&&voiceFilled&&$('title').value.trim()&&!parse($('title').value,dueFor(chip)).bare){
+    const r=rec;r._abort=true;rec=null;listening=false;try{r.abort()}catch{}
+    $('addForm').requestSubmit();return;
+  }
   if(autoSave)saveNow();
   stopVoice(true);
 });
@@ -2028,9 +2037,9 @@ function voiceOffline(){
 function openDock(){
   if(!SR){$('title').focus();return}
   if(navigator.onLine===false){voiceOffline();return}
-  dock=true;$('voiceDock').classList.remove('hidden');renderAdd();
+  dock=true;document.body.classList.add('docked');$('voiceDock').classList.remove('hidden');renderAdd();
 }
-function closeDock(){if(!dock)return;dock=false;$('voiceDock').classList.add('hidden');renderAdd()}
+function closeDock(){if(!dock)return;dock=false;document.body.classList.remove('docked');$('voiceDock').classList.add('hidden');renderAdd()}
 function renderDock(){
   if(!dock)return;
   const b=$('dockMic'),st=listening?'listening':autoSave?'saving':'idle';
@@ -2341,7 +2350,7 @@ function cleanShared(s){
     prev=x;
     const y=x.replace(HI,'');
     // "Hola Juan, …": el nombre también, si lo sigue una coma o un signo
-    if(y!==x&&/\S/.test(y))x=y.replace(/^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s*[,.!¡:;]+\s*(?=\S)/,'');
+    if(y!==x&&/\S/.test(y))x=/[,.!¡?¿:;]/.test(x.slice(0,x.length-y.length))?y:y.replace(/^(?!(?:hoy|ma[ñn]ana|pasado|lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo|urgente|importante)(?![a-záéíóúñ]))[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s*[,.!¡:;]+\s*(?=\S)/i,'');
     x=x.replace(/\s*[,.;:!¡?]+\s*(?:(?:muchas\s+|mil\s+)?gracias|grax|saludos|slds|un\s+saludo|abrazos?|besos?|desde\s+ya(?:\s+muchas)?\s+gracias)[\s!.?]*$/i,'');
     x=x.replace(/[\s,]+(?:porfa|por\s+favor|plis)[\s!.?]*$/i,'');
   }while(x!==prev&&x);
@@ -2352,9 +2361,13 @@ function cleanShared(s){
 // Un mensaje largo: la primera oración es la tarea y el resto va a la nota
 function splitLong(s){
   if(s.length<=120)return {title:s,note:''};
-  const m=s.slice(15,140).match(/[.!?](?=\s)/);
+  // Sin cortar después de una abreviatura o una inicial ("Dr. Gómez", "Av. Corrientes")
+  const m=s.slice(15,140).match(/(?<!\b(?:sr|sra|srta|dr|dra|av|ing|lic|arq|prof|etc|aprox|nro|tel|[a-záéíóúñ]))[.!?](?=\s)/i);
   if(!m)return {title:s,note:''};
   const i=15+m.index+1;
+  // Si el resto trae la fecha, la hora, la prioridad o quién la pidió, queda todo en el título para que se detecte
+  const r=parse(s.slice(i));
+  if(r.due!==undefined||r.time||r.priority||r.requester||r.repeat||r.waiting||r.remind)return {title:s,note:''};
   return {title:s.slice(0,i).trim(),note:s.slice(i).trim()};
 }
 
@@ -2371,7 +2384,7 @@ if(params.has('nueva')||shared||voz||revisar)history.replaceState(null,'',locati
 // Desde el Telegram de los viernes: la revisión de la semana
 if(revisar)setTimeout(()=>openProc(true),600);
 WIDE.addEventListener('change',renderList);
-if(!shared&&!voz)restoreDraft();
+if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft();
 // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
 if(voz)openDock();
 else if(FINE||params.has('nueva')||shared||COARSE&&STANDALONE)$('title').focus();

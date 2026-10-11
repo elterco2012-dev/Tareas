@@ -35,7 +35,8 @@ ABRIR MAS RAPIDO (celular)
   atajo y arrastralo a la pantalla de inicio, en la fila de abajo, donde llega el pulgar.
 - Boton lateral (opcional): Ajustes > Funciones avanzadas > Boton lateral > Pulsar dos veces > Abrir aplicacion > Tareas.
   Ojo: la doble pulsacion deja de abrir la camara.
-- Pantalla de bloqueo (opcional): Ajustes > Pantalla de bloqueo > Accesos directos > Tareas en una esquina.
+- Pantalla de bloqueo (opcional): mantene apretada la pantalla de bloqueo (te pide desbloquear), toca el acceso
+  directo de una esquina y elegi Tareas. Tambien desde Ajustes > Pantalla de bloqueo (y AOD), tocando la vista previa.
 - Sin manos: "Ok Google, abri Tareas" o "Hola Bixby, abri Tareas".
 - Los nombres de los menus pueden cambiar un poco segun la version del celular: si no los encontras, usa la lupa de Ajustes.
 
