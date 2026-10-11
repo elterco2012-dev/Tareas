@@ -39,6 +39,7 @@ button{cursor:pointer}
 .wrap{max-width:680px;margin:0 auto;padding:20px 16px calc(110px + env(safe-area-inset-bottom))}
 .inp{border:1px solid var(--input);color:var(--text);background:var(--card);outline:none}
 .inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+.inp::placeholder{color:var(--muted);opacity:1}
 .primary{background:var(--accent);color:var(--on-accent);border:0;font-weight:600}
 .primary:hover{background:var(--accent-h)}
 
@@ -607,6 +608,8 @@ function applyOp(a,op){
   const item=op.id?a.find(x=>x.id===op.id):null;
   switch(op.type){
     case 'add':
+      // La próxima de una tarea que se repite se agrega una sola vez, aunque dos dispositivos la terminen
+      if(op.task.repeatOf&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id))break;
       if(!a.some(x=>x.id===op.task.id)){
         const order=op.task.order??(Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1);
         a.push({...op.task,order});
@@ -1037,7 +1040,7 @@ function hideToast(){$('toast').classList.add('hidden');toastAction=null}
 // Si esa fecha ya pasó, la primera de hoy en adelante. Mensual: mismo día, o el último del mes.
 function addDaysTo(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
 function nextDue(t){
-  const today=ymd(new Date()),base=parseYmd(t.due||today),anchor=base.getDate();
+  const today=ymd(new Date()),base=parseYmd(t.due||today),anchor=t.repeat==='monthly'&&t.repeatDay||base.getDate();
   let cand=base;
   for(let k=1;k<4000;k++){
     if(t.repeat==='monthly'){const x=new Date(base.getFullYear(),base.getMonth()+k,1);x.setDate(Math.min(anchor,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));cand=x}
@@ -1050,16 +1053,20 @@ function nextDue(t){
 function toggle(t){
   const done=!t.done,prevAt=t.completedAt,ops=[{type:'done',id:t.id,done,at:new Date().toISOString()}];
   let next=null;
-  if(done&&REPEAT_LABEL[t.repeat]){
-    next={id:crypto.randomUUID(),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
+  // en otro dispositivo), no se crea otra
+  if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
+    next={id:crypto.randomUUID(),repeatOf:t.id,title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
     ops.push({type:'add',task:next});
   }
   actMany(ops);
   const msg=!done?'Volvió a pendientes':next?'Tarea terminada · la próxima '+(daysUntil(next.due)<=1?'es '+dueLabel(next.due).toLowerCase():'el '+shortDue(next.due).toLowerCase()):'Tarea terminada';
-  // Deshacer: vuelve a como estaba y saca la próxima (si no se subió, se cancela)
+  // Deshacer: vuelve a como estaba y borra la próxima. Se encola el borrado siempre, porque la
+  // subida puede estar en curso; si la próxima nunca llegó a GitHub, borrarla no hace nada.
   toast(msg,()=>{
     const undo=[{type:'done',id:t.id,done:!done,at:prevAt||new Date().toISOString()}];
-    if(next){const addOp=ops[1],ob=getOutbox();if(ob.some(o=>o.opId===addOp.opId))setOutbox(ob.filter(o=>o.opId!==addOp.opId));else undo.push({type:'delete',id:next.id})}
+    if(next)undo.push({type:'delete',id:next.id});
     actMany(undo);
   });
 }
@@ -1101,8 +1108,9 @@ function del(t){
 function eventTime(t,tm){
   const today=ymd(new Date()),day=t.due&&t.due>=today?t.due:today;
   tm=tm||timeOf(' '+t.title+' ');
-  if(!tm){const n=new Date();tm=day===today&&n.getHours()>=9?{h:n.getHours()+1,m:0}:{h:9,m:0}}
-  const start=parseYmd(day);start.setHours(tm.h,tm.m);
+  let d=day;
+  if(!tm){const n=new Date();tm=day===today&&n.getHours()>=9?{h:n.getHours()+1,m:0}:{h:9,m:0};if(tm.h>23){d=addDays(1);tm={h:9,m:0}}}
+  const start=parseYmd(d);start.setHours(tm.h,tm.m);
   const end=new Date(start);end.setMinutes(end.getMinutes()+30);
   return {start,end};
 }
@@ -1179,12 +1187,20 @@ $('noteToggle').onclick=()=>{const on=$('note').classList.contains('hidden');set
 
 // ---- Pegar varias líneas ----
 // Si se pegan 2 o más líneas, se ofrece cargar una tarea por línea (se pueden editar o destildar).
-const BULLET_RE=/^\s*(?:(?:[-*•·]|\d+[.)])\s*)?(?:\[[ xX]?\]\s*)?/;
+const BULLET_RE=/^\s*(?:(?:[-*•·]|\d+[.)](?!\d))\s*)?(?:\[[ xX]?\]\s*)?/;
 function splitLines(text){return String(text||'').split(/\r?\n/).map(l=>l.replace(BULLET_RE,'').trim()).filter(Boolean)}
 $('title').addEventListener('paste',e=>{
   const lines=splitLines(e.clipboardData&&e.clipboardData.getData('text'));
   if(lines.length<2)return;
   e.preventDefault();openBulk(lines);
+});
+$('title').addEventListener('beforeinput',e=>{
+  if(!e.data||!/[\r\n]/.test(e.data))return;
+  const lines=splitLines(e.data);if(lines.length<2)return;
+  const t=e.target,prev=t.value;
+  e.preventDefault();
+  if(!e.cancelable)setTimeout(()=>{t.value=prev;renderAdd()},0);   // si no se pudo cancelar, se deja como estaba
+  openBulk(lines);
 });
 function openBulk(lines){
   closeMenu();bulk=true;
@@ -1224,11 +1240,9 @@ $('bulkForm').addEventListener('submit',e=>{
   const ops=added.map(task=>({type:'add',task}));
   actMany(ops);
   $('title').value='';renderAdd();
-  // Deshacer: las que no se subieron se cancelan; las que ya se subieron se borran
+  // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   toast(added.length===1?'1 tarea agregada':added.length+' tareas agregadas',()=>{
-    const sent=new Set(ops.map(o=>o.opId)),ob=getOutbox(),pending=new Set(ob.filter(o=>sent.has(o.opId)).map(o=>o.task.id));
-    setOutbox(ob.filter(o=>!sent.has(o.opId)));
-    actMany(added.filter(x=>!pending.has(x.id)).map(x=>({type:'delete',id:x.id})));
+    actMany(added.map(x=>({type:'delete',id:x.id})));
   });
 });
 $('bulkX').onclick=closeBulk;$('bulkCancel').onclick=closeBulk;
@@ -1469,11 +1483,13 @@ recompute();   // muestra al instante lo guardado en el dispositivo
 sync();        // y después trae lo último de GitHub
 // Desde el acceso directo "Nueva tarea" (?nueva=1) el foco va al campo también en el celular
 const params=new URLSearchParams(location.search);
-if(params.has('nueva')||params.has('share'))history.replaceState(null,'',location.pathname+location.hash);
-if(FINE||params.has('nueva')||params.has('share'))$('title').focus();   // si no, en el celular no se abre el teclado al entrar
+// Al compartir, Chrome arma la dirección con title/text/url (reemplaza el ?share=1 del manifest)
+const shared=['share','title','text','url'].some(k=>params.has(k));
+if(params.has('nueva')||shared)history.replaceState(null,'',location.pathname+location.hash);
+if(FINE||params.has('nueva')||shared)$('title').focus();   // si no, en el celular no se abre el teclado al entrar
 // Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
 // Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
-if(params.has('share')){
+if(shared){
   const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
   const lines=splitLines(text);
   if(lines.length>=2){

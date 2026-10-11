@@ -44,7 +44,7 @@
     }
   ],
   "share_target": {
-    "action": "./?share=1",
+    "action": "./",
     "method": "GET",
     "enctype": "application/x-www-form-urlencoded",
     "params": {

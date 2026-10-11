@@ -90,7 +90,7 @@ Desde ese momento se envía solo, de lunes a viernes a las 7. GitHub a veces lo 
 
 ## Opcional: cambiar el horario
 
-En `.github/workflows/resumen.yml`, la línea `cron: "0 10 * * 1-5"` usa la hora de Londres (UTC), que en Argentina son 3 horas más. Algunos ejemplos:
+En `.github/workflows/resumen.yml`, la línea `cron: "0 10 * * 1-5"` usa la hora universal (UTC), que está 3 horas adelante de Argentina: las 10 UTC son las 7 en Argentina. Algunos ejemplos:
 
 | Querés que llegue | Poné |
 |---|---|
@@ -105,7 +105,7 @@ Además de Telegram (o en lugar de Telegram), puede llegarte por mail. Cargá es
 | Nombre | Qué poner |
 |---|---|
 | `SMTP_HOST` | El servidor de salida. Gmail: `smtp.gmail.com` |
-| `SMTP_PORT` | `465` (Gmail) o `587` (Outlook / Office 365) |
+| `SMTP_PORT` | `465` (Gmail) o `587` (otros servidores; en Outlook / Office 365 depende de que tu empresa lo permita) |
 | `SMTP_USER` | Tu dirección de mail |
 | `SMTP_PASS` | La contraseña. En Gmail tiene que ser una **contraseña de aplicación** (Cuenta de Google → Seguridad → Verificación en dos pasos → Contraseñas de aplicaciones) |
 | `SMTP_TO` | A qué dirección enviarlo (si no lo cargás, se envía a `SMTP_USER`) |

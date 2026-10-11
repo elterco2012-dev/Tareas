@@ -43,11 +43,19 @@ USO DIARIO
   Tambien esta en el menu "⋯" ("Agregar al calendario"). Se descarga un archivo de evento: abrilo (en Android,
   tocando "Abrir" en el aviso de descarga) y el Calendario de Samsung (o Outlook, o el de Apple) lo agrega con
   su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
+- Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
+  Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
+- La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
+  Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
+  El boton de arriba a la derecha muestra el estado ("Al dia", "Pendiente", "Sin subir") y abre la configuracion de GitHub.
+- En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir, Espacio terminar, E editar, H hoy, M mañana, Supr borrar.
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
   cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
 - Compartir desde WhatsApp o el mail (Android, con la app instalada): en el mensaje toca Compartir y elegi
   "Tareas". El texto queda en el campo para revisarlo y tocar Agregar.
 - Acceso directo: mantene apretado el icono de la app y elegi "Nueva tarea": abre con el teclado listo.
+  Si "Tareas" no aparece al compartir o no ves "Nueva tarea", el celular todavia no actualizo la app instalada:
+  esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
