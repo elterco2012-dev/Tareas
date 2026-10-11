@@ -124,7 +124,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .meta .time.past{color:var(--red)}
 #eTime{font-size:13.5px;padding:6px 10px;border:1px solid var(--chip);border-radius:20px;color:var(--text2);background:var(--card)}
 .addcard{position:relative}
-.suggest{position:absolute;left:12px;right:12px;top:62px;z-index:15;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px var(--shadow);padding:4px;display:flex;flex-direction:column}
+.suggest{position:absolute;left:12px;right:12px;margin-top:6px;z-index:15;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px var(--shadow);padding:4px;display:flex;flex-direction:column}
 .suggest button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:9px 10px;font-size:15px;color:var(--text);min-width:0}
 .suggest button span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .suggest button .who{flex:none;font-size:13px;color:var(--muted)}
@@ -670,7 +670,8 @@ function applyOp(a,op){
   switch(op.type){
     case 'add':
       // La próxima de una tarea que se repite se agrega una sola vez, aunque dos dispositivos la terminen
-      if(op.task.repeatOf&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id))break;
+      // (si la que había quedó en la papelera, no cuenta)
+      if(op.task.repeatOf&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id&&!x.deletedAt))break;
       if(!a.some(x=>x.id===op.task.id)){
         const order=op.task.order??(Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1);
         a.push({...op.task,order});
@@ -808,7 +809,7 @@ async function sync(){
   }finally{
     syncing=false;recompute();
   }
-  if(synced){purgeTrash();archiveOld()}
+  if(synced){purgeTrash();migrateTimes();archiveOld()}
 }
 // ---- Archivo automático ----
 // Una vez por día en cada dispositivo: las terminadas hace más de 90 días se agregan a
@@ -851,6 +852,14 @@ function purgeTrash(){
   const cutoff=Date.now()-TRASH_DAYS*86400000,queued=new Set(getOutbox().filter(o=>o.type==='delete').map(o=>o.id));
   const old=trash.filter(t=>!(new Date(t.deletedAt).getTime()>=cutoff)&&!queued.has(t.id));
   if(old.length)actMany(old.map(t=>({type:'delete',id:t.id})));
+}
+
+// Las cargadas antes de que la hora fuera un dato aparte la tienen en el título: se copia a su
+// campo una vez, para que los recordatorios por Telegram también las vean
+function migrateTimes(){
+  const queued=new Set(getOutbox().filter(o=>o.type==='edit'&&o.patch&&'time' in o.patch).map(o=>o.id));
+  const ops=tasks.filter(t=>!t.done&&t.time===undefined&&!queued.has(t.id)&&taskTime(t)).map(t=>({type:'edit',id:t.id,patch:{time:taskTime(t)}}));
+  if(ops.length)actMany(ops);
 }
 
 // ---- Estado de sincronización ----
@@ -1132,8 +1141,8 @@ function toggle(t){
   let next=null;
   // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
   // en otro dispositivo), no se crea otra
-  if(done&&REPEAT_LABEL[t.repeat]&&!tasks.concat(trash).some(x=>x.repeatOf===t.id)){
-    next={id:crypto.randomUUID(),repeatOf:t.id,...(t.time?{time:t.time}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+  if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
+    next={id:crypto.randomUUID(),repeatOf:t.id,...(t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
     if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
     ops.push({type:'add',task:next});
   }
@@ -1546,7 +1555,7 @@ $('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToa
 function openEdit(t){
   closeMenu();
   edit={id:t.id,due:t.due||'',priority:t.priority||'Media',
-    orig:{title:t.title,due:t.due||null,time:t.time||null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
+    orig:{title:t.title,due:t.due||null,time:t.time!==undefined?t.time||null:taskTime(t)?undefined:null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
   // Las viejas con la hora en el título: al guardar, la hora pasa a ser un dato aparte
   $('eTime').value=taskTime(t)||'';
   $('eRepeat').value=edit.orig.repeat||'';

@@ -79,8 +79,9 @@ USO DIARIO
   datos, para que la lista no crezca sin fin.
 - Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
   Seguir los pasos de repo-datos/INSTRUCCIONES.md.
-- Recordatorios a la hora por Telegram: las tareas con hora te avisan cerca de esa hora (entre las 7 y las 21,
-  hasta 10 minutos antes). Usa el mismo bot: se agrega un archivo mas, ver repo-datos/INSTRUCCIONES.md.
+- Recordatorios a la hora por Telegram: las tareas con hora te avisan entre 10 y 40 minutos antes (tareas de 6:30
+  a 21:30). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
+  por la version nueva. Ver repo-datos/INSTRUCCIONES.md.
 
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.

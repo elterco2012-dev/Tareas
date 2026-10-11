@@ -124,6 +124,10 @@ Si una tarea tiene hora ("llamar al banco mañana a las 3"), ese día te llega u
 
 Usa el mismo bot y los mismos secretos del resumen diario: si ya hiciste los pasos 1 a 4, solo falta un archivo más.
 
+0. **Si ya tenías el resumen diario configurado, primero actualizalo** (si no, va a mostrar las tareas que están en la papelera y no va a mostrar la hora):
+   en tu repositorio **privado de datos** abrí `.github/workflows/resumen.yml`, tocá el lápiz (**Edit this file**), borrá todo, pegá el contenido nuevo de
+   [repo-datos/.github/workflows/resumen.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/resumen.yml)
+   y tocá **Commit changes…** y después **Commit changes**.
 1. Abrí este archivo y copiá todo su contenido:
    [repo-datos/.github/workflows/recordatorios.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/recordatorios.yml)
 2. En tu repositorio **privado de datos**, tocá **Add file → Create new file**.
@@ -134,8 +138,9 @@ Usa el mismo bot y los mismos secretos del resumen diario: si ya hiciste los pas
 
 Cómo funciona:
 
-- GitHub lo revisa cada media hora, entre las 6:20 y las 20:50. Las tareas con hora entre las 7 y las 21 avisan; las de más tarde no.
-- El aviso llega entre 10 minutos antes y unos minutos después de la hora. GitHub a veces demora sus tareas programadas: si se atrasa, el aviso llega igual (hasta 3 horas tarde) y no se repite.
+- GitHub lo revisa cada media hora, entre las 6:20 y las 20:50. Avisan las tareas con hora entre las 6:30 y las 21:30; las de más tarde no.
+- El aviso llega entre 10 y 40 minutos antes de la hora (si es en punto o y media, unos 10 minutos antes). GitHub a veces demora sus tareas programadas: si se atrasa, el aviso llega igual (hasta 3 horas tarde) y no se repite.
+- Las tareas que cargaste antes de esta versión tenían la hora dentro del texto: la app la pasa sola a su lugar la próxima vez que la abrís con conexión, así que también avisan.
 - Para recordar qué ya avisó, guarda el archivo `recordatorios-enviados.json` en tu repositorio de datos. No hace falta tocarlo.
 - Usa unos 900 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (cada revisión cuenta como 1 minuto, aunque tarde segundos). Junto con el resumen diario quedan unos 1000 libres.
 - Si una tarea no tiene hora, no hay aviso: aparece en el resumen de la mañana.
@@ -143,4 +148,4 @@ Cómo funciona:
 
 ## Opcional: cambiar el horario de los recordatorios
 
-En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23 * * *"` usa la hora universal (UTC, 3 horas adelante de Argentina). `9-23` son las horas en UTC: de 6 a 20 en Argentina. Por ejemplo, para que también avise a la noche, hasta las 22:50 de Argentina, poné `"20,50 9-23,0-1 * * *"` (usa unos 120 minutos más por mes).
+En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23 * * *"` usa la hora universal (UTC, 3 horas adelante de Argentina). `9-23` son las horas en UTC: de 6 a 20 en Argentina. Por ejemplo, para que también avise a la noche, para tareas hasta las 23:30 de Argentina, poné `"20,50 9-23,0-1 * * *"` (usa unos 120 minutos más por mes).

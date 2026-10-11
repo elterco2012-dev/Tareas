@@ -36,7 +36,9 @@ jobs:
           import {readFileSync} from 'node:fs';
           const E=process.env;
           const zona=E.ZONA_HORARIA||'America/Argentina/Buenos_Aires';
-          const ANTES=10,TARDE=180;   // avisa desde 10 minutos antes; si GitHub se demoró, hasta 3 horas después
+          // Revisa cada media hora: cada tarea avisa entre 10 y 39 minutos antes (en punto y y media, 10 antes).
+          // Si GitHub se demoró, avisa igual hasta 3 horas después.
+          const ANTES=39,TARDE=180;
           // Fecha y hora en la zona horaria de la persona, no en la del servidor
           const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
             .formatToParts(new Date()).map(x=>[x.type,x.value]));
