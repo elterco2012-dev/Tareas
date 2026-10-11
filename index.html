@@ -597,8 +597,12 @@ const ART_RE='(?:el|la|los|las|lo|un|una|unos|unas|al|en|del|con|a(?!\\s+las?\\s
 const CMD_RE=new RegExp('^(?:(?:crear|cre[áa]|agregar|agreg[áa]|anotar|anot[áa]|nueva)\\s+(?:una\\s+)?tarea(?![\\s,:]+(?:en|de|del|para|con|a|al|sobre)(?![a-záéíóúñ]))'+
   '|(?:anot[áa]|agreg[áa])(?![\\s,:]+'+ART_RE+')'+
   '|record[áa]me|recu[ée]rdame|acordate|acu[ée]rdate|tengo\\s+que|hay\\s+que)(?=[\\s,:]|$)[\\s,:]*(?:(?:de|que)\\s+)?','i');
-// Dentro de un rato: "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media"
-const REL_RE=new RegExp('\\s(?:en|dentro\\s+de)\\s+(?:(media)\\s+hora|(\\d{1,3}|'+NUM_RE+')\\s+(minutos?|mins?\\.?|horas?|hs\\.?|h)(?:\\s+y\\s+(media|cuarto))?)(?=[\\s,.;:])','i');
+// Dentro de un rato: "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media",
+// "en 1 hora y 20", "en 2 horas y 30 minutos"
+const MINU='(?:minutos?|mins?\\.?)',RELN='(\\d{1,3}|'+NUM_RE+')';
+const REL_RE=new RegExp('\\s(?:en|dentro\\s+de)\\s+(?:(media)\\s+hora|'+RELN+'\\s+'+MINU+'(?!\\s+y\\s+media)|'+RELN+'\\s+(?:horas?|hs\\.?|h)'+
+  '(?:\\s+y\\s+(?:(\\d{1,2})\\s+'+MINU+'|(media|cuarto|cinco|diez|quince|veinte|veinticinco|treinta|cuarenta|cincuenta|[1-5][05](?!\\d)|5(?!\\d))(?:\\s+'+MINU+')?)|\\s+(\\d{1,2})\\s+'+MINU+')?(?!\\s+\\d))(?=[\\s,.;:])','i');
+const REL_MIN={media:30,cuarto:15,cinco:5,diez:10,quince:15,veinte:20,veinticinco:25,treinta:30,cuarenta:40,cincuenta:50};
 // defaultDue: la fecha elegida con los chips, si el texto no dice otra
 function parse(text,defaultDue){
   const out={title:text.trim()};
@@ -634,11 +638,12 @@ function parse(text,defaultDue){
     out.requester=cap(n1+(both?n2:''));
     return ' '+(both?'':n2)+' ';
   });
-  t=t.replace(REL_RE,(m,half,n,unit,extra)=>{
-    const k=half?30:toNum(norm(n)),hours=!half&&/^h/i.test(unit);
-    if(!k||extra&&!hours)return m;
-    const mins=hours?k*60+(extra?(norm(extra)==='media'?30:15):0):k;
-    if(mins>72*60)return m;
+  t=t.replace(REL_RE,(m,half,nm,nh,y1,y2,y3)=>{
+    let mins;
+    if(half)mins=30;
+    else if(nm)mins=toNum(norm(nm));
+    else{const x=y1||y3?+(y1||y3):y2?REL_MIN[norm(y2)]??+y2:0;if(!(x>=0&&x<60))return m;mins=toNum(norm(nh))*60+x}
+    if(!(mins>0&&mins<=72*60))return m;
     const at=new Date(Date.now()+mins*60000);
     out.rel={h:at.getHours(),m:at.getMinutes(),text:m.trim(),day:ymd(at)};
     return ' ';
@@ -1683,6 +1688,12 @@ $('saveCfg').onclick=()=>{
   closeSettings();recompute();sync();
 };
 $('syncNow').onclick=()=>sync();
+// Al pegar un token nuevo, la fecha del anterior ya no sirve: se borra y se pide la del nuevo
+$('token').addEventListener('input',()=>{
+  if(!cfg.tokenExp||$('token').value.trim()===(cfg.token||'')||$('tokenExp').value!==cfg.tokenExp)return;
+  $('tokenExp').value='';
+  $('cfgMsg').textContent='Token nuevo: cargá también su fecha de vencimiento, así te avisamos una semana antes.';$('cfgMsg').classList.remove('hidden');
+});
 $('tokenFix').onclick=()=>{openSettings();$('token').focus();$('token').select()};
 $('tokenX').onclick=()=>{store(K_TOKENX,ymd(new Date()));renderTokenBar()};
 $('badgeSw').addEventListener('change',()=>{
@@ -1695,7 +1706,8 @@ $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
   try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
   cfg={};remote=[];outboxMem=[];lastSync=null;lastError=null;authError=false;confirmClear=false;
-  $('owner').value='';$('repo').value='';$('token').value='';
+  $('owner').value='';$('repo').value='';$('token').value='';$('tokenExp').value='';
+  try{localStorage.removeItem(K_TOKENX)}catch{}
   recompute();
 };
 
