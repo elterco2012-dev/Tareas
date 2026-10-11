@@ -28,6 +28,11 @@ USO DIARIO
 - Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
   Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, en 3 dias. Prioridad: !alta (o !), !media, !baja.
   Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
+- Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto" o "a las 8 de la noche"
+  se guarda aparte (no queda en el texto). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
+  y la hora se pone en rojo cuando ya paso. Se cambia o se quita en Editar.
+- Sugerencias: mientras escribis aparecen tareas que ya cargaste antes, con quien las pidio. Toca una (o elegila
+  con las flechas y Enter) y queda en el campo para agregarla. Despues de "@" sugiere las personas que ya usaste.
 - Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo, deci la tarea y toca "Listo"
   (o espera a que termine solo). Lo dictado queda en el campo con "Detectado: ..." y se guarda recien
   cuando tocas Agregar, asi podes corregirlo antes. Ejemplos:
@@ -45,6 +50,8 @@ USO DIARIO
   su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
   Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
+- Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
+  "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
   Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
   El boton de arriba a la derecha muestra el estado ("Al dia", "Pendiente", "Sin subir") y abre la configuracion de GitHub.
@@ -72,6 +79,11 @@ USO DIARIO
   datos, para que la lista no crezca sin fin.
 - Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
   Seguir los pasos de repo-datos/INSTRUCCIONES.md.
+- Recordatorios a la hora por Telegram: las tareas con hora te avisan entre 10 y 40 minutos antes (tareas de 6:30
+  a 21:30). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
+  por la version nueva. Ver repo-datos/INSTRUCCIONES.md.
+- Que el recordatorio suene como alarma (fuerte, aunque estes durmiendo o en No molestar): en el Samsung, con la app
+  gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
 
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
@@ -83,6 +95,7 @@ SEGURIDAD Y LIMITACIONES
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
 - Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
 - "Borrar conexion y datos de este dispositivo" (en Sincronizacion, pide confirmar con un segundo toque) borra la copia local de las tareas (avisa si habia cambios sin subir).
-- Borrar una tarea la saca de tareas.json. Si te arrepentis despues del "Deshacer", sigue en el historial de commits del repositorio privado.
+- Borrar una tarea la pasa a la Papelera: sigue en tareas.json con la fecha de borrado. A los 30 dias (o al vaciar la
+  papelera) se saca de tareas.json; despues de eso sigue en el historial de commits del repositorio privado.
 - En Terminadas se ven las de los ultimos 7 dias; "Ver todas" muestra el resto.
 - Comprueba las politicas de tu empresa antes de introducir informacion laboral en un servicio externo.
