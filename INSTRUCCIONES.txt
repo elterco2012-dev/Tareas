@@ -13,7 +13,7 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
 7) Toca el boton de estado (arriba a la derecha) para abrir Sincronizacion; escribe usuario, nombre del repo PRIVADO
    y token, y pulsa Guardar conexion. Opcional: carga tambien la fecha en que vence el token (la ves en GitHub, en la
-   lista de tus tokens): una semana antes la app te avisa para que lo renueves (y el Telegram de la mañana tambien).
+   lista de tus tokens): una semana antes la app te avisa para que lo renueves (y el Telegram de la mañana tambien, con el resumen.yml nuevo).
    La fecha se guarda en ajustes.json del repositorio privado: la cargas una vez y la ven tus dos dispositivos.
    En Chrome, al guardar la conexion te ofrece guardarla en tus contraseñas: en el otro dispositivo (misma cuenta
    de Google) toca "Traer de mis contraseñas" y no hace falta copiar el token a mano.
@@ -91,7 +91,8 @@ USO DIARIO
   que la mires, con un aviso "2 nuevas desde el celular · Ver".
 - En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir (con el campo vacio, flecha abajo pasa a la
   lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
-  S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Supr borrar.
+  S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Shift+P revision de la
+  semana, Supr borrar.
   Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente.
 - Anotadas al pasar: lo que cargas en el celular (o dictas o compartis) sin elegir fecha queda para hoy con un punto
   azul adelante. Cualquier decision lo saca.
@@ -100,6 +101,7 @@ USO DIARIO
   siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy.
 - Pateadas: si pasas una tarea vencida o de hoy para mas adelante, se cuenta. Desde la tercera vez la tarea dice
   "pateada 3×" en ambar, "Todas a hoy" la deja afuera y el Telegram de la mañana la marca "(pospuesta 3 veces)".
+  Lo anotado al pasar no cuenta: el hoy que tiene es de relleno, hasta que le pones fecha.
 - En pantallas anchas (1200 px o mas), Esperando y Sin fecha quedan en una columna a la derecha, siempre a la vista.
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
   cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
@@ -115,8 +117,12 @@ USO DIARIO
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
   "Reclamar…" arma el mensaje ("Hola Juan, ¿pudiste ver lo de …?") para WhatsApp o lo que elijas, y queda anotado
   ("Juan · reclamado hace 1 dia (2º)"). "Volver a mirar el…" le pone una fecha: hasta ese dia no se pone en ambar.
-- Revision de los viernes (opcional, por Telegram): ver repo-datos/INSTRUCCIONES.md.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
+- Revision de la semana: abajo, junto a Terminadas, "Revision de la semana" (en la compu tambien Shift+P) muestra de a
+  una lo que no tiene fecha, lo que espera respuesta y lo pateado 3 veces o mas. "Sigue asi" (o S en una sin fecha) la
+  deja como esta y no vuelve a aparecer en un mes. Los viernes tambien puede llegar por Telegram, con el enlace: ver
+  repo-datos/INSTRUCCIONES.md. Si ya tenias el resumen diario, reemplaza resumen.yml por la version nueva (si no, no
+  llegan la revision, el aviso del token ni la marca de pateadas).
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
 - Filtrar por persona: toca "@Laura" en una tarea para ver solo las que te pidio. La ✕ (o Esc) quita el filtro.

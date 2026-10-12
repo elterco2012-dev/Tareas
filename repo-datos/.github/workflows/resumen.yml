@@ -44,6 +44,7 @@ jobs:
           const fecha=d=>new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
           const hoy=fecha(new Date());
           const dias=(a,b)=>Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/86400000);
+          const diaMes=f=>String(f).slice(8,10).replace(/^0/,'')+'/'+String(f).slice(5,7).replace(/^0/,'');   // 2026-10-05 → 5/10
 
           let tareas;
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para avisar.');process.exit(0)}
@@ -53,7 +54,9 @@ jobs:
             const lunes=new Date(Date.parse(hoy+'T12:00:00Z'));lunes.setUTCDate(lunes.getUTCDate()-(lunes.getUTCDay()+6)%7);
             const desde=lunes.toISOString().slice(0,10);
             const hechas=tareas.filter(t=>t&&t.done&&!t.deletedAt&&t.completedAt&&fecha(new Date(t.completedAt))>=desde).length;
-            const sinFecha=pend.filter(t=>!t.waiting&&!t.due),viejas=sinFecha.filter(t=>t.createdAt&&dias(hoy,fecha(new Date(t.createdAt)))>30).length;
+            // Como en la app: las sin fecha que revisaste ("Sigue así") en el último mes no vuelven a aparecer
+            const mes=Date.now()-30*86400000;
+            const sinFecha=pend.filter(t=>!t.waiting&&!t.due&&!(t.reviewedAt&&Date.parse(t.reviewedAt)>=mes)),viejas=sinFecha.filter(t=>t.createdAt&&dias(hoy,fecha(new Date(t.createdAt)))>30).length;
             const esp=pend.filter(t=>t.waiting).length,pateadas=pend.filter(t=>!t.waiting&&(t.postponed||0)>=3).length;
             if(!sinFecha.length&&!esp&&!pateadas){console.log('Nada para revisar esta semana.');process.exit(0)}
             const items=[];
@@ -61,12 +64,9 @@ jobs:
             if(esp)items.push(esp+' esperando respuesta');
             if(pateadas)items.push(pateadas+(pateadas===1?' pateada':' pateadas')+' 3 veces o más');
             const url=(E.APP_URL||'').trim();
-            const semanal='Revisión de la semana: '+items.join(', ')+'.'+(hechas?'\nEsta semana terminaste '+hechas+(hechas===1?' tarea.':' tareas.'):'')+'\n'+(url?'Revisalas en 2 minutos: '+url.replace(/\/?$/,'/')+'?revisar=1':'Abrí la app y tocá "Procesar".');
+            const semanal='Revisión de la semana: '+items.join(', ')+'.'+(hechas?'\nEsta semana terminaste '+hechas+(hechas===1?' tarea.':' tareas.'):'')+'\n'+(url?'Revisalas en 2 minutos: '+url.replace(/\/?$/,'/')+'?revisar=1':'Abrí la app y tocá "Revisión de la semana" (abajo, junto a Terminadas).');
             console.log(semanal);
-            const r=await fetch((E.TELEGRAM_API||'https://api.telegram.org')+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:semanal,disable_web_page_preview:true})});
-            const j=await r.json().catch(()=>({}));
-            if(!r.ok||!j.ok){console.error('Telegram respondió '+r.status+': '+(j.description||''));process.exit(1)}
-            process.exit(0);
+            await enviar(semanal,'revisión de la semana');
           }
           const vencidas=pend.filter(t=>!t.waiting&&t.due&&t.due<hoy).sort((a,b)=>a.due.localeCompare(b.due));
           // Para hoy: primero las que tienen hora, en orden
@@ -79,36 +79,37 @@ jobs:
             const tok=(JSON.parse(readFileSync('ajustes.json','utf8')).tokens)||{};
             for(const f of Object.values(tok)){
               const d=dias(String(f),hoy);if(!(d<=7&&d>=-3))continue;
-              const dm=String(f).slice(8,10).replace(/^0/,'')+'/'+String(f).slice(5,7).replace(/^0/,'');
+              const dm=diaMes(f);
               aviso='⚠ El token de GitHub de la app '+(d<0?'venció el '+dm:d===0?'vence hoy':d===1?'vence mañana':'vence en '+d+' días ('+dm+')')+'. Generá uno nuevo y cargalo en Sincronización, con su fecha.';
             }
           }catch{}
-          if(!vencidas.length&&!paraHoy.length&&!esperando.length&&!aviso){console.log('Nada vencido, para hoy ni esperando hace +3 días: no se envía nada.');process.exit(0)}
+          if(!vencidas.length&&!paraHoy.length&&!esperando.length&&!aviso){console.log('Nada vencido, para hoy ni esperando respuesta: no se envía nada.');process.exit(0)}
 
           const plural=(n,a,b)=>n+' '+(n===1?a:b);
           const partes=[];
           if(vencidas.length)partes.push(plural(vencidas.length,'vencida','vencidas'));
           if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
-          if(esperando.length)partes.push(esperando.length+' esperando hace +3 días');
+          if(esperando.length)partes.push(esperando.length+' esperando respuesta');
           const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'')+((t.postponed||0)>=3?' (pospuesta '+t.postponed+' veces)':'');
           let msg=(aviso?aviso+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
           if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
           if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');
-          if(esperando.length)msg+='\n\nEsperando hace +3 días\n'+esperando.map(t=>{const d=dias(hoy,fecha(new Date(desdeEspera(t))));return '• '+t.title+' · '+(t.waitingOn||'sin nombre')+', '+(t.followUp?'volver a mirar hoy':(t.lastNudge?'reclamado ':'')+(d===1?'hace 1 día':'hace '+d+' días'))}).join('\n');
+          if(esperando.length)msg+='\n\nEsperando respuesta\n'+esperando.map(t=>{const d=dias(hoy,fecha(new Date(desdeEspera(t))));return '• '+t.title+' · '+(t.waitingOn||'sin nombre')+', '+(t.followUp?(t.followUp===hoy?'volver a mirar hoy':'había que mirarla el '+diaMes(t.followUp)):(t.lastNudge?'reclamado ':'')+(d===1?'hace 1 día':'hace '+d+' días'))}).join('\n');
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
           console.log(msg);
+          await enviar(msg,partes.join(', ')||'aviso del token');
 
-          async function telegram(){
+          async function telegram(texto){
             const api=E.TELEGRAM_API||'https://api.telegram.org';
             const r=await fetch(api+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:msg,disable_web_page_preview:true})});
+              body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:texto,disable_web_page_preview:true})});
             const j=await r.json().catch(()=>({}));
             if(!r.ok||!j.ok)throw new Error('Telegram respondió '+r.status+': '+(j.description||'')+'. Revisá TELEGRAM_TOKEN y TELEGRAM_CHAT_ID.');
             console.log('Enviado por Telegram.');
           }
 
           // Mail sin dependencias: puerto 465 (TLS directo) o 587 (STARTTLS)
-          async function mail(){
+          async function mail(texto,asuntoTxt){
             const host=E.SMTP_HOST,port=Number(E.SMTP_PORT||465),user=E.SMTP_USER,to=E.SMTP_TO||user;
             let sock=port===465?tls.connect({host,port,servername:host}):net.connect({host,port});
             let buf='',lines=[],wake=null,fail=null;
@@ -140,20 +141,23 @@ jobs:
             await cmd('MAIL FROM:<'+user+'>',[250]);
             await cmd('RCPT TO:<'+to+'>',[250,251]);
             await cmd('DATA',[354]);
-            const asunto='=?UTF-8?B?'+Buffer.from('Mis tareas: '+(partes.join(', ')||'aviso del token')).toString('base64')+'?=';
-            const cuerpo=msg.replace(/\r?\n/g,'\r\n').replace(/^\./gm,'..');
+            const asunto='=?UTF-8?B?'+Buffer.from('Mis tareas: '+asuntoTxt).toString('base64')+'?=';
+            const cuerpo=texto.replace(/\r?\n/g,'\r\n').replace(/^\./gm,'..');
             await cmd('From: '+user+'\r\nTo: '+to+'\r\nSubject: '+asunto+'\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n'+cuerpo+'\r\n.',[250]);
             await cmd('QUIT',[221]).catch(()=>{});
             sock.end();
             console.log('Enviado por mail a '+to+'.');
           }
 
-          const conTelegram=!!(E.TELEGRAM_TOKEN&&E.TELEGRAM_CHAT_ID),conMail=!!(E.SMTP_HOST&&E.SMTP_USER&&E.SMTP_PASS);
-          if(!conTelegram&&!conMail){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID (o los SMTP_* para mail). Ver INSTRUCCIONES.md.');process.exit(1)}
-          let error=false;
-          for(const [ok,fn] of [[conTelegram,telegram],[conMail,mail]]){
-            if(!ok)continue;
-            try{await fn()}catch(e){console.error(e.message);error=true}
+          // Por Telegram, por mail o por los dos, según los secretos que estén cargados
+          async function enviar(texto,asuntoTxt){
+            const conTelegram=!!(E.TELEGRAM_TOKEN&&E.TELEGRAM_CHAT_ID),conMail=!!(E.SMTP_HOST&&E.SMTP_USER&&E.SMTP_PASS);
+            if(!conTelegram&&!conMail){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID (o los SMTP_* para mail). Ver INSTRUCCIONES.md.');process.exit(1)}
+            let error=false;
+            for(const [ok,fn] of [[conTelegram,()=>telegram(texto)],[conMail,()=>mail(texto,asuntoTxt)]]){
+              if(!ok)continue;
+              try{await fn()}catch(e){console.error(e.message);error=true}
+            }
+            process.exit(error?1:0);
           }
-          process.exit(error?1:0);
           JS
