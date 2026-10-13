@@ -1,8 +1,8 @@
 ORGANIZADOR PERSONAL - SOLO GITHUB
 
 1) En GitHub crea un repositorio PUBLICO, por ejemplo "organizador-web".
-2) Sube al directorio raiz de ese repositorio: index.html, manifest.webmanifest, sw.js y la carpeta icons/ completa
-   (los cuatro son necesarios para instalarla como aplicacion y abrirla sin conexion).
+2) Sube al directorio raiz de ese repositorio: index.html, sync-core.js, manifest.webmanifest, sw.js y la carpeta
+   icons/ completa (todos son necesarios para instalarla como aplicacion, abrirla sin conexion y subir en segundo plano).
 3) Settings > Pages > Build and deployment: Deploy from a branch, main, /(root). Guarda.
 4) Crea OTRO repositorio, PRIVADO, por ejemplo "mis-tareas-datos". No necesitas subir archivos.
 5) En GitHub: Settings de tu cuenta > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token.
@@ -13,7 +13,10 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
 7) Toca el boton de estado (arriba a la derecha) para abrir Sincronizacion; escribe usuario, nombre del repo PRIVADO
    y token, y pulsa Guardar conexion. Opcional: carga tambien la fecha en que vence el token (la ves en GitHub, en la
-   lista de tus tokens): una semana antes la app te avisa para que lo renueves.
+   lista de tus tokens): una semana antes la app te avisa para que lo renueves (y el Telegram de la mañana tambien, con el resumen.yml nuevo).
+   La fecha se guarda en ajustes.json del repositorio privado: la cargas una vez y la ven tus dos dispositivos.
+   En Chrome, al guardar la conexion te ofrece guardarla en tus contraseñas: en el otro dispositivo (misma cuenta
+   de Google) toca "Traer de mis contraseñas" y no hace falta copiar el token a mano.
 8) Abre la misma URL desde tu celular y configura los mismos datos una sola vez.
 
 INSTALAR COMO APLICACION
@@ -24,8 +27,25 @@ INSTALAR COMO APLICACION
   carga de nuevo usuario, repositorio y token en Sincronizacion. Usa siempre la app instalada (no Safari)
   para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
 
+ABRIR MAS RAPIDO (celular)
+- La app instalada abre con el campo listo para escribir. Si volves a ella despues de un rato, vuelve arriba
+  y lista para anotar.
+- Atajos: mantene apretado el icono de Tareas y vas a ver "Nueva tarea" (abre para escribir) y "Dictar tarea"
+  (abre con un microfono grande abajo, para hablar con una mano). Para tenerlos a un toque: mantene apretado el
+  atajo y arrastralo a la pantalla de inicio, en la fila de abajo, donde llega el pulgar.
+- Boton lateral (opcional): Ajustes > Funciones avanzadas > Boton lateral > Pulsar dos veces > Abrir aplicacion > Tareas.
+  Ojo: la doble pulsacion deja de abrir la camara.
+- Pantalla de bloqueo (opcional): mantene apretada la pantalla de bloqueo (te pide desbloquear), toca el acceso
+  directo de una esquina y elegi Tareas. Tambien desde Ajustes > Pantalla de bloqueo (y AOD), tocando la vista previa.
+- Sin manos: "Ok Google, abri Tareas" o "Hola Bixby, abri Tareas".
+- Los nombres de los menus pueden cambiar un poco segun la version del celular: si no los encontras, usa la lupa de Ajustes.
+
 USO DIARIO
 - Abris la app, escribis la tarea y Enter: queda para hoy. Con los botones Mañana, Lunes o Sin fecha elegis otro dia.
+- Despues de agregar aparece "Agregada para mañana · 15:00 · @Laura" con "Deshacer" (la borra) y "Cambiar" (abre
+  Editar, por si se entendio mal algo).
+- Si el texto no dice quien la pidio, en el celular aparece "De: Laura · Juan · Marcela": un toque la agrega.
+- Si te interrumpen mientras escribis, lo escrito queda guardado: la proxima vez que abras la app sigue ahi.
 - Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
   Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, en 3 dias. Prioridad: !alta (o !), !media, !baja.
   Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
@@ -37,9 +57,10 @@ USO DIARIO
   El aviso de Telegram llega entre 10 y 40 minutos antes: para algo de menos de una hora, usa "Al calendario".
 - Sugerencias: mientras escribis aparecen tareas que ya cargaste antes, con quien las pidio. Toca una (o elegila
   con las flechas y Enter) y queda en el campo para agregarla. Despues de "@" sugiere las personas que ya usaste.
-- Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo, deci la tarea y toca "Listo"
-  (o espera a que termine solo). Lo dictado queda en el campo con "Detectado: ..." y se guarda recien
-  cuando tocas Agregar, asi podes corregirlo antes. Ejemplos:
+- Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo y deci la tarea. Cuando terminas de
+  hablar se muestra lo que entendio ("Detectado: ...") y se guarda solo a los 3 segundos: podes guardar el celular.
+  Si queres corregir algo, toca el texto antes de que se guarde (o "Cambiar" en el aviso despues). Si solo dijiste
+  "recordame mañana" sin la tarea, no se guarda: toca el microfono y segui hablando. Ejemplos:
     "recordame mañana a las 3 llamar al banco, es urgente, me lo pidio Laura"
     "tengo que mandar los remitos el viernes que viene"
     "crear tarea revisar stock el 15 de octubre"
@@ -47,8 +68,9 @@ USO DIARIO
   "el 15 de octubre", "en 3 dias", "en dos semanas"; la hora ("a las 3", "a las 9 de la mañana");
   "urgente", "importante" o "prioridad alta/media/baja"; y "me lo pidio Juan" o "de parte de Juan".
   El dictado usa el reconocimiento de voz del navegador: necesita internet y el audio lo procesa Google.
+  Sin señal, la app te lo avisa y deja el campo listo para que uses el microfono del teclado.
   En iPhone puede no estar disponible dentro de la app instalada: usa el microfono del teclado.
-- Calendario: si la tarea tiene hora o empieza con "recordame", despues de agregarla aparece "Al calendario".
+- Calendario: si la tarea tiene hora o empieza con "recordame", en el aviso despues de agregarla aparece "Al calendario".
   Tambien esta en el menu "⋯" ("Agregar al calendario"). Se descarga un archivo de evento: abrilo (en Android,
   tocando "Abrir" en el aviso de descarga) y el Calendario de Samsung (o Outlook, o el de Apple) lo agrega con
   su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
@@ -57,21 +79,50 @@ USO DIARIO
 - Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
   "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
-  Se sube a GitHub sola; si no habia señal, se sube la proxima vez que abras la app.
-  El boton de arriba a la derecha muestra el estado ("Al dia", "Pendiente", "Sin subir") y abre la configuracion de GitHub.
-- En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir, Espacio terminar, E editar, H hoy, M mañana, Supr borrar.
+  Se sube a GitHub sola; si no habia señal, Chrome la sube cuando vuelve la conexion, aunque hayas cerrado la app
+  (en Android, con la app instalada).
+  El boton de arriba a la derecha muestra el estado y abre Sincronizacion:
+    verde "Al dia": tenes lo ultimo de GitHub;
+    ambar "Pendiente", "Sin señal" o "Reintentando": hay algo sin subir, pero esta guardado y se sube solo;
+    rojo: hay que hacer algo (token vencido, permisos) o algo no sube hace mas de 30 minutos.
+  En Sincronizacion se ve que falta subir, "Sincronizar ahora", "Ver historial en GitHub" (cada cambio queda con
+  un mensaje como "+ Llamar al banco · cel") y, plegada, la cuenta de GitHub y el token.
+- Lo que llega del otro dispositivo (por ejemplo, lo que anotaste en el celular) se resalta en la compu hasta
+  que la mires, con un aviso "2 nuevas desde el celular · Ver".
+- En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir (con el campo vacio, flecha abajo pasa a la
+  lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
+  S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Shift+P revision de la
+  semana, Supr borrar.
+  Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente.
+- Anotadas al pasar: lo que cargas en el celular (o dictas o compartis) sin elegir fecha queda para hoy con un punto
+  azul adelante. Cualquier decision lo saca.
+- Procesar (en la compu, arriba a la derecha, o tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas
+  pateadas primero) y lo que espera respuesta hace rato. Una tecla o un toque por decision y pasa sola a la
+  siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy.
+- Pateadas: si pasas una tarea vencida o de hoy para mas adelante, se cuenta. Desde la tercera vez la tarea dice
+  "pateada 3×" en ambar, "Todas a hoy" la deja afuera y el Telegram de la mañana la marca "(pospuesta 3 veces)".
+  Lo anotado al pasar no cuenta: el hoy que tiene es de relleno, hasta que le pones fecha.
+- En pantallas anchas (1200 px o mas), Esperando y Sin fecha quedan en una columna a la derecha, siempre a la vista.
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
   cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
 - Compartir desde WhatsApp o el mail (Android, con la app instalada): en el mensaje toca Compartir y elegi
-  "Tareas". El texto queda en el campo para revisarlo y tocar Agregar.
-- Acceso directo: mantene apretado el icono de la app y elegi "Nueva tarea": abre con el teclado listo.
-  Si "Tareas" no aparece al compartir o no ves "Nueva tarea", el celular todavia no actualizo la app instalada:
+  "Tareas". El texto queda en el campo para revisarlo y tocar Agregar, sin el saludo ni el "gracias"
+  ("Che, ¿me mandas el remito? Gracias!" queda "Me mandas el remito"). Si el mensaje es largo, la primera
+  oracion queda como tarea y el resto va a la nota.
+- Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo la app instalada:
   esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
 - Vencidas: si hay dos o mas, "Todas a hoy" (a la derecha del titulo) las pasa todas a hoy de un toque, con Deshacer.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
+  "Reclamar…" arma el mensaje ("Hola Juan, ¿pudiste ver lo de …?") para WhatsApp o lo que elijas, y queda anotado
+  ("Juan · reclamado hace 1 dia (2º)"). "Volver a mirar el…" le pone una fecha: hasta ese dia no se pone en ambar.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
+- Revision de la semana: abajo, junto a Terminadas, "Revision de la semana" (en la compu tambien Shift+P) muestra de a
+  una lo que no tiene fecha, lo que espera respuesta y lo pateado 3 veces o mas. "Sigue asi" la deja como esta; si no
+  tiene fecha (tambien con S), no vuelve a aparecer en un mes. Los viernes tambien puede llegar por Telegram, con el
+  enlace: ver repo-datos/INSTRUCCIONES.md. Si ya tenias el resumen diario, reemplaza resumen.yml por la version nueva
+  (si no, no llegan la revision, el aviso del token ni la marca de pateadas).
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
 - Filtrar por persona: toca "@Laura" en una tarea para ver solo las que te pidio. La ✕ (o Esc) quita el filtro.
@@ -80,7 +131,7 @@ USO DIARIO
 - Numero en el icono: en la compu (app instalada) muestra cuantas vencidas y para hoy hay. En Android, Chrome
   no muestra numeros en el icono. Se apaga en Sincronizacion.
 - Modo oscuro: sigue al del celular o la compu.
-- Archivo: las tareas terminadas hace mas de 3 meses se mueven solas a archivo/AAAA.json en tu repositorio de
+- Archivo: las tareas terminadas hace mas de un mes se mueven solas a archivo/AAAA.json en tu repositorio de
   datos, para que la lista no crezca sin fin.
 - Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
   Seguir los pasos de repo-datos/INSTRUCCIONES.md.
@@ -99,7 +150,8 @@ SEGURIDAD Y LIMITACIONES
   (mismos permisos), pegalo en Sincronizacion y carga su nueva fecha de vencimiento (asi la proxima vez tambien te
   avisa antes). Las tareas no se pierden: quedan en el dispositivo hasta que se suben.
 - GitHub Pages no es una plataforma de autenticacion privada; la seguridad de los datos depende de los permisos del repositorio y del token.
-- La aplicacion consulta cambios cada 20 segundos mientras esta abierta. Sin Internet se puede abrir y cargar tareas;
+- La aplicacion pregunta si hay cambios cada 5 segundos mientras la estas usando (cada 20 si esta quieta y cada
+  minuto si no la tocas hace rato); si no hay cambios, GitHub no manda nada. Sin Internet se puede abrir y cargar tareas;
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
 - Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
 - "Borrar conexion y datos de este dispositivo" (en Sincronizacion, pide confirmar con un segundo toque) borra la copia local de las tareas (avisa si habia cambios sin subir).

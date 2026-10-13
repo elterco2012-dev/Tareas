@@ -3,7 +3,7 @@
 De lunes a viernes, a las 7 de la mañana, te llega un mensaje de Telegram como este:
 
 ```
-Buen día. 2 vencidas, 3 para hoy, 1 esperando hace +3 días
+Buen día. 2 vencidas, 3 para hoy, 1 esperando respuesta
 
 Vencidas
 • Enviar cotización (ALTA) · @Martín · venció hace 2 días
@@ -13,11 +13,13 @@ Para hoy
 • Responder reclamo
 • Mandar remitos · @Laura
 
-Esperando hace +3 días
+Esperando respuesta
 • Llamar proveedor · Juan, hace 5 días
 ```
 
-Si un día no hay nada vencido, nada para hoy y nada esperando hace más de 3 días, no te llega nada.
+En "Esperando respuesta" aparece lo que espera hace 3 días o más (desde que lo pusiste en espera o desde el último reclamo), o lo que tiene para hoy la fecha de "Volver a mirar el…".
+
+Si un día no hay nada vencido, nada para hoy y nada esperando respuesta, no te llega nada.
 
 Lo hace GitHub solo, con tu repositorio **privado de datos** (el de `tareas.json`). No hace falta tener la compu prendida. Es gratis: usa alrededor de 1 minuto por día de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
 
@@ -111,6 +113,33 @@ Además de Telegram (o en lugar de Telegram), puede llegarte por mail. Cargá es
 | `SMTP_TO` | A qué dirección enviarlo (si no lo cargás, se envía a `SMTP_USER`) |
 
 Revisá que tu empresa permita usar el mail de esta forma antes de cargar una cuenta del trabajo.
+
+## Opcional: revisión de los viernes
+
+Los viernes a las 15:45 te llega otro mensaje, solo si hay algo para revisar:
+
+```
+Revisión de la semana: 14 sin fecha (5 con más de un mes), 3 esperando respuesta, 2 pateadas 3 veces o más.
+Esta semana terminaste 23 tareas.
+Revisalas en 2 minutos: https://TU_USUARIO.github.io/organizador-web/?revisar=1
+```
+
+El enlace abre la app directamente en "Revisión de la semana": de a una tarea, decidís con un toque (hoy, mañana, otra fecha, esperando, terminada, borrar o "Sigue así").
+
+Viene en la versión nueva de `resumen.yml`. **Si ya tenías el resumen diario configurado, reemplazalo** (si no, no llegan la revisión de los viernes ni el aviso de vencimiento del token, y los reclamos y las pateadas no se tienen en cuenta):
+
+1. En tu repositorio **privado de datos**, abrí `.github/workflows/resumen.yml` y tocá el lápiz (**Edit this file**).
+2. Borrá todo y pegá el contenido nuevo de [repo-datos/.github/workflows/resumen.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/resumen.yml).
+3. Si le habías cambiado el horario, volvé a cambiar la primera línea `cron` (la segunda, `45 18 * * 5`, es la de los viernes: dejala así).
+4. Tocá **Commit changes…** y después **Commit changes**.
+
+Para que el mensaje traiga el enlace, cargá la dirección de la app una vez:
+
+1. En el repositorio de datos: **Settings** → **Secrets and variables** → **Actions**.
+2. Pestaña **Variables** → **New repository variable**.
+3. Name: `APP_URL` — Value: la dirección de la app, por ejemplo `https://TU_USUARIO.github.io/organizador-web/`. Tocá **Add variable**.
+
+Sin esa variable, el mensaje llega igual y dice que abras la app y toques "Revisión de la semana" (abajo, junto a Terminadas): es la misma revisión, en el celular o en la compu.
 
 ---
 

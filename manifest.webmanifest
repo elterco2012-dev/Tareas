@@ -36,8 +36,20 @@
       "url": "./?nueva=1",
       "icons": [
         {
-          "src": "icons/icon-192.png",
-          "sizes": "192x192",
+          "src": "icons/nueva-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Dictar tarea",
+      "short_name": "Dictar",
+      "url": "./?voz=1",
+      "icons": [
+        {
+          "src": "icons/voz-96.png",
+          "sizes": "96x96",
           "type": "image/png"
         }
       ]
