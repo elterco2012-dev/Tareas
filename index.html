@@ -1527,9 +1527,9 @@ function procQueue(weekly){
   else list=[...pend.filter(t=>t.inbox).sort(byCreated),...pend.filter(t=>!t.inbox&&t.due&&t.due<today).sort((a,b)=>(b.postponed||0)-(a.postponed||0)||a.due.localeCompare(b.due)),...waitLate];
   return [...new Set(list.map(t=>t.id))];
 }
-function openProc(weekly){
+function openProc(weekly,fromLink){
   closeMenu();
-  proc={queue:procQueue(weekly),i:0,n:0,weekly:!!weekly};
+  proc={queue:procQueue(weekly),i:0,n:0,weekly:!!weekly,fromLink:!!fromLink};
   $('procH').textContent=weekly?'Revisión de la semana':'Procesar';
   $('procOv').classList.remove('hidden');$('wrap').inert=true;
   renderProc();
@@ -1565,7 +1565,7 @@ function renderProc(){
     const today=tasks.filter(x=>!x.done&&!x.waiting&&x.due===ymd(new Date())).length;
     const d=el('div','pdone');d.append(el('h3',null,proc.n?'Listo':'Nada para '+(proc.weekly?'revisar':'procesar')),el('p','muted',(proc.n?proc.n+(proc.n===1?' procesada':' procesadas')+' · ':'')+'Hoy quedó con '+today+(today===1?' tarea':' tareas')+'.'));
     // Telegram abre los enlaces en su propio navegador, que no tiene la conexión de la app
-    if(!configured()&&!proc.n)d.append(el('p','muted','Este navegador no está conectado a tus tareas: abrí el enlace en la app instalada o en Chrome.'));
+    if(proc.fromLink&&!configured()&&!proc.n)d.append(el('p','muted','Este navegador no está conectado a tus tareas: abrí el enlace en la app instalada o en Chrome.'));
     card.append(d);
     if(proc.weekly){const b=el('button',null,'Copiar resumen de la semana');b.type='button';b.onclick=()=>$('copySum').click();btns.append(b)}
     const c=el('button','main','Cerrar');c.type='button';c.onclick=closeProc;btns.append(c);c.focus();
@@ -2398,7 +2398,7 @@ const params=new URLSearchParams(location.search);
 const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar');
 if(params.has('nueva')||shared||voz||revisar)history.replaceState(null,'',location.pathname+location.hash);
 // Desde el Telegram de los viernes: la revisión de la semana
-if(revisar)Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}).then(()=>openProc(true));
+if(revisar)Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}).then(()=>openProc(true,true));
 WIDE.addEventListener('change',renderList);
 if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft();
 // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)

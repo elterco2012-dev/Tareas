@@ -119,10 +119,10 @@ USO DIARIO
   ("Juan · reclamado hace 1 dia (2º)"). "Volver a mirar el…" le pone una fecha: hasta ese dia no se pone en ambar.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
 - Revision de la semana: abajo, junto a Terminadas, "Revision de la semana" (en la compu tambien Shift+P) muestra de a
-  una lo que no tiene fecha, lo que espera respuesta y lo pateado 3 veces o mas. "Sigue asi" (o S en una sin fecha) la
-  deja como esta y no vuelve a aparecer en un mes. Los viernes tambien puede llegar por Telegram, con el enlace: ver
-  repo-datos/INSTRUCCIONES.md. Si ya tenias el resumen diario, reemplaza resumen.yml por la version nueva (si no, no
-  llegan la revision, el aviso del token ni la marca de pateadas).
+  una lo que no tiene fecha, lo que espera respuesta y lo pateado 3 veces o mas. "Sigue asi" la deja como esta; si no
+  tiene fecha (tambien con S), no vuelve a aparecer en un mes. Los viernes tambien puede llegar por Telegram, con el
+  enlace: ver repo-datos/INSTRUCCIONES.md. Si ya tenias el resumen diario, reemplaza resumen.yml por la version nueva
+  (si no, no llegan la revision, el aviso del token ni la marca de pateadas).
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
 - Filtrar por persona: toca "@Laura" en una tarea para ver solo las que te pidio. La ✕ (o Esc) quita el filtro.
