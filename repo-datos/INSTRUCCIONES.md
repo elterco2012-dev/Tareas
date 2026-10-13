@@ -71,6 +71,8 @@ Los secretos quedan guardados en GitHub sin que nadie pueda verlos, ni siquiera 
 
 Los nombres tienen que ser exactamente esos, en mayúsculas.
 
+Mientras no estén cargados, las corridas automáticas no envían nada ni fallan: esperan a que los cargues.
+
 ## 5. Probarlo
 
 1. Asegurate de tener alguna tarea vencida o para hoy en la app (si no, no se envía nada).
