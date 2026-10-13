@@ -79,6 +79,8 @@ jobs:
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
           console.log(msg);
 
+          // Recién copiado y todavía sin secretos: las corridas programadas no fallan (ni mandan mails de error)
+          if(!E.TELEGRAM_TOKEN&&!E.TELEGRAM_CHAT_ID&&E.GITHUB_EVENT_NAME==='schedule'){console.log('Todavía no están cargados los secretos de Telegram: no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
           if(!E.TELEGRAM_TOKEN||!E.TELEGRAM_CHAT_ID){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID. Ver INSTRUCCIONES.md.');process.exit(1)}
           const tg=E.TELEGRAM_API||'https://api.telegram.org';
           const r=await fetch(tg+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},

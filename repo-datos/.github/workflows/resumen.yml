@@ -152,6 +152,9 @@ jobs:
           // Por Telegram, por mail o por los dos, según los secretos que estén cargados
           async function enviar(texto,asuntoTxt){
             const conTelegram=!!(E.TELEGRAM_TOKEN&&E.TELEGRAM_CHAT_ID),conMail=!!(E.SMTP_HOST&&E.SMTP_USER&&E.SMTP_PASS);
+            // Recién copiado y todavía sin secretos: las corridas programadas no fallan (ni mandan mails de error)
+            const ninguno=!['TELEGRAM_TOKEN','TELEGRAM_CHAT_ID','SMTP_HOST','SMTP_USER','SMTP_PASS'].some(k=>E[k]);
+            if(ninguno&&E.GITHUB_EVENT_NAME==='schedule'){console.log('Todavía no están cargados los secretos de Telegram (ni los de mail): no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
             if(!conTelegram&&!conMail){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID (o los SMTP_* para mail). Ver INSTRUCCIONES.md.');process.exit(1)}
             let error=false;
             for(const [ok,fn] of [[conTelegram,()=>telegram(texto)],[conMail,()=>mail(texto,asuntoTxt)]]){
