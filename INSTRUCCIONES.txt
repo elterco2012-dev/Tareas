@@ -135,11 +135,16 @@ USO DIARIO
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
 - Filtrar por persona: toca "@Laura" en una tarea para ver solo las que te pidio. La ✕ (o Esc) quita el filtro.
-- Copiar resumen: en Terminadas, "Copiar resumen" copia lo que terminaste esta semana (o la pasada),
-  agrupado por quien lo pidio, para pegarlo en un mail o WhatsApp.
+- Informe: en Terminadas, "Informe" arma un control de tus tareas para mostrar como venis. Elegis el periodo
+  (esta semana, la pasada, este mes, el pasado, 30 dias o todo) y quien las pidio (por ejemplo, solo las de German).
+  Muestra las terminadas en ese periodo (cuando se crearon, cuando se terminaron y cuantos dias llevaron), las
+  pendientes con su estado (vencida, para hoy, para el jue 22/10, sin fecha; cuando se crearon y si se pospusieron)
+  y lo que esta en espera. Con los botones de abajo lo copias como texto para un mail o WhatsApp, lo bajas para
+  Excel o lo imprimis / guardas en PDF. Si el periodo llega a mas de un mes, trae tambien las del archivo.
 - Numero en el icono: en la compu (app instalada) muestra cuantas vencidas y para hoy hay. En Android, Chrome
   no muestra numeros en el icono. Se apaga en Sincronizacion.
-- Modo oscuro: sigue al del celular o la compu.
+- Modo oscuro: sigue al del celular o la compu. Para elegirlo a mano: Sincronizacion > Este dispositivo >
+  Apariencia (Automatica, Clara u Oscura). Se elige en cada dispositivo.
 - Archivo: las tareas terminadas hace mas de un mes se mueven solas a archivo/AAAA.json en tu repositorio de
   datos, para que la lista no crezca sin fin.
 - Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
