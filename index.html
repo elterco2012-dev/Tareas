@@ -180,7 +180,8 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 @media (min-width:1200px){
   .wrap{max-width:1140px}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:28px;align-items:start}
-  .side{display:block;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+  .side{display:block;position:sticky;top:16px}
+  .side.tall{position:static}
 }
 
 /* Persona (filtro), Esperando */
@@ -1347,6 +1348,7 @@ function renderList(){
     grp.append(head,card);ws.append(grp);
   }
   visibleIds.push(...noneIds);
+  fitSide();
   $('filterBar').classList.toggle('hidden',!personFilter);$('filterName').textContent=personFilter||'';
   $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.':personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
   $('empty').classList.toggle('hidden',pending.length+waiting.length>0);
@@ -2530,6 +2532,9 @@ if(params.has('nueva')||shared||voz||revisar)history.replaceState(null,'',locati
 // Desde el Telegram de los viernes: la revisión de la semana
 if(revisar)Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}).then(()=>openProc(true,true));
 WIDE.addEventListener('change',renderList);
+// La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
+function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
+let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
 if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft();
 // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
 if(voz)openDock();
