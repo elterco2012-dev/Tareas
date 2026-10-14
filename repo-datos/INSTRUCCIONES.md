@@ -187,9 +187,18 @@ En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23 * * *"` u
 
 El horario de GitHub es "lo antes que se pueda": a veces el resumen de las 7 llega a media mañana y algunos recordatorios se saltean. Para que sea puntual, un servicio gratis, **cron-job.org**, le avisa a GitHub "corré ahora" a cada hora exacta. Se configura una vez y lleva unos 15 minutos. Conviene hacerlo en la compu.
 
+## 0. Actualizar los dos archivos
+
+Si ya tenías el resumen o los recordatorios, primero reemplazá los dos archivos por la versión nueva (la de antes no acepta lo que manda cron-job.org y responde con un error 422). En tu repositorio **privado de datos**:
+
+1. Abrí `.github/workflows/resumen.yml`, tocá el lápiz (**Edit this file**), borrá todo, pegá el contenido nuevo de [repo-datos/.github/workflows/resumen.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/resumen.yml) y tocá **Commit changes…** → **Commit changes**.
+2. Lo mismo con `.github/workflows/recordatorios.yml` y [repo-datos/.github/workflows/recordatorios.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/recordatorios.yml).
+
+Si les habías cambiado el horario no importa: en el paso 4 se sacan esas líneas.
+
 ## 1. Un token de GitHub solo para esto
 
-Es otro token, distinto del de la app: solo sirve para disparar los workflows del repositorio de datos (no puede leer ni cambiar tus tareas).
+Es otro token, distinto del de la app: solo sirve para disparar los workflows del repositorio de datos. No puede abrir `tareas.json`; lo único que deja ver de tus tareas es el mensaje de la última subida de la app en cada corrida, que suele tener el título de una tarea ("+ Llamar al banco · cel").
 
 1. Abrí este link, que deja el token casi armado (nombre, permiso de Actions y sin vencimiento): [crear el token](https://github.com/settings/personal-access-tokens/new?name=cron-job-tareas&actions=write&expires_in=none).
 2. En **Repository access**, elegí **Only select repositories** y marcá tu repositorio **privado de datos**.
@@ -214,6 +223,9 @@ Para cada uno de los tres de la tabla:
    - **Time zone**: `America/Argentina/Buenos_Aires`.
    - En **Headers**, en el valor de `Authorization`, reemplazá `TU_TOKEN` por el token del paso 1 (tiene que quedar `Bearer ` y el token).
 6. Tocá **Test run**: tiene que decir que salió bien (código **204**). Después tocá **Create**.
+   - **401**: el token quedó mal pegado en `Authorization`.
+   - **404**: el token no tiene elegido tu repositorio de datos, o el usuario o el repositorio del comando están mal escritos.
+   - **422** ("Unexpected inputs provided"): falta el paso 0.
 
 | Title | Crontab expression | Qué hace |
 |---|---|---|
@@ -249,7 +261,7 @@ Si no, el resumen llega dos veces (el de cron-job.org y el atrasado de GitHub). 
 - En el repositorio de datos, pestaña **Actions**: tiene que aparecer una corrida de **Recordatorios a la hora** cada media hora, con tilde verde.
 - En cron-job.org, cada trabajo muestra sus últimas ejecuciones. Si falla 25 veces seguidas (por ejemplo, si borraste el token), lo desactiva y te avisa por mail.
 - Usa unos 930 de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
-- En los registros de GitHub no quedan los títulos de las tareas: con este token, cron-job.org puede verlos, así que solo dicen cuántas son.
+- Los registros de cada corrida ya no muestran los títulos de las tareas, solo cuántas son. Con este token, cron-job.org sí podría ver el mensaje de la última subida de la app (y los registros de corridas anteriores a esta versión, que tenían los títulos). Si eso te preocupa, en **Actions** podés borrar las corridas viejas (en cada una, **⋯** → **Delete workflow run**). Comprobá las políticas de tu empresa antes de usar un servicio externo con información del trabajo.
 
 ---
 

@@ -590,10 +590,19 @@ function saveCache(c){store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote,sha:
 // "https://empresa.atlassian.net/browse/WB-3438" se muestra "WB-3438": la última parte de la dirección si
 // parece un número de ticket o de pedido; si no, el sitio
 const URL_RE=/https?:\/\/[^\s<>"']+/g;
-function noteUrls(s){return [...new Set((String(s||'').match(URL_RE)||[]).map(u=>u.replace(/[.,;:!?)\]}»”']+$/,'')))]}
+// Lo que cierra la oración no es parte del link; un ")" sí, si el link abrió su "(" (…/cc771049(v=ws.11))
+function trimUrl(u){
+  for(;;){
+    const c=u.slice(-1),open={')':'(',']':'[','}':'{'}[c];
+    if(/[.,;:!?»”']/.test(c)||(open&&u.split(open).length<u.split(c).length))u=u.slice(0,-1);else return u;
+  }
+}
+function noteUrls(s){return [...new Set((String(s||'').match(URL_RE)||[]).map(trimUrl))]}
 function linkLabel(u){
   try{
-    const x=new URL(u),last=decodeURIComponent(x.pathname.split('/').filter(Boolean).pop()||'');
+    const x=new URL(u),issue=x.searchParams.get('selectedIssue')||'';
+    if(/^[A-Z][A-Z0-9_]+-\d+$/.test(issue))return issue;   // tablero de Jira: …/boards/12?selectedIssue=WB-3438
+    const last=decodeURIComponent(x.pathname.split('/').filter(Boolean).pop()||'');
     return /\d/.test(last)&&last.length<=40?last:x.hostname.replace(/^www\./,'');
   }catch{return u}
 }
@@ -602,13 +611,14 @@ function noteLink(u){
   a.addEventListener('click',e=>e.stopPropagation());   // abre el link, no la tarea
   return a;
 }
-// Las notas en una línea, con los links cortos y tocables
+// Las notas en una línea, con los links cortos. En la compu se pueden tocar; en el celular no (queda muy
+// cerca del título: un toque abre la tarea, y ahí están los links como botones)
 function notesNodes(s){
   const text=String(s||'').replace(/\s*\n+\s*/g,' · '),out=[];let i=0;
   for(const m of text.matchAll(URL_RE)){
-    const u=m[0].replace(/[.,;:!?)\]}»”']+$/,'');
+    const u=trimUrl(m[0]);
     if(m.index>i)out.push(document.createTextNode(text.slice(i,m.index)));
-    out.push(noteLink(u));i=m.index+u.length;
+    out.push(FINE?noteLink(u):el('span','nlink',linkLabel(u)));i=m.index+u.length;
   }
   if(i<text.length)out.push(document.createTextNode(text.slice(i)));
   return out;
@@ -631,6 +641,7 @@ function dueLabel(s){
   return n<7?txt:txt+' · en '+n+' días';
 }
 function shortDue(s){return dueLabel(s).split(' · ')[0]}
+function pastDay(s){const d=parseYmd(s);return WD[d.getDay()].toLowerCase()+' '+d.getDate()+'/'+(d.getMonth()+1)}
 function timeNow(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function doneWhen(iso){
   if(!iso)return '';
@@ -666,7 +677,11 @@ function toNum(s){return /^\d+$/.test(s)?Number(s):NUMW[s]}
 // es la de este año (queda vencida, o es el día en que la hiciste)
 function dayMonth(d,mo){
   if(!(mo>=1&&mo<=12&&d>=1&&d<=31))return null;
-  const now=new Date();let dt=new Date(now.getFullYear(),mo-1,d);
+  const now=new Date();
+  // Con el cambio de año: "28/12" el 3/1 es el diciembre que pasó, no el que viene
+  const prev=new Date(now.getFullYear()-1,mo-1,d);
+  if(prev.getMonth()===mo-1&&daysUntil(ymd(prev))>=-31)return ymd(prev);
+  let dt=new Date(now.getFullYear(),mo-1,d);
   if(dt.getMonth()!==mo-1)return null;
   if(daysUntil(ymd(dt))<-31)dt=new Date(now.getFullYear()+1,mo-1,d);
   return ymd(dt);
@@ -952,7 +967,12 @@ async function sync(){
           lastPull=Date.now();
           if(latest.same)base={items:remote,sha:remoteSha};
           else{
-            if(latest.sha!==remoteSha||!remoteSha){noteArrivals(remote,latest.items,!!remoteSha);remote=latest.items;remoteSha=latest.sha;changed=true}
+            if(latest.sha!==remoteSha||!remoteSha){
+              noteArrivals(remote,latest.items,!!remoteSha);
+              // Si desaparecieron terminadas, el otro dispositivo las archivó: la copia del archivo ya no sirve
+              if(archiveData){const now=new Set(latest.items.map(t=>t.id));if(remote.some(t=>t.done&&!now.has(t.id)))archiveStale()}
+              remote=latest.items;remoteSha=latest.sha;changed=true;
+            }
             remoteEtag=latest.etag||null;base=latest;
             saveCache(c);
           }
@@ -1093,6 +1113,7 @@ async function archiveOld(){
     if(cfg!==c)return;
     store(K_ARCHIVE,today);
     actMany(old.map(t=>({type:'delete',id:t.id,onlyDone:true})));
+    archiveStale();
   }catch{}   // se reintenta en la próxima sincronización
   finally{archiving=false}
 }
@@ -1284,7 +1305,9 @@ function doneRow(t,archived){
 }
 // ---- Buscar en el archivo (terminadas hace más de un mes, en archivo/AAAA.json) ----
 // Se lee una sola vez por sesión, cuando lo pedís; después la búsqueda también filtra ahí
-let archiveData=null,archiveState='idle';
+let archiveData=null,archiveState='idle',doneSearchClosed=false;
+// Se vuelve a ofrecer el botón y la próxima búsqueda lo lee de nuevo
+function archiveStale(){if(archiveState!=='loading'){archiveData=null;archiveState='idle'}}
 async function loadArchive(){
   const c=cfg;if(!configured()||archiveState==='loading')return;
   archiveState='loading';renderList();
@@ -1314,6 +1337,7 @@ function renderArchive(match){
   $('archHead').classList.toggle('hidden',!found.length);$('archN').textContent=String(found.length);
   list.classList.toggle('hidden',!found.length);list.replaceChildren();
   found.slice(0,50).forEach(t=>list.append(doneRow(t,true)));
+  if(found.length>50){$('archMsg').textContent='Se ven las 50 más recientes de '+found.length+'. Escribí algo más para encontrar la que buscás.';$('archMsg').classList.remove('hidden')}
 }
 function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
@@ -1360,7 +1384,8 @@ function renderList(){
   const doneMatch=tasks.filter(t=>t.done&&match(t)).sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||''));
   const recent=doneMatch.filter(t=>t.completedAt&&new Date(t.completedAt).getTime()>=cutoff);
   // Buscando: todas las terminadas que coinciden (no solo las de 7 días), a la vista
-  const searching=!!q,shown=showAllDone||searching?doneMatch:recent,open=showDone||searching;
+  if(!q)doneSearchClosed=false;
+  const searching=!!q,shown=showAllDone||searching?doneMatch:recent,open=searching?!doneSearchClosed:showDone;
   $('doneSub').textContent=searching?(shown.length===1?'1 coincide':shown.length+' coinciden'):(showAllDone?'todas':'últimos '+DONE_DAYS+' días')+' · '+shown.length;
   $('doneChev').style.transform=open?'rotate(90deg)':'rotate(0deg)';
   $('doneToggle').setAttribute('aria-expanded',String(open));
@@ -1596,7 +1621,7 @@ function setWhen(t,w){
   // En espera, la fecha es para volver a mirarla (followUp), no la de la tarea
   const patch=t.waiting?{followUp:w.due}:duePatch(t,w.due);
   if(w.time&&!t.waiting)patch.time=w.time;
-  editWithUndo(t,patch,t.waiting?'Volvés a mirarla '+(w.due?shortDue(w.due).toLowerCase():''):addedMsg(w.due).replace('Agregada','Pasada'));
+  editWithUndo(t,patch,t.waiting?'Volvés a mirarla '+(w.due?daysUntil(w.due)<0?'desde el '+pastDay(w.due):shortDue(w.due).toLowerCase():''):addedMsg(w.due).replace('Agregada','Pasada'));
 }
 // Vencidas a hoy de un toque. Las pateadas 3 veces o más quedan afuera: esas hay que decidirlas.
 function allToToday(items){
@@ -1809,6 +1834,7 @@ function openCalendar(t){
 function addedMsg(due){
   if(!due)return 'Agregada sin fecha';
   const n=daysUntil(due);
+  if(n<0)return 'Agregada como vencida, del '+pastDay(due);
   return n===0||n===1?'Agregada para '+dueLabel(due).toLowerCase():'Agregada para el '+shortDue(due).toLowerCase();
 }
 
@@ -2217,7 +2243,7 @@ $('textOv').addEventListener('pointerdown',e=>{downOn=e.target});
 $('textOv').addEventListener('click',e=>{if(e.target===$('textOv')&&downOn===e.target)closeText()});
 
 // ---- Terminadas ----
-$('doneToggle').onclick=()=>{showDone=!showDone;renderList()};
+$('doneToggle').onclick=()=>{if($('search').value.trim())doneSearchClosed=!doneSearchClosed;else showDone=!showDone;renderList()};
 
 // ---- Papelera ----
 function renderTrash(){
@@ -2323,7 +2349,15 @@ $('editForm').addEventListener('submit',e=>{
 });
 $('editX').onclick=closeEdit;$('eCancel').onclick=closeEdit;
 $('eNotes').addEventListener('input',renderLinks);
-$('eReopen').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);closeEdit();if(t&&t.done)toggle(t)};
+// Volver a pendientes guarda también lo que hayas cambiado (por ejemplo, la nota); Deshacer solo deshace la reapertura
+$('eReopen').onclick=()=>{
+  const t=edit&&tasks.find(x=>x.id===edit.id);
+  if(!t||edit.readonly){closeEdit();return}
+  const patch=$('eTitle').value.trim()?editPatch():{},id=t.id;
+  closeEdit();
+  if(Object.keys(patch).length)act({type:'edit',id,patch});
+  const t2=tasks.find(x=>x.id===id);if(t2&&t2.done)toggle(t2);
+};
 $('archBtn').onclick=()=>loadArchive();
 // Tocar el fondo oscuro cierra el modal, salvo que el toque empiece adentro
 // (por ejemplo, al arrastrar para seleccionar texto y soltar afuera)

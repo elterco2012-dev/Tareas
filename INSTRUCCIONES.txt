@@ -148,7 +148,8 @@ USO DIARIO
   a 21:30). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
   por la version nueva. Ver repo-datos/INSTRUCCIONES.md.
 - Que lleguen a horario: GitHub a veces atrasa horas el resumen o saltea recordatorios. Con cron-job.org (gratis)
-  llegan puntuales: ver repo-datos/INSTRUCCIONES.md, seccion "Que llegue a horario".
+  llegan puntuales: ver repo-datos/INSTRUCCIONES.md, seccion "Que llegue a horario". Si ya tenias el resumen o los
+  recordatorios, primero reemplaza resumen.yml y recordatorios.yml por la version nueva (paso 0).
 - Que el recordatorio suene como alarma (fuerte, aunque estes durmiendo o en No molestar): en el Samsung, con la app
   gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
 
