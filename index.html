@@ -2854,6 +2854,41 @@ function splitLong(s){
   return {title:s.slice(0,i).trim(),note:s.slice(i).trim()};
 }
 
+// ---- Botón Atrás (celular) y Atrás del navegador ----
+// Con una ventana abierta (una tarea, Sincronización, el informe, el menú ⋯, la búsqueda…), Atrás la cierra y
+// vuelve a la lista en lugar de salir de la app. Se deja una entrada en el historial mientras haya algo abierto.
+const BACKABLE=['askOv','waitOv','editOv','textOv','repOv','procOv','bulkOv','syncOv','menu','voiceDock','searchBar','filterBar'];
+let backGuard=false,ignorePop=0,backTimer=null;
+function backable(){return BACKABLE.some(id=>{const e=$(id);return e&&!e.classList.contains('hidden')})}
+// Cierra lo que esté más arriba (en el mismo orden que Esc)
+function backClose(){
+  if(ask)return closeAsk();
+  if(waitFor)return closeWait();
+  if(edit)return closeEdit();
+  if(!$('textOv').classList.contains('hidden'))return closeText();
+  if(repOpen())return closeReport();
+  if(proc)return closeProc();
+  if(bulk)return closeBulk();
+  if(settingsOpen)return closeSettings();
+  if(menuId)return closeMenu();
+  if(dock){if(listening)stopVoice(true);return closeDock()}
+  if(searchOpen)return closeSearch();
+  if(personFilter)return setPersonFilter(null);
+}
+function syncBack(){
+  const open=backable();
+  if(open&&!backGuard){history.pushState({tareas:'atras'},'');backGuard=true}
+  else if(!open&&backGuard){backGuard=false;ignorePop++;history.back()}   // se cerró con ✕, Esc o Guardar
+}
+window.addEventListener('popstate',()=>{
+  if(ignorePop){ignorePop--;return}
+  if(!backGuard)return;
+  backGuard=false;backClose();
+  clearTimeout(backTimer);backTimer=setTimeout(syncBack,0);   // si queda otra abierta debajo, Atrás la cierra después
+});
+new MutationObserver(()=>{clearTimeout(backTimer);backTimer=setTimeout(syncBack,0)})
+  .observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+
 // ---- Inicio ----
 cfg=load(K_CFG,{})||{};
 loadCache();

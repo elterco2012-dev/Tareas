@@ -121,6 +121,8 @@ USO DIARIO
 - Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo la app instalada:
   esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
+- Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
+  Sincronizacion, el informe) y vuelve a la lista. Con todo cerrado, sale de la app.
 - Orden: en cada grupo (Hoy, Mañana, Sin fecha...) van primero las de prioridad Alta, despues Media y abajo las
   Baja (en Hoy, antes las que tienen hora). Dentro de la misma prioridad, el orden lo elegis vos: en la compu,
   arrastra la tarea con el mouse o elegila y usa Alt + flecha arriba / abajo; en el celular, "⋯" > Subir o Bajar.
