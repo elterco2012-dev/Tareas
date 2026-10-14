@@ -48,6 +48,8 @@ USO DIARIO
 - Si te interrumpen mientras escribis, lo escrito queda guardado: la proxima vez que abras la app sigue ahi.
 - Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
   Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, en 3 dias. Prioridad: !alta (o !), !media, !baja.
+  Una fecha como 15/10 que ya paso hace menos de un mes queda en este año (vencida, o el dia en que la hiciste);
+  si paso hace mas, es la del año que viene.
   Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
 - Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto" o "a las 8 de la noche"
   se guarda aparte (no queda en el texto). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
@@ -76,6 +78,13 @@ USO DIARIO
   su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
   Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
+- Terminadas: toca una para verla entera (con sus notas) sin volver a ponerla pendiente. Desde ahi podes corregir
+  la nota o tocar "Volver a pendientes". Para volverla a pendientes tambien sirve el circulo con el ✓.
+- Links en las notas: se muestran cortos y se pueden tocar. Un ticket como
+  https://empresa.atlassian.net/browse/WB-3438 aparece como "WB-3438"; al editar la tarea quedan como botones abajo de las notas.
+- Buscar (lupa o /): tambien encuentra terminadas, de cualquier fecha, por el titulo, la nota (por ejemplo, el numero
+  de ticket) o quien la pidio. Las terminadas hace mas de un mes estan en el archivo: "Buscar tambien en el archivo"
+  las trae (solo para ver).
 - Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
   "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
@@ -138,6 +147,9 @@ USO DIARIO
 - Recordatorios a la hora por Telegram: las tareas con hora te avisan entre 10 y 40 minutos antes (tareas de 6:30
   a 21:30). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
   por la version nueva. Ver repo-datos/INSTRUCCIONES.md.
+- Que lleguen a horario: GitHub a veces atrasa horas el resumen o saltea recordatorios. Con cron-job.org (gratis)
+  llegan puntuales: ver repo-datos/INSTRUCCIONES.md, seccion "Que llegue a horario". Si ya tenias el resumen o los
+  recordatorios, primero reemplaza resumen.yml y recordatorios.yml por la version nueva (paso 0).
 - Que el recordatorio suene como alarma (fuerte, aunque estes durmiendo o en No molestar): en el Samsung, con la app
   gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
 
