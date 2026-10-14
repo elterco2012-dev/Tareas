@@ -4,10 +4,17 @@
 name: Resumen diario
 
 on:
+  # Horario de GitHub: a veces se atrasa horas o se saltea. Para que sea puntual, lo puede disparar
+  # cron-job.org (ver INSTRUCCIONES.md): en ese caso se borran estas tres líneas de schedule.
   schedule:
     - cron: "0 10 * * 1-5"   # 7:00 en Argentina (10:00 UTC), de lunes a viernes
     - cron: "45 18 * * 5"    # viernes 15:45 en Argentina: revisión de la semana
-  workflow_dispatch:          # botón "Run workflow" para probarlo
+  workflow_dispatch:          # botón "Run workflow" para probarlo (y lo que usa cron-job.org)
+    inputs:
+      programa:
+        description: "Vacío para probar. cron-job.org manda diario o semanal"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -31,7 +38,7 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
           ZONA_HORARIA: America/Argentina/Buenos_Aires
-          PROGRAMA: ${{ github.event.schedule }}
+          PROGRAMA: ${{ github.event.schedule || inputs.programa }}
           APP_URL: ${{ vars.APP_URL }}
         run: |
           node --input-type=module <<'JS'
@@ -50,7 +57,9 @@ jobs:
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para avisar.');process.exit(0)}
           const pend=tareas.filter(t=>t&&!t.done&&!t.deletedAt);   // sin las de la papelera
           // Viernes 15:45: la revisión de la semana (lo que no tiene fecha, lo que espera respuesta, lo pateado)
-          if(E.PROGRAMA==='45 18 * * 5'){
+          // Automática: la del horario de GitHub o la que dispara cron-job.org (diario o semanal)
+          const automatico=E.GITHUB_EVENT_NAME==='schedule'||E.PROGRAMA==='diario'||E.PROGRAMA==='semanal';
+          if(E.PROGRAMA==='45 18 * * 5'||E.PROGRAMA==='semanal'){
             const lunes=new Date(Date.parse(hoy+'T12:00:00Z'));lunes.setUTCDate(lunes.getUTCDate()-(lunes.getUTCDay()+6)%7);
             const desde=lunes.toISOString().slice(0,10);
             const hechas=tareas.filter(t=>t&&t.done&&!t.deletedAt&&t.completedAt&&fecha(new Date(t.completedAt))>=desde).length;
@@ -91,12 +100,14 @@ jobs:
           if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
           if(esperando.length)partes.push(esperando.length+' esperando respuesta');
           const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'')+((t.postponed||0)>=3?' (pospuesta '+t.postponed+' veces)':'');
-          let msg=(aviso?aviso+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
+          const encabezado=(aviso?aviso+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
+          let msg=encabezado;
           if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
           if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');
           if(esperando.length)msg+='\n\nEsperando respuesta\n'+esperando.map(t=>{const d=dias(hoy,fecha(new Date(desdeEspera(t))));return '• '+t.title+' · '+(t.waitingOn||'sin nombre')+', '+(t.followUp?(t.followUp===hoy?'volver a mirar hoy':'había que mirarla el '+diaMes(t.followUp)):(t.lastNudge?'reclamado ':'')+(d===1?'hace 1 día':'hace '+d+' días'))}).join('\n');
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
-          console.log(msg);
+          // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org)
+          console.log(encabezado);
           await enviar(msg,partes.join(', ')||'aviso del token');
 
           async function telegram(texto){
@@ -154,7 +165,7 @@ jobs:
             const conTelegram=!!(E.TELEGRAM_TOKEN&&E.TELEGRAM_CHAT_ID),conMail=!!(E.SMTP_HOST&&E.SMTP_USER&&E.SMTP_PASS);
             // Recién copiado y todavía sin secretos: las corridas programadas no fallan (ni mandan mails de error)
             const ninguno=!['TELEGRAM_TOKEN','TELEGRAM_CHAT_ID','SMTP_HOST','SMTP_USER','SMTP_PASS'].some(k=>E[k]);
-            if(ninguno&&E.GITHUB_EVENT_NAME==='schedule'){console.log('Todavía no están cargados los secretos de Telegram (ni los de mail): no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
+            if(ninguno&&automatico){console.log('Todavía no están cargados los secretos de Telegram (ni los de mail): no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
             if(!conTelegram&&!conMail){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID (o los SMTP_* para mail). Ver INSTRUCCIONES.md.');process.exit(1)}
             let error=false;
             for(const [ok,fn] of [[conTelegram,()=>telegram(texto)],[conMail,()=>mail(texto,asuntoTxt)]]){

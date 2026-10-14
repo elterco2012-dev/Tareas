@@ -4,9 +4,16 @@
 name: Recordatorios a la hora
 
 on:
+  # Horario de GitHub: a veces se atrasa horas o se saltea. Para que sea puntual, lo puede disparar
+  # cron-job.org (ver INSTRUCCIONES.md): en ese caso se borran estas dos líneas de schedule.
   schedule:
     - cron: "20,50 9-23 * * *"   # cada media hora, de 6:20 a 20:50 en Argentina (UTC-3)
-  workflow_dispatch:              # botón "Run workflow" para probarlo
+  workflow_dispatch:              # botón "Run workflow" para probarlo (y lo que usa cron-job.org)
+    inputs:
+      automatico:
+        description: "Corrida automática (cron-job.org): sin mensaje de prueba"
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # para anotar en recordatorios-enviados.json qué ya se avisó
@@ -31,6 +38,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GH_TOKEN: ${{ github.token }}
           ZONA_HORARIA: America/Argentina/Buenos_Aires
+          AUTOMATICO: ${{ inputs.automatico }}
         run: |
           node --input-type=module <<'JS'
           import {readFileSync} from 'node:fs';
@@ -44,7 +52,9 @@ jobs:
             .formatToParts(new Date()).map(x=>[x.type,x.value]));
           const hoy=p.year+'-'+p.month+'-'+p.day,ahora=Number(p.hour)*60+Number(p.minute);
           const min=s=>Number(s.slice(0,2))*60+Number(s.slice(3,5));
-          const prueba=E.GITHUB_EVENT_NAME==='workflow_dispatch';
+          // Automática: la del horario de GitHub o la que dispara cron-job.org. Si no, es "Run workflow" (prueba).
+          const automatico=E.GITHUB_EVENT_NAME==='schedule'||E.AUTOMATICO==='true';
+          const prueba=E.GITHUB_EVENT_NAME==='workflow_dispatch'&&!automatico;
 
           let tareas;
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para recordar.');process.exit(0)}
@@ -77,10 +87,11 @@ jobs:
             msg='✅ Los recordatorios funcionan. '+(prox?'El próximo de hoy: '+prox.time+' · '+prox.title:'Hoy no quedan tareas con hora.');
           }else{console.log('Nada para recordar ahora ('+hoy+' '+p.hour+':'+p.minute+').');process.exit(0)}
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
-          console.log(msg);
+          // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org)
+          console.log(nuevas.length?nuevas.length+(nuevas.length===1?' recordatorio para enviar.':' recordatorios para enviar.'):'Mensaje de prueba.');
 
           // Recién copiado y todavía sin secretos: las corridas programadas no fallan (ni mandan mails de error)
-          if(!E.TELEGRAM_TOKEN&&!E.TELEGRAM_CHAT_ID&&E.GITHUB_EVENT_NAME==='schedule'){console.log('Todavía no están cargados los secretos de Telegram: no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
+          if(!E.TELEGRAM_TOKEN&&!E.TELEGRAM_CHAT_ID&&automatico){console.log('Todavía no están cargados los secretos de Telegram: no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
           if(!E.TELEGRAM_TOKEN||!E.TELEGRAM_CHAT_ID){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID. Ver INSTRUCCIONES.md.');process.exit(1)}
           const tg=E.TELEGRAM_API||'https://api.telegram.org';
           const r=await fetch(tg+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
