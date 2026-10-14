@@ -183,6 +183,76 @@ En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23 * * *"` u
 
 ---
 
+# Que llegue a horario (cron-job.org)
+
+El horario de GitHub es "lo antes que se pueda": a veces el resumen de las 7 llega a media mañana y algunos recordatorios se saltean. Para que sea puntual, un servicio gratis, **cron-job.org**, le avisa a GitHub "corré ahora" a cada hora exacta. Se configura una vez y lleva unos 15 minutos. Conviene hacerlo en la compu.
+
+## 1. Un token de GitHub solo para esto
+
+Es otro token, distinto del de la app: solo sirve para disparar los workflows del repositorio de datos (no puede leer ni cambiar tus tareas).
+
+1. Abrí este link, que deja el token casi armado (nombre, permiso de Actions y sin vencimiento): [crear el token](https://github.com/settings/personal-access-tokens/new?name=cron-job-tareas&actions=write&expires_in=none).
+2. En **Repository access**, elegí **Only select repositories** y marcá tu repositorio **privado de datos**.
+3. Fijate que en **Permissions** diga **Actions: Read and write** (lo pone el link).
+4. Tocá **Generate token** y copiá el token. GitHub lo muestra **una sola vez**: dejá esa pestaña abierta hasta terminar el paso 3.
+
+## 2. Crear la cuenta en cron-job.org
+
+1. Entrá a [cron-job.org](https://cron-job.org), tocá **Sign up** y completá nombre, mail y contraseña. Es gratis.
+2. Abrí el mail que te mandan y confirmá la cuenta.
+3. Si querés, en **Settings** podés cambiar el idioma a español (abajo se usan los nombres en inglés).
+
+## 3. Crear los tres trabajos
+
+Para cada uno de los tres de la tabla:
+
+1. **Cronjobs** → **Create cronjob**.
+2. Abajo, tocá **Import from cURL**, pegá el comando de ese trabajo (reemplazá `TU_USUARIO` y `TU_REPO` por tu usuario y tu repositorio de datos) y confirmá. Se completan solos la dirección, el método, los encabezados y el cuerpo.
+3. Arriba, en **Title**, poné el nombre de la tabla.
+4. En **Execution schedule** elegí **Custom** y, en **Crontab expression**, escribí el horario de la tabla.
+5. Pestaña **Advanced**:
+   - **Time zone**: `America/Argentina/Buenos_Aires`.
+   - En **Headers**, en el valor de `Authorization`, reemplazá `TU_TOKEN` por el token del paso 1 (tiene que quedar `Bearer ` y el token).
+6. Tocá **Test run**: tiene que decir que salió bien (código **204**). Después tocá **Create**.
+
+| Title | Crontab expression | Qué hace |
+|---|---|---|
+| Recordatorios | `20,50 6-20 * * *` | Cada media hora, de 6:20 a 20:50 |
+| Resumen de la mañana | `0 7 * * 1-5` | 7:00, de lunes a viernes |
+| Revisión de los viernes | `45 15 * * 5` | Viernes 15:45 |
+
+Comandos para **Import from cURL**:
+
+Recordatorios:
+```
+curl -X POST https://api.github.com/repos/TU_USUARIO/TU_REPO/actions/workflows/recordatorios.yml/dispatches -H "Authorization: Bearer TU_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: application/json" -d '{"ref":"main","inputs":{"automatico":"true"}}'
+```
+
+Resumen de la mañana:
+```
+curl -X POST https://api.github.com/repos/TU_USUARIO/TU_REPO/actions/workflows/resumen.yml/dispatches -H "Authorization: Bearer TU_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: application/json" -d '{"ref":"main","inputs":{"programa":"diario"}}'
+```
+
+Revisión de los viernes:
+```
+curl -X POST https://api.github.com/repos/TU_USUARIO/TU_REPO/actions/workflows/resumen.yml/dispatches -H "Authorization: Bearer TU_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: application/json" -d '{"ref":"main","inputs":{"programa":"semanal"}}'
+```
+
+Si **Import from cURL** no completa todo, cargalo a mano: en **URL**, la dirección que empieza con `https://api.github.com/`; en **Advanced**, **Request method** `POST`, en **Headers** los cuatro encabezados (`Authorization`, `Accept`, `X-GitHub-Api-Version` y `Content-Type`, cada uno con lo que va después de los dos puntos) y en **Request body** lo que está entre las comillas simples.
+
+## 4. Sacar el horario de GitHub
+
+Si no, el resumen llega dos veces (el de cron-job.org y el atrasado de GitHub). En tu repositorio de datos, en `.github/workflows/resumen.yml` y en `.github/workflows/recordatorios.yml`, borrá las líneas de `schedule:` y sus `- cron:` (dejá `workflow_dispatch:` y lo que sigue). Tocá **Commit changes…** → **Commit changes**.
+
+## Cómo saber si anda
+
+- En el repositorio de datos, pestaña **Actions**: tiene que aparecer una corrida de **Recordatorios a la hora** cada media hora, con tilde verde.
+- En cron-job.org, cada trabajo muestra sus últimas ejecuciones. Si falla 25 veces seguidas (por ejemplo, si borraste el token), lo desactiva y te avisa por mail.
+- Usa unos 930 de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
+- En los registros de GitHub no quedan los títulos de las tareas: con este token, cron-job.org puede verlos, así que solo dicen cuántas son.
+
+---
+
 # Que el recordatorio suene como alarma (Samsung)
 
 Con esto, cuando llega un recordatorio ⏰ el celular suena como un despertador: fuerte, aunque esté bloqueado, en silencio, en **No molestar** o en modo para dormir. Deja de sonar cuando desbloqueás el celular (o cuando lo sacudís, si ya lo estabas usando), y el aviso de Telegram se borra de la barra; el mensaje queda en el chat del bot. Si no hacés nada, se corta solo a los pocos minutos: en ese caso, cuando lo veas, abrí el chat del bot o deslizá el aviso para borrarlo (si queda en la barra, puede volver a sonar).

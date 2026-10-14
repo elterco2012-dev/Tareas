@@ -147,6 +147,8 @@ USO DIARIO
 - Recordatorios a la hora por Telegram: las tareas con hora te avisan entre 10 y 40 minutos antes (tareas de 6:30
   a 21:30). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
   por la version nueva. Ver repo-datos/INSTRUCCIONES.md.
+- Que lleguen a horario: GitHub a veces atrasa horas el resumen o saltea recordatorios. Con cron-job.org (gratis)
+  llegan puntuales: ver repo-datos/INSTRUCCIONES.md, seccion "Que llegue a horario".
 - Que el recordatorio suene como alarma (fuerte, aunque estes durmiendo o en No molestar): en el Samsung, con la app
   gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
 
