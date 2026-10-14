@@ -223,7 +223,19 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .drow+.drow{border-top:1px solid var(--divider)}
 .drow .chk{height:44px}
 .drow .chk span{border:0;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.drow .dt{flex:1;min-width:0;padding:11px 0;font-size:15px;color:var(--faint);text-decoration:line-through;overflow-wrap:anywhere}
+.drow .dbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:11px 0;border-radius:8px;cursor:pointer}
+.drow .dbody:hover .dt{color:var(--text2)}
+.drow .dt{font-size:15px;color:var(--faint);text-decoration:line-through;overflow-wrap:anywhere}
+.drow .dmeta{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Links en las notas: se muestran cortos ("WB-3438") y se pueden tocar */
+.nlink{color:var(--accent);font-weight:600;text-decoration:none}
+.nlink:hover{text-decoration:underline}
+.elinks{display:flex;flex-wrap:wrap;gap:6px}
+.elinks a{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:4px 10px;border-radius:8px;background:var(--accent-soft);color:var(--accent-text);font-size:13.5px;font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+.edone{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:-6px;font-size:13.5px;color:var(--muted)}
+.edone .linkbtn{margin:0}
+.archsec{margin-top:10px}
+.archsec .ghead{margin-top:6px}
 .drow .when{flex:none;font-size:12.5px;color:var(--faint)}
 .nodone{padding:16px;color:var(--faint);font-size:14px}
 .linkbtn{margin-top:8px;background:none;border:0;color:var(--accent);font-weight:600;font-size:13.5px;padding:6px 4px}
@@ -370,6 +382,12 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <div id="doneList" class="card"></div>
       <button type="button" id="doneAll" class="linkbtn hidden"></button>
       <p id="archiveNote" class="fine hidden" style="margin:4px 4px 0">Las de más de un mes están en archivo/ de tu repositorio.</p>
+      <div id="archSec" class="archsec hidden">
+        <button type="button" id="archBtn" class="linkbtn">Buscar también en el archivo (terminadas hace más de un mes)</button>
+        <p id="archMsg" class="fine hidden" style="margin:4px 4px 0"></p>
+        <div id="archHead" class="ghead hidden"><span>En el archivo</span><span class="n" id="archN"></span></div>
+        <div id="archList" class="card hidden"></div>
+      </div>
     </div>
   </div>
 
@@ -400,6 +418,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="editOv" class="overlay hidden">
   <form id="editForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="editH">
     <div class="mhead"><h2 id="editH">Editar tarea</h2><button type="button" class="xbtn" id="editX" aria-label="Cerrar">✕</button></div>
+    <div id="eDone" class="edone hidden"><span id="eDoneTxt"></span><button type="button" id="eReopen" class="linkbtn">Volver a pendientes</button></div>
     <input id="eTitle" class="inp" maxlength="500" placeholder="Descripción" aria-label="Descripción">
     <div class="fcol">
       <span class="lbl">Para cuándo</span>
@@ -427,11 +446,12 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     </label>
     <label class="fcol">Pedida por<input id="eRequester" class="inp" maxlength="100" placeholder="(opcional)"></label>
     <label class="fcol">Notas<textarea id="eNotes" class="inp" maxlength="2000" rows="3" placeholder="(opcional)"></textarea></label>
+    <div id="eLinks" class="elinks hidden" aria-label="Links de las notas"></div>
     <div class="mfoot">
       <button type="button" id="eDel" class="delbtn">Borrar</button>
       <span class="spacer"></span>
       <button type="button" id="eCancel" class="secbtn">Cancelar</button>
-      <button type="submit" class="primary">Guardar</button>
+      <button type="submit" id="eSave" class="primary">Guardar</button>
     </div>
   </form>
 </div>
@@ -565,6 +585,34 @@ function loadCache(){
 }
 function saveCache(c){store(K_CACHE,{owner:c.owner,repo:c.repo,items:remote,sha:remoteSha,etag:remoteEtag})}
 
+// ---- Links en las notas ----
+// "https://empresa.atlassian.net/browse/WB-3438" se muestra "WB-3438": la última parte de la dirección si
+// parece un número de ticket o de pedido; si no, el sitio
+const URL_RE=/https?:\/\/[^\s<>"']+/g;
+function noteUrls(s){return [...new Set((String(s||'').match(URL_RE)||[]).map(u=>u.replace(/[.,;:!?)\]}»”']+$/,'')))]}
+function linkLabel(u){
+  try{
+    const x=new URL(u),last=decodeURIComponent(x.pathname.split('/').filter(Boolean).pop()||'');
+    return /\d/.test(last)&&last.length<=40?last:x.hostname.replace(/^www\./,'');
+  }catch{return u}
+}
+function noteLink(u){
+  const a=el('a','nlink',linkLabel(u));a.href=u;a.target='_blank';a.rel='noopener';a.title=u;
+  a.addEventListener('click',e=>e.stopPropagation());   // abre el link, no la tarea
+  return a;
+}
+// Las notas en una línea, con los links cortos y tocables
+function notesNodes(s){
+  const text=String(s||'').replace(/\s*\n+\s*/g,' · '),out=[];let i=0;
+  for(const m of text.matchAll(URL_RE)){
+    const u=m[0].replace(/[.,;:!?)\]}»”']+$/,'');
+    if(m.index>i)out.push(document.createTextNode(text.slice(i,m.index)));
+    out.push(noteLink(u));i=m.index+u.length;
+  }
+  if(i<text.length)out.push(document.createTextNode(text.slice(i)));
+  return out;
+}
+
 // ---- Fechas (siempre en hora local, formato YYYY-MM-DD) ----
 const WD=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -613,12 +661,13 @@ const NUMW={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8
 const NUM_RE=Object.keys(NUMW).join('|');
 function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim()}
 function toNum(s){return /^\d+$/.test(s)?Number(s):NUMW[s]}
-// Día y mes; si la fecha ya pasó este año, es la del año que viene
+// Día y mes. Si ya pasó hace más de un mes, es la del año que viene; si pasó hace poco ("7/10" el 14/10),
+// es la de este año (queda vencida, o es el día en que la hiciste)
 function dayMonth(d,mo){
   if(!(mo>=1&&mo<=12&&d>=1&&d<=31))return null;
   const now=new Date();let dt=new Date(now.getFullYear(),mo-1,d);
   if(dt.getMonth()!==mo-1)return null;
-  if(ymd(dt)<ymd(now))dt=new Date(now.getFullYear()+1,mo-1,d);
+  if(daysUntil(ymd(dt))<-31)dt=new Date(now.getFullYear()+1,mo-1,d);
   return ymd(dt);
 }
 function baseDate(w){
@@ -1210,6 +1259,61 @@ function matcher(){
   const q=$('search').value.trim().toLowerCase().replace(/^@/,'');
   return t=>byPerson(t)&&(!q||(t.title+' '+(t.requester||'')+' '+(t.waitingOn||'')+' '+(t.notes||'')).toLowerCase().includes(q));
 }
+// Una terminada: tocándola se ve entera (las notas, con sus links) sin volver a pendientes
+function doneRow(t,archived){
+  const row=el('div','drow');
+  if(archived)row.append(el('span','chk'));
+  else{
+    const chk=el('button','chk');chk.type='button';chk.title='Volver a pendientes';chk.setAttribute('aria-label','Volver a pendientes');
+    chk.append(el('span',null,'✓'));chk.onclick=()=>toggle(t);row.append(chk);
+  }
+  // (un div y no un botón: adentro puede haber links)
+  const b=el('div','dbody');b.tabIndex=0;b.setAttribute('role','button');b.title='Ver la tarea';
+  b.append(el('span','dt',t.title));
+  if(t.requester||t.notes){
+    const m=el('span','dmeta');
+    if(t.requester)m.append('@'+t.requester);
+    if(t.notes){if(t.requester)m.append(' · ');m.append(...notesNodes(t.notes))}
+    b.append(m);
+  }
+  b.onclick=()=>openEdit(t,{archived});
+  b.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target===b){e.preventDefault();e.stopPropagation();openEdit(t,{archived})}};
+  row.append(b,el('span','when',doneWhen(t.completedAt)));
+  return row;
+}
+// ---- Buscar en el archivo (terminadas hace más de un mes, en archivo/AAAA.json) ----
+// Se lee una sola vez por sesión, cuando lo pedís; después la búsqueda también filtra ahí
+let archiveData=null,archiveState='idle';
+async function loadArchive(){
+  const c=cfg;if(!configured()||archiveState==='loading')return;
+  archiveState='loading';renderList();
+  try{
+    const r=await ghFetch(repoUrl(c)+'/contents/archivo',{headers:headers(c),cache:'no-store'});
+    let files=[];
+    if(r.ok)files=(await r.json()).filter(f=>f&&f.type==='file'&&/^\d{4}\.json$/.test(f.name)).map(f=>f.name).sort().reverse();
+    else if(r.status!==404)throw httpError(r,'GitHub respondió');
+    const items=[];
+    for(const f of files){const y=await getFile(c,'archivo/'+f);items.push(...y.items.map(t=>({...t,archivo:f})))}
+    if(cfg!==c){archiveState='idle';return}
+    archiveData={owner:c.owner,repo:c.repo,items};archiveState='ok';
+  }catch(e){if(cfg===c)archiveState='error'}
+  renderList();
+}
+function renderArchive(match){
+  const sec=$('archSec'),list=$('archList');
+  if(!match||!configured()){sec.classList.add('hidden');return}
+  sec.classList.remove('hidden');
+  const fresh=archiveData&&archiveData.owner===cfg.owner&&archiveData.repo===cfg.repo;
+  if(!fresh&&archiveState==='ok')archiveState='idle';
+  $('archBtn').classList.toggle('hidden',fresh||archiveState==='loading');
+  const msg=archiveState==='loading'?'Buscando en el archivo…':archiveState==='error'?'No se pudo leer el archivo. Probá de nuevo en un rato.':'';
+  const ids=new Set(tasks.map(t=>t.id)),found=fresh?archiveData.items.filter(t=>!ids.has(t.id)&&match(t)).sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||'')):[];
+  $('archMsg').textContent=msg||(fresh&&!found.length?'En el archivo no hay ninguna que coincida.':'');
+  $('archMsg').classList.toggle('hidden',!$('archMsg').textContent);
+  $('archHead').classList.toggle('hidden',!found.length);$('archN').textContent=String(found.length);
+  list.classList.toggle('hidden',!found.length);list.replaceChildren();
+  found.slice(0,50).forEach(t=>list.append(doneRow(t,true)));
+}
 function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
   if(swiping){renderLater=true;return}
@@ -1253,24 +1357,20 @@ function renderList(){
   const cutoff=Date.now()-DONE_DAYS*86400000;
   const doneMatch=tasks.filter(t=>t.done&&match(t)).sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||''));
   const recent=doneMatch.filter(t=>t.completedAt&&new Date(t.completedAt).getTime()>=cutoff);
-  const shown=showAllDone?doneMatch:recent;
-  $('doneSub').textContent=(showAllDone?'todas':'últimos '+DONE_DAYS+' días')+' · '+shown.length;
-  $('doneChev').style.transform=showDone?'rotate(90deg)':'rotate(0deg)';
-  $('doneToggle').setAttribute('aria-expanded',String(showDone));
-  $('doneWrap').classList.toggle('hidden',!showDone);
+  // Buscando: todas las terminadas que coinciden (no solo las de 7 días), a la vista
+  const searching=!!q,shown=showAllDone||searching?doneMatch:recent,open=showDone||searching;
+  $('doneSub').textContent=searching?(shown.length===1?'1 coincide':shown.length+' coinciden'):(showAllDone?'todas':'últimos '+DONE_DAYS+' días')+' · '+shown.length;
+  $('doneChev').style.transform=open?'rotate(90deg)':'rotate(0deg)';
+  $('doneToggle').setAttribute('aria-expanded',String(open));
+  $('doneWrap').classList.toggle('hidden',!open);
   const dl=$('doneList');dl.replaceChildren();
   if(!shown.length)dl.append(el('div','nodone','Nada terminado en este período.'));
-  shown.forEach(t=>{
-    const row=el('div','drow');
-    const chk=el('button','chk');chk.type='button';chk.title='Volver a pendientes';chk.setAttribute('aria-label','Volver a pendientes');
-    chk.append(el('span',null,'✓'));chk.onclick=()=>toggle(t);
-    row.append(chk,el('div','dt',t.title),el('span','when',doneWhen(t.completedAt)));
-    dl.append(row);
-  });
-  const older=doneMatch.length>recent.length||showAllDone;
+  shown.forEach(t=>dl.append(doneRow(t)));
+  const older=(doneMatch.length>recent.length||showAllDone)&&!searching;
   $('doneAll').classList.toggle('hidden',!older);
   $('doneAll').textContent=showAllDone?'Ver solo últimos '+DONE_DAYS+' días':'Ver todas ('+doneMatch.length+')';
-  $('archiveNote').classList.toggle('hidden',!configured());
+  $('archiveNote').classList.toggle('hidden',!configured()||searching);
+  renderArchive(searching?match:null);
   placeMenu();
 }
 // Tocar "@Laura" filtra por esa persona (sin abrir la edición)
@@ -1310,7 +1410,7 @@ function taskRow(t,gid,unsynced){
   if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
   if(unsynced.has(t.id))meta.append(el('span','unsynced','sin subir'));
   if(meta.childNodes.length)body.append(meta);
-  if(t.notes)body.append(el('div','notes',t.notes));
+  if(t.notes){const n=el('div','notes');n.append(...notesNodes(t.notes));body.append(n)}
   const more=el('button','more','⋯');more.type='button';more.setAttribute('aria-label','Más acciones');more.setAttribute('aria-haspopup','menu');
   more.onclick=e=>{e.stopPropagation();openMenu(t.id,e.detail===0)};
   row.append(chk,body,more);
@@ -2152,18 +2252,44 @@ $('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToa
 ['toastB2','toastB3'].forEach((id,i)=>$(id).onclick=()=>{const m=toastMore[i];clearTimeout(toastTimer);hideToast();if(m)m[1]()});
 
 // ---- Editar ----
-function openEdit(t){
+function openEdit(t,opts={}){
   closeMenu();
-  edit={id:t.id,due:t.due||'',priority:t.priority||'Media',
+  const archived=!!opts.archived;
+  edit={id:t.id,due:t.due||'',priority:t.priority||'Media',readonly:archived,
     orig:{title:t.title,due:t.due||null,time:t.time!==undefined?t.time||null:taskTime(t)?undefined:null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
   // Las viejas con la hora en el título: al guardar, la hora pasa a ser un dato aparte
   $('eTime').value=taskTime(t)||'';
   $('eRepeat').value=edit.orig.repeat||'';
   $('eTitle').value=t.title;$('eRequester').value=t.requester||'';$('eNotes').value=t.notes||'';
-  if(FINE)sel=t.id;
+  // Terminada: cuándo, y volver a pendientes desde acá. Del archivo: solo para ver (no está en tareas.json).
+  $('editH').textContent=archived?'En el archivo':t.done?'Tarea terminada':'Editar tarea';
+  $('eDone').classList.toggle('hidden',!t.done);
+  $('eDoneTxt').textContent=t.done?doneLong(t.completedAt)+(archived?' · en archivo/'+t.archivo:''):'';
+  $('eReopen').classList.toggle('hidden',archived);
+  setEditReadonly(archived);
+  renderLinks();
+  if(FINE&&!t.done)sel=t.id;
   $('editOv').classList.remove('hidden');$('wrap').inert=true;
   renderEdit();renderList();
-  if(FINE)$('eTitle').focus();   // en el celular no se abre el teclado solo
+  if(FINE&&!t.done)$('eTitle').focus();   // en el celular no se abre el teclado solo
+}
+function doneLong(iso){
+  if(!iso)return 'Terminada';
+  const d=new Date(iso),now=new Date();
+  return 'Terminada el '+WD[d.getDay()].toLowerCase()+' '+d.getDate()+'/'+(d.getMonth()+1)+(d.getFullYear()!==now.getFullYear()?'/'+d.getFullYear():'')+' a las '+timeNow(d);
+}
+function setEditReadonly(on){
+  ['eTitle','eRequester','eNotes'].forEach(id=>{$(id).readOnly=on});
+  ['eDue','eTime','eRepeat'].forEach(id=>{$(id).disabled=on});
+  document.querySelectorAll('#eChips .chip,#ePrios .prio').forEach(b=>{b.disabled=on});
+  $('eDel').classList.toggle('hidden',on);$('eSave').classList.toggle('hidden',on);
+  $('eCancel').textContent=on?'Cerrar':'Cancelar';
+}
+// Debajo de las notas, sus links para abrirlos con un toque
+function renderLinks(){
+  const box=$('eLinks'),urls=noteUrls($('eNotes').value);box.replaceChildren();
+  urls.forEach(u=>{const a=noteLink(u);a.className='';a.textContent=linkLabel(u)+' ↗';box.append(a)});
+  box.classList.toggle('hidden',!urls.length);
 }
 function renderEdit(){
   document.querySelectorAll('#eChips .chip').forEach(b=>{const on=(dueFor(b.dataset.v)||'')===edit.due;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
@@ -2184,15 +2310,19 @@ document.querySelectorAll('#ePrios .prio').forEach(b=>b.addEventListener('click'
 $('editForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(!edit)return;
+  if(edit.readonly){closeEdit();return}
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
   const patch=editPatch(),t0=tasks.find(x=>x.id===edit.id);
-  if(t0&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
+  if(t0&&!t0.done&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
   if(t0&&t0.inbox&&Object.keys(patch).length)patch.inbox=false;
   const id=edit.id;closeEdit();
   if(Object.keys(patch).length){act({type:'edit',id,patch});toast('Cambios guardados')}
 });
 $('editX').onclick=closeEdit;$('eCancel').onclick=closeEdit;
+$('eNotes').addEventListener('input',renderLinks);
+$('eReopen').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);closeEdit();if(t&&t.done)toggle(t)};
+$('archBtn').onclick=()=>loadArchive();
 // Tocar el fondo oscuro cierra el modal, salvo que el toque empiece adentro
 // (por ejemplo, al arrastrar para seleccionar texto y soltar afuera)
 ['editOv','syncOv'].forEach(id=>$(id).addEventListener('pointerdown',e=>{downOn=e.target}));
