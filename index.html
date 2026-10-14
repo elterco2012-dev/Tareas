@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1520" media="(prefers-color-scheme: dark)">
-<script>try{var t=localStorage.getItem('tema');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{var t=localStorage.getItem('tema');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==='dark'?'#0f1520':'#4f46e5'})}}catch(e){}</script>
 <meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -143,8 +143,10 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 @media (max-width:480px){.repctl{grid-template-columns:1fr}.repfoot .primary{width:100%;order:-1}}
 .printarea{display:none}
 @media print{
-  body>*:not(#printArea){display:none!important}
-  .printarea{display:block;color:#000;background:#fff;font:12pt/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:0}
+  html,body{background:#fff!important;color:#000}
+  :root,:root[data-theme]{color-scheme:light!important}
+  body.printing>*:not(#printArea){display:none!important}
+  body.printing .printarea{display:block;color:#000;background:#fff;font:12pt/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:0}
   .printarea h1{font-size:18pt;margin:0 0 4pt}
   .printarea h3{color:#333;font-size:10pt;margin:14pt 0 4pt}
   .printarea p{margin:0 0 4pt}
@@ -173,6 +175,9 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .swbg span{transition:transform .12s}
 .swbg.armed span{transform:scale(1.2)}
 .task.sel{background:var(--sel)}
+.task.dragging{opacity:.45}
+.task.dropbefore{box-shadow:inset 0 3px 0 var(--accent)}
+.task.dropafter{box-shadow:inset 0 -3px 0 var(--accent)}
 .chk{flex:none;width:44px;height:46px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0}
 .chk span{width:22px;height:22px;border-radius:50%;border:2px solid var(--circle);background:var(--card)}
 .chk:hover span{border-color:var(--accent);background:var(--accent-soft)}
@@ -546,7 +551,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
         <option value="week">Esta semana</option><option value="lastweek">Semana pasada</option><option value="month">Este mes</option>
         <option value="lastmonth">Mes pasado</option><option value="30">Últimos 30 días</option><option value="all">Todo</option>
       </select></label>
-      <label class="fcol">Pedidas por<select id="repWho"></select></label>
+      <label class="fcol">Persona<select id="repWho"></select></label>
     </div>
     <div class="repinc" role="group" aria-label="Qué incluir">
       <button type="button" class="chip" data-k="done" aria-pressed="true">Terminadas</button>
@@ -631,11 +636,12 @@ const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
 const WIDE=window.matchMedia?matchMedia('(min-width:1200px)'):{matches:false,addEventListener(){}};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
-const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','procesar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
+const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Alt ↑ ↓','mover'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','procesar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
 let cfg={},remote=[],tasks=[],trash=[],outboxMem=[];
 let syncing=false,syncAgain=false,lastSync=null,lastError=null,authError=false;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
+let dragId=null;   // tarea que se está arrastrando (en la compu)
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
 let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
@@ -736,7 +742,38 @@ const GROUPS=[
 function groupOf(t){const n=t.due?daysUntil(t.due):null;return GROUPS.find(g=>g.test(n)).id}
 // Orden dentro de cada grupo: fecha, hora (las que tienen hora primero), luego order, luego prioridad
 function cmpPending(a,b){
-  return (a.due||'9999').localeCompare(b.due||'9999')||(taskTime(a)||'99:99').localeCompare(taskTime(b)||'99:99')||(a.order??0)-(b.order??0)||(PRIO[a.priority]??1)-(PRIO[b.priority]??1);
+  return (a.due||'9999').localeCompare(b.due||'9999')||(taskTime(a)||'99:99').localeCompare(taskTime(b)||'99:99')||(PRIO[a.priority]??1)-(PRIO[b.priority]??1)||(a.order??0)-(b.order??0);
+}
+// ---- Mover a mano: dentro de la misma fecha, hora y prioridad ----
+const sibKey=t=>(t.due||'')+'|'+(taskTime(t)||'')+'|'+(PRIO[t.priority]??1);
+function siblings(t){return tasks.filter(x=>!x.done&&!x.waiting&&sibKey(x)===sibKey(t)).sort(cmpPending)}
+// Deja la lista de hermanas en el orden dado (solo se suben las que cambian) y ofrece Deshacer
+function applyOrder(list,msg){
+  const ops=[],undo=[];
+  list.forEach((x,k)=>{if(x.order!==k){ops.push({type:'edit',id:x.id,patch:{order:k}});undo.push({type:'edit',id:x.id,patch:{order:x.order??0}})}});
+  if(!ops.length)return;
+  actMany(ops);toast(msg,()=>actMany(undo));
+}
+const PRIO_UP={Media:'Alta',Baja:'Media'},PRIO_DOWN={Alta:'Media',Media:'Baja'};
+function moveTask(t,dir){
+  const list=siblings(t),i=list.findIndex(x=>x.id===t.id),j=i+dir;
+  if(i<0)return;
+  if(j<0||j>=list.length){
+    // En el borde de su prioridad: para pasar a las de arriba (o abajo) hay que cambiarle la prioridad
+    const p=t.priority||'Media',next=dir<0?PRIO_UP[p]:PRIO_DOWN[p];
+    const others=tasks.some(x=>!x.done&&!x.waiting&&x.id!==t.id&&(x.due||'')===(t.due||'')&&(taskTime(x)||'')===(taskTime(t)||'')&&(PRIO[x.priority]??1)!==(PRIO[p]??1));
+    toast(next&&others?(dir<0?'Ya es la primera':'Ya es la última')+' de prioridad '+p.toLowerCase()+'. Para '+(dir<0?'subirla':'bajarla')+' más, ponele prioridad '+next.toLowerCase()+'.':dir<0?'Ya está primera':'Ya está última');
+    return;
+  }
+  const a=list.slice();a.splice(i,1);a.splice(j,0,t);
+  applyOrder(a,dir<0?'Subida':'Bajada');
+}
+function dropTask(id,targetId,after){
+  const t=tasks.find(x=>x.id===id),target=tasks.find(x=>x.id===targetId);
+  if(!t||!target||t.id===target.id||sibKey(t)!==sibKey(target))return;
+  const a=siblings(t).filter(x=>x.id!==t.id),k=a.findIndex(x=>x.id===target.id);
+  a.splice(after?k+1:k,0,t);
+  applyOrder(a,'Movida');
 }
 
 // ---- Texto libre, escrito o dictado: "Llamar proveedor viernes !alta @Juan" o
@@ -1295,7 +1332,7 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();if(edit)renderEdit();updateBadge();settleArrivals()}
+function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();if(edit)renderEdit();if(repOpen())renderReport();updateBadge();settleArrivals()}
 // Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
 // lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
 const BADGE='setAppBadge' in navigator;
@@ -1402,7 +1439,7 @@ let archiveData=null,archiveState='idle',doneSearchClosed=false;
 function archiveStale(){if(archiveState!=='loading'){archiveData=null;archiveState='idle'}}
 async function loadArchive(){
   const c=cfg;if(!configured()||archiveState==='loading')return;
-  archiveState='loading';renderList();
+  archiveState='loading';renderList();if(repOpen())renderReport();
   try{
     const r=await ghFetch(repoUrl(c)+'/contents/archivo',{headers:headers(c),cache:'no-store'});
     let files=[];
@@ -1414,7 +1451,7 @@ async function loadArchive(){
     archiveData={owner:c.owner,repo:c.repo,items};archiveState='ok';
   }catch(e){if(cfg===c)archiveState='error'}
   renderList();
-  if(!$('repOv').classList.contains('hidden'))renderReport();
+  if(repOpen())renderReport();
 }
 function renderArchive(match){
   const sec=$('archSec'),list=$('archList');
@@ -1434,7 +1471,8 @@ function renderArchive(match){
 }
 function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
-  if(swiping){renderLater=true;return}
+  // Mientras deslizás o arrastrás una tarea no se redibuja (se perdería el gesto); se hace al soltar
+  if(swiping||dragId){renderLater=true;return}
   const match=matcher(),q=$('search').value.trim();
   const late=Date.now()-5000;
   const unsynced=new Set(configured()?getOutbox().filter(o=>errorKind==='offline'||!(o.ts>late)).map(o=>o.id||(o.task&&o.task.id)):[]);
@@ -1501,6 +1539,25 @@ function personBtn(name,label){
 }
 function taskRow(t,gid,unsynced){
   const row=el('div','task'+(sel===t.id?' sel':'')+(arrived.has(t.id)?' llego':''));row.dataset.id=t.id;
+  // En la compu se arrastra para cambiar el orden, entre las de la misma fecha y prioridad
+  if(FINE&&gid!=='waiting'){
+    row.draggable=true;
+    row.addEventListener('dragstart',e=>{dragId=t.id;row.classList.add('dragging');try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',t.title)}catch{}});
+    row.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.task.dragging,.task.dropbefore,.task.dropafter').forEach(r=>r.classList.remove('dragging','dropbefore','dropafter'));if(renderLater){renderLater=false;render()}});
+    row.addEventListener('dragover',e=>{
+      const d=dragId&&tasks.find(x=>x.id===dragId);
+      if(!d||d.id===t.id||sibKey(d)!==sibKey(t))return;
+      e.preventDefault();
+      const r=row.getBoundingClientRect(),after=e.clientY>r.top+r.height/2;
+      row.classList.toggle('dropafter',after);row.classList.toggle('dropbefore',!after);
+    });
+    row.addEventListener('dragleave',()=>row.classList.remove('dropbefore','dropafter'));
+    row.addEventListener('drop',e=>{
+      if(!dragId)return;e.preventDefault();
+      const r=row.getBoundingClientRect(),after=e.clientY>r.top+r.height/2,id=dragId;
+      row.classList.remove('dropbefore','dropafter');dropTask(id,t.id,after);
+    });
+  }
   const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Marcar terminada');
   chk.append(el('span'));chk.onclick=()=>doneAnimated(row,t);
   const body=el('div','body');body.onclick=()=>openEdit(t);
@@ -1604,6 +1661,10 @@ function openMenu(id,byKey){
     item('Otra fecha…',()=>askDate(t));
     item('Esperando respuesta…',()=>openWait(t));
     item('Agregar al calendario',()=>openCalendar(t));
+    // Mover a mano (si comparte el día con otras)
+    if(tasks.some(x=>!x.done&&!x.waiting&&x.id!==t.id&&(x.due||'')===(t.due||'')&&(taskTime(x)||'')===(taskTime(t)||''))){
+      m.append(el('div','sep'));item('Subir',()=>moveTask(t,-1));item('Bajar',()=>moveTask(t,1));
+    }
   }
   item('Editar…',()=>openEdit(t));
   m.append(el('div','sep'));
@@ -2313,7 +2374,7 @@ function repRange(v){
   if(v==='month'){const a=new Date(today.getFullYear(),today.getMonth(),1);return {from:a,to:today,label:'del '+dm(a)+' al '+dm(today)}}
   if(v==='lastmonth'){const a=new Date(today.getFullYear(),today.getMonth()-1,1),b=new Date(today.getFullYear(),today.getMonth(),0);return {from:a,to:b,label:MONTHS[a.getMonth()]+' '+a.getFullYear()}}
   if(v==='30'){const a=d(-29);return {from:a,to:today,label:'últimos 30 días ('+dm(a)+' al '+dm(today)+')'}}
-  if(v==='all')return {from:null,to:today,label:'todo'};
+  if(v==='all')return {from:null,to:today,label:'todo, hasta el '+dm(today)};
   return {from:mon,to:today,label:'semana del '+dm(mon)+' al '+dm(today)};
 }
 function repPeople(){
@@ -2341,7 +2402,7 @@ function reportData(){
   const pend=tasks.filter(t=>!t.done&&!t.waiting&&mine(t)).map(t=>({t,st:pendState(t)}))
     .sort((a,b)=>a.st.rank-b.st.rank||(a.t.due||'').localeCompare(b.t.due||'')||String(a.t.createdAt||'').localeCompare(String(b.t.createdAt||'')));
   const wait=tasks.filter(t=>!t.done&&t.waiting&&mine(t)).sort((a,b)=>String(a.waitingSince||'').localeCompare(String(b.waitingSince||'')));
-  const created=pool.filter(t=>!t.deletedAt&&mine(t)&&inRange(t.createdAt)).length;
+  const created=pool.filter(t=>!t.deletedAt&&!t.repeatOf&&mine(t)&&inRange(t.createdAt)).length;
   // Las terminadas hace más de un mes están en archivo/: si el período llega hasta ahí, hay que leerlo
   return {r,who:who?$('repWho').selectedOptions[0].textContent:'',done,pend,wait,created,needArchive:!r.from||daysUntil(ymd(r.from))<1-ARCHIVE_DAYS};
 }
@@ -2356,8 +2417,8 @@ function reportSummary(d){
   if(REP_INC.wait)parts.push(d.wait.length+' en espera');
   return parts.join(' · ');
 }
-function newCount(d){return (d.created===1?'1 nueva':d.created+' nuevas')+' en el período'}
-function reportTitle(d){return 'Informe de tareas · '+d.r.label+(d.who?' · pedidas por '+d.who:'')}
+function newCount(d){return d.r.from?(d.created===1?'1 nueva':d.created+' nuevas')+' en el período':'desde el principio'}
+function reportTitle(d){return 'Informe de tareas · '+d.r.label+(d.who?' · de '+d.who:'')}
 function reportText(d){
   const by=t=>!d.who&&t.requester?' (@'+t.requester+')':'',tk=t=>{const k=tickets(t);return k.length?' · '+k.join(', '):''};
   const L=[reportTitle(d),reportSummary(d)+' · '+newCount(d)];
@@ -2367,10 +2428,13 @@ function reportText(d){
   return L.join('\n');
 }
 function renderReport(){
-  const d=reportData(),v=$('repView');v.replaceChildren();
+  if(archiveState==='error'&&!archiveData)archiveState='idle';   // si falló, se reintenta al cambiar el período o reabrir
+  let d=reportData();
+  if(d.needArchive&&configured()&&!archiveData&&archiveState==='idle'){loadArchive();d=reportData()}
+  const v=$('repView');v.replaceChildren();
   const note=d.needArchive?(archiveState==='loading'?'Trayendo las terminadas del archivo…':archiveState==='error'?'No se pudo leer el archivo: faltan las terminadas de hace más de un mes.':archiveData?'Incluye las terminadas del archivo.':''):'';
   $('repNote').textContent=note;$('repNote').classList.toggle('hidden',!note);
-  v.append(el('p','repsum',reportSummary(d)),el('p','repsub',d.r.label+(d.who?' · pedidas por '+d.who:'')+' · '+newCount(d)));
+  v.append(el('p','repsum',reportSummary(d)),el('p','repsub',d.r.label+(d.who?' · de '+d.who:'')+' · '+newCount(d)));
   const sec=(title,items,line,empty)=>{
     v.append(el('h3',null,title+' ('+items.length+')'));
     if(!items.length){v.append(el('p','repempty',empty));return}
@@ -2381,9 +2445,15 @@ function renderReport(){
   if(REP_INC.done)sec('Terminadas',d.done,doneLine,'Ninguna en el período.');
   if(REP_INC.pend)sec('Pendientes',d.pend,pendLine,'No hay pendientes.');
   if(REP_INC.wait)sec('En espera',d.wait,waitLine,'Nada en espera.');
-  if(d.needArchive&&configured()&&!archiveData&&archiveState==='idle')loadArchive();
   return d;
 }
+// Mientras se traen las terminadas del archivo, el informe todavía no está completo
+function repReady(){
+  const d=reportData();
+  if(d.needArchive&&configured()&&archiveState==='loading'){toast('Esperá un momento: estoy trayendo las terminadas del archivo');return null}
+  return d;
+}
+function repOpen(){return !$('repOv').classList.contains('hidden')}
 function openReport(){
   closeMenu();
   const sel=$('repWho'),cur=sel.value;sel.replaceChildren(el('option',null,'Todas'));sel.options[0].value='';
@@ -2392,7 +2462,7 @@ function openReport(){
   $('repOv').classList.remove('hidden');$('wrap').inert=true;renderReport();
 }
 function closeReport(){releaseFocus($('repOv'));$('repOv').classList.add('hidden');$('wrap').inert=false}
-function csvCell(v){v=String(v==null?'':v);return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function csvCell(v){v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v=' '+v;return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function reportCsv(d){
   const f=x=>x?(x instanceof Date?x:new Date(x)).toLocaleDateString('es-AR'):'';
   const rows=[['Estado','Tarea','Pedida por','Creada','Fecha','Hora','Terminada','Días','Prioridad','Pospuesta','Esperando a','Tickets','Notas']];
@@ -2409,8 +2479,10 @@ function printReport(d){
   if(REP_INC.done)table('Terminadas',['Tarea','Pedida por','Creada','Terminada','Días','Tickets'],d.done.map(t=>[t.title,t.requester||'',t.createdAt?dmy(t.createdAt):'',dmy(t.completedAt),t.createdAt?String(daysBetween(t.createdAt,t.completedAt)):'',tickets(t).join(', ')]));
   if(REP_INC.pend)table('Pendientes',['Tarea','Pedida por','Estado','Creada','Pospuesta','Tickets'],d.pend.map(x=>[x.t.title,x.t.requester||'',x.st.txt+(x.t.time&&x.t.due?' '+x.t.time:''),x.t.createdAt?dmy(x.t.createdAt):'',x.t.postponed?String(x.t.postponed):'',tickets(x.t).join(', ')]));
   if(REP_INC.wait)table('En espera',['Tarea','Esperando a','Desde','Reclamada','Volver a mirar'],d.wait.map(t=>[t.title,t.waitingOn||'',t.waitingSince?dmy(t.waitingSince):'',t.lastNudge?dmy(t.lastNudge):'',t.followUp?dmy(parseYmd(t.followUp)):'']));
+  document.body.classList.add('printing');
   window.print();
 }
+window.addEventListener('afterprint',()=>{document.body.classList.remove('printing');$('printArea').replaceChildren()});
 $('repBtn').onclick=openReport;
 $('repX').onclick=closeReport;
 $('repOv').addEventListener('pointerdown',e=>{downOn=e.target});
@@ -2418,15 +2490,17 @@ $('repOv').addEventListener('click',e=>{if(e.target===$('repOv')&&downOn===e.tar
 ['repPer','repWho'].forEach(id=>$(id).addEventListener('change',renderReport));
 document.querySelectorAll('.repinc .chip').forEach(b=>b.addEventListener('click',()=>{REP_INC[b.dataset.k]=!REP_INC[b.dataset.k];b.setAttribute('aria-pressed',String(REP_INC[b.dataset.k]));renderReport()}));
 $('repCopy').onclick=()=>{
-  const text=reportText(reportData()),fail=()=>{closeReport();showText(text)};
+  const d=repReady();if(!d)return;
+  const text=reportText(d),fail=()=>{closeReport();showText(text)};
   try{navigator.clipboard.writeText(text).then(()=>toast('Informe copiado: pegalo en un mail o WhatsApp'),fail)}catch{fail()}
 };
 $('repCsv').onclick=()=>{
-  const blob=new Blob([reportCsv(reportData())],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+  const d=repReady();if(!d)return;
+  const blob=new Blob([reportCsv(d)],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='informe-tareas-'+ymd(new Date())+'.csv';document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Descargado: abrilo con Excel');
 };
-$('repPrint').onclick=()=>printReport(reportData());
+$('repPrint').onclick=()=>{const d=repReady();if(d)printReport(d)};
 function showText(text){
   $('textBox').value=text;$('textOv').classList.remove('hidden');$('wrap').inert=true;
   $('textBox').focus();$('textBox').select();
@@ -2658,6 +2732,7 @@ document.addEventListener('keydown',e=>{
     else if(autoSave)cancelAutoSave();
     else if(dock)closeDock();
     else if(!$('textOv').classList.contains('hidden'))closeText();
+    else if(repOpen())closeReport();
     else if(waitFor)closeWait();
     else if(bulk)closeBulk();
     else if(edit)closeEdit();
@@ -2678,10 +2753,14 @@ document.addEventListener('keydown',e=>{
     bs[(i+(e.key==='ArrowDown'?1:bs.length-1))%bs.length].focus();return;
   }
   // "@" (AltGr+Q en el teclado latinoamericano, que llega con Ctrl+Alt): quién la pidió
-  if(e.key==='@'&&!typing&&!edit&&!settingsOpen&&!bulk&&!waitFor&&!ask){const t=tasks.find(x=>x.id===sel&&!x.done);if(t){e.preventDefault();askWho(t)}return}
+  if(e.key==='@'&&!typing&&!edit&&!settingsOpen&&!bulk&&!waitFor&&!ask&&!repOpen()){const t=tasks.find(x=>x.id===sel&&!x.done);if(t){e.preventDefault();askWho(t)}return}
+  // Alt+↑ / Alt+↓: mover la elegida
+  if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!typing&&!edit&&!settingsOpen&&!bulk&&!waitFor&&!ask&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')){
+    const t=tasks.find(x=>x.id===sel&&!x.done&&!x.waiting);if(t){e.preventDefault();moveTask(t,e.key==='ArrowUp'?-1:1)}return;
+  }
   // Con el campo vacío, ↓ pasa a la lista
   if(e.key==='ArrowDown'&&tg===$('title')&&!$('title').value&&!sugg.length&&visibleIds.length){e.preventDefault();$('title').blur();sel=visibleIds[0];renderList();return}
-  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||ask||!$('textOv').classList.contains('hidden'))return;
+  if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||ask||!$('textOv').classList.contains('hidden')||repOpen())return;
   // Espacio/Enter sobre un botón con foco ya lo activan: no duplicar la acción
   if((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter'))return;
   const ids=visibleIds,i=ids.indexOf(sel),t=tasks.find(x=>x.id===sel&&!x.done);
@@ -2793,7 +2872,7 @@ function readyToCapture(){
   closeMenu();
   if(searchOpen&&!$('search').value.trim())closeSearch();
   if(edit&&!Object.keys(editPatch()).length)closeEdit();
-  if(edit||bulk||waitFor||settingsOpen||dock||!$('textOv').classList.contains('hidden'))return;
+  if(edit||bulk||waitFor||settingsOpen||dock||!$('textOv').classList.contains('hidden')||repOpen())return;
   window.scrollTo(0,0);
   if(STANDALONE)$('title').focus();
 }

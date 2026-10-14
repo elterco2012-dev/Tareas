@@ -101,7 +101,7 @@ USO DIARIO
 - En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir (con el campo vacio, flecha abajo pasa a la
   lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
   S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Shift+P revision de la
-  semana, Supr borrar.
+  semana, Alt+flechas mover, Supr borrar.
   Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente.
 - Anotadas al pasar: lo que cargas en el celular (o dictas o compartis) sin elegir fecha queda para hoy con un punto
   azul adelante. Cualquier decision lo saca.
@@ -121,6 +121,10 @@ USO DIARIO
 - Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo la app instalada:
   esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
+- Orden: en cada grupo (Hoy, Mañana, Sin fecha...) van primero las de prioridad Alta, despues Media y abajo las
+  Baja (en Hoy, antes las que tienen hora). Dentro de la misma prioridad, el orden lo elegis vos: en la compu,
+  arrastra la tarea con el mouse o elegila y usa Alt + flecha arriba / abajo; en el celular, "⋯" > Subir o Bajar.
+  Para pasar una tarea por encima de las de mas prioridad, subile la prioridad (Editar o "!").
 - Vencidas: si hay dos o mas, "Todas a hoy" (a la derecha del titulo) las pasa todas a hoy de un toque, con Deshacer.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
