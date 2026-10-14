@@ -756,16 +756,18 @@ function applyOrder(list,msg){
 }
 const PRIO_UP={Media:'Alta',Baja:'Media'},PRIO_DOWN={Alta:'Media',Media:'Baja'};
 function moveTask(t,dir){
-  const list=siblings(t),i=list.findIndex(x=>x.id===t.id),j=i+dir;
+  // Con un filtro por persona o una búsqueda, se mueve respecto de las que se ven (las ocultas no cambian de lugar)
+  const list=siblings(t),match=matcher(),vis=list.filter(x=>x.id===t.id||match(x)),i=vis.findIndex(x=>x.id===t.id),j=i+dir;
   if(i<0)return;
-  if(j<0||j>=list.length){
+  if(j<0||j>=vis.length){
     // En el borde de su prioridad: para pasar a las de arriba (o abajo) hay que cambiarle la prioridad
     const p=t.priority||'Media',next=dir<0?PRIO_UP[p]:PRIO_DOWN[p];
     const others=tasks.some(x=>!x.done&&!x.waiting&&x.id!==t.id&&(x.due||'')===(t.due||'')&&(taskTime(x)||'')===(taskTime(t)||'')&&(PRIO[x.priority]??1)!==(PRIO[p]??1));
     toast(next&&others?(dir<0?'Ya es la primera':'Ya es la última')+' de prioridad '+p.toLowerCase()+'. Para '+(dir<0?'subirla':'bajarla')+' más, ponele prioridad '+next.toLowerCase()+'.':dir<0?'Ya está primera':'Ya está última');
     return;
   }
-  const a=list.slice();a.splice(i,1);a.splice(j,0,t);
+  const a=list.filter(x=>x.id!==t.id),k=a.indexOf(vis[j]);
+  a.splice(dir<0?k:k+1,0,t);
   applyOrder(a,dir<0?'Subida':'Bajada');
 }
 function dropTask(id,targetId,after){
@@ -986,9 +988,25 @@ function parse(text,defaultDue){
 const applyHere=(base,ops)=>applyAll(base,ops,cmpPending);
 // Guarda el cambio en el dispositivo al instante y después intenta subirlo
 function act(op){actMany([op])}
+// Una tarea que pasa a otro día, hora o prioridad (o vuelve de "esperando") queda al final de su nuevo grupo,
+// como una nueva, y no en el lugar que tenía en el anterior. Se agrega al mismo patch (así Deshacer lo
+// devuelve a su lugar).
+function placeMoved(ops){
+  const top={};
+  ops.forEach(o=>{
+    if(o.type!=='edit'||!o.patch||'order' in o.patch)return;
+    const t=tasks.find(x=>x.id===o.id);if(!t||t.done)return;
+    const n={...t,...o.patch};
+    if(n.done||n.waiting||(!t.waiting&&sibKey(n)===sibKey(t)))return;
+    const k=sibKey(n);
+    if(!(k in top))top[k]=Math.max(-1,...tasks.filter(x=>!x.done&&!x.waiting&&x.id!==t.id&&sibKey(x)===k).map(x=>Number(x.order)||0));
+    o.patch.order=++top[k];
+  });
+}
 // Varias operaciones juntas (una sola subida)
 function actMany(ops){
   const now=Date.now();
+  placeMoved(ops);
   ops.forEach(o=>{o.opId=crypto.randomUUID();o.ts=now});
   if(ops.length)setOutbox([...getOutbox(),...ops]);
   recompute();sync();
@@ -1728,13 +1746,19 @@ function doneAnimated(row,t){
     setTimeout(()=>toggle(t),150);
   },180);
 }
+// Si la que se repite estaba primera en su grupo, la próxima también queda primera (una rutina fijada arriba)
+function repeatOrder(t){
+  if(t.done||t.waiting||siblings(t)[0]!==t)return {};
+  const n={...t,due:nextDue(t)},k=sibKey(n),dest=tasks.filter(x=>!x.done&&!x.waiting&&x.id!==t.id&&sibKey(x)===k);
+  return dest.length?{order:Math.min(...dest.map(x=>Number(x.order)||0))-1}:{};
+}
 function toggle(t){
   const done=!t.done,prevAt=t.completedAt,ops=[{type:'done',id:t.id,done,at:new Date().toISOString()}];
   let next=null;
   // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
   // en otro dispositivo), no se crea otra
   if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
-    next={id:crypto.randomUUID(),repeatOf:t.id,...(t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    next={id:crypto.randomUUID(),repeatOf:t.id,...repeatOrder(t),...(t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
     if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
     ops.push({type:'add',task:next});
   }
@@ -2428,7 +2452,6 @@ function reportText(d){
   return L.join('\n');
 }
 function renderReport(){
-  if(archiveState==='error'&&!archiveData)archiveState='idle';   // si falló, se reintenta al cambiar el período o reabrir
   let d=reportData();
   if(d.needArchive&&configured()&&!archiveData&&archiveState==='idle'){loadArchive();d=reportData()}
   const v=$('repView');v.replaceChildren();
@@ -2459,6 +2482,7 @@ function openReport(){
   const sel=$('repWho'),cur=sel.value;sel.replaceChildren(el('option',null,'Todas'));sel.options[0].value='';
   repPeople().forEach(n=>{const o=el('option',null,n);o.value=norm(n);sel.append(o)});
   if(personFilter)sel.value=norm(personFilter);else if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+  retryArchive();
   $('repOv').classList.remove('hidden');$('wrap').inert=true;renderReport();
 }
 function closeReport(){releaseFocus($('repOv'));$('repOv').classList.add('hidden');$('wrap').inert=false}
@@ -2487,7 +2511,9 @@ $('repBtn').onclick=openReport;
 $('repX').onclick=closeReport;
 $('repOv').addEventListener('pointerdown',e=>{downOn=e.target});
 $('repOv').addEventListener('click',e=>{if(e.target===$('repOv')&&downOn===e.target)closeReport()});
-['repPer','repWho'].forEach(id=>$(id).addEventListener('change',renderReport));
+// Si el archivo no se pudo leer, se vuelve a intentar al cambiar el período o la persona, o al reabrir
+const retryArchive=()=>{if(archiveState==='error'&&!archiveData)archiveState='idle'};
+['repPer','repWho'].forEach(id=>$(id).addEventListener('change',()=>{retryArchive();renderReport()}));
 document.querySelectorAll('.repinc .chip').forEach(b=>b.addEventListener('click',()=>{REP_INC[b.dataset.k]=!REP_INC[b.dataset.k];b.setAttribute('aria-pressed',String(REP_INC[b.dataset.k]));renderReport()}));
 $('repCopy').onclick=()=>{
   const d=repReady();if(!d)return;
@@ -2756,7 +2782,9 @@ document.addEventListener('keydown',e=>{
   if(e.key==='@'&&!typing&&!edit&&!settingsOpen&&!bulk&&!waitFor&&!ask&&!repOpen()){const t=tasks.find(x=>x.id===sel&&!x.done);if(t){e.preventDefault();askWho(t)}return}
   // Alt+↑ / Alt+↓: mover la elegida
   if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!typing&&!edit&&!settingsOpen&&!bulk&&!waitFor&&!ask&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')){
-    const t=tasks.find(x=>x.id===sel&&!x.done&&!x.waiting);if(t){e.preventDefault();moveTask(t,e.key==='ArrowUp'?-1:1)}return;
+    const t=tasks.find(x=>x.id===sel&&!x.done&&!x.waiting);
+    if(t){e.preventDefault();moveTask(t,e.key==='ArrowUp'?-1:1);const r=document.querySelector('.task.sel');if(r)r.scrollIntoView({block:'nearest'})}
+    return;
   }
   // Con el campo vacío, ↓ pasa a la lista
   if(e.key==='ArrowDown'&&tg===$('title')&&!$('title').value&&!sugg.length&&visibleIds.length){e.preventDefault();$('title').blur();sel=visibleIds[0];renderList();return}
