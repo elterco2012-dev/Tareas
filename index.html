@@ -2859,6 +2859,8 @@ function splitLong(s){
 // vuelve a la lista en lugar de salir de la app. Se deja una entrada en el historial mientras haya algo abierto.
 const BACKABLE=['askOv','waitOv','editOv','textOv','repOv','procOv','bulkOv','syncOv','menu','voiceDock','searchBar','filterBar'];
 let backGuard=false,ignorePop=0,backTimer=null;
+// Volver en el historial no tiene que mover la pantalla (lo maneja la app)
+try{history.scrollRestoration='manual'}catch{}
 function backable(){return BACKABLE.some(id=>{const e=$(id);return e&&!e.classList.contains('hidden')})}
 // Cierra lo que esté más arriba (en el mismo orden que Esc)
 function backClose(){
