@@ -16,7 +16,7 @@ const b=await L.launch();APP=await L.appUrl();
   // Cerrar con ✕ no deja una entrada de más: el siguiente Atrás sale
   await p.locator('.task .ttext',{hasText:'Probar tickets Jira'}).tap();await sleep(200);
   await p.click('#editX');await sleep(300);
-  ok(await p.evaluate(()=>backGuard===false),'closing with ✕ clears the guard');
+  ok(await p.evaluate(()=>!(history.state&&history.state.tareas)),'closing with ✕ clears the guard');
   // Menú ⋯, búsqueda, Sincronización, informe
   await p.locator('.task',{has:p.locator('.ttext',{hasText:'Otra'})}).locator('.more').tap();await sleep(200);
   await p.goBack();await sleep(300);ok(await p.isHidden('#menu')&&onApp(p),'Back closes the ⋯ menu');
@@ -42,7 +42,7 @@ const b=await L.launch();APP=await L.appUrl();
   ok(await p.isHidden('#procOv')&&onApp(p),'Back again closes Procesar');
   // Esc también deja el historial bien
   await p.keyboard.press('p');await sleep(200);await p.keyboard.press('Escape');await sleep(300);
-  ok(await p.evaluate(()=>backGuard===false)&&onApp(p),'Esc closes and clears the guard');
+  ok(await p.evaluate(()=>!(history.state&&history.state.tareas))&&onApp(p),'Esc closes and clears the guard');
   ok(p.errs.length===0,'no errors '+p.errs);
   await ctx.close();
 }

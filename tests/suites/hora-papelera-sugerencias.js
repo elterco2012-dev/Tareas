@@ -79,7 +79,7 @@ await p.evaluate(()=>document.activeElement.blur());await p.keyboard.press('/');
 ok(!(await p.innerText('#groups')).includes('Borrar esta'),'search ignores the trash');
 await p.click('#searchClose');
 await p.click('#trashEmpty');ok((await p.innerText('#trashEmpty')).includes('Tocá de nuevo'),'empty asks to confirm');
-await p.click('#trashEmpty');await sleep(500);
+await sleep(700);await p.click('#trashEmpty');await sleep(500);   // el segundo toque, a propósito (un doble clic no la vacía)
 ok(!gh.items.some(x=>x.deletedAt)&&gh.items.length===2&&!(await p.isVisible('#trashSec')),'empty trash deletes for good: '+gh.items.map(x=>x.id));
 ok((await p.innerText('#toastMsg'))==='3 tareas eliminadas','empty toast');
 // Supr y borrar desde Editar
