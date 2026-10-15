@@ -827,12 +827,11 @@ const DATE_RE=new RegExp('\\s(?:para\\s+|antes\\s+del?\\s+|hasta\\s+el\\s+)?(?:e
   '|(?:en|dentro\\s+de)\\s+(?:\\d{1,3}|'+NUM_RE+')\\s+(?:d[íi]as?|semanas?)'+
   ')(?=[\\s,.;:])','gi');
 // Un día del mes sin mes ("el lunes 19"): este mes si no pasó, si no el que viene.
-// wd: el día de la semana que se dijo; tiene que coincidir ("el viernes 20" en octubre, si el 20 cae martes,
-// es el viernes 20 de noviembre)
+// wd: el día de la semana que se dijo; si ese día no cae así, no es una fecha (null)
 function dayOfMonth(d,wd){
   if(!(d>=1&&d<=31))return null;
   const now=new Date();
-  for(let k=0;k<3;k++){const dt=new Date(now.getFullYear(),now.getMonth()+k,d);if(dt.getDate()===d&&ymd(dt)>=ymd(now)&&(wd==null||dt.getDay()===wd))return ymd(dt)}
+  for(let k=0;k<3;k++){const dt=new Date(now.getFullYear(),now.getMonth()+k,d);if(dt.getDate()===d&&ymd(dt)>=ymd(now))return wd==null||dt.getDay()===wd?ymd(dt):null}
   return null;
 }
 function wordDate(w){
@@ -845,18 +844,22 @@ function wordDate(w){
 // Horas dichas sin "a las": "el viernes 9:30", "mañana 10:30", "el martes 15 hs", "viernes 9am",
 // "el viernes 9 y media", "el martes 8 de la mañana", "reunión 15hs", "al mediodía". Se escriben como
 // "a las …" para que las tome TIME_RE. Un número suelto ("pedir 15 cajas el viernes") no es una hora.
-const HMARK='(?:[:.][0-5]\\d(?:\\s*hs?\\.?)?|\\s*hs?\\.?|\\s*[ap]\\.?\\s?m\\.?|\\s+y\\s+(?:media|cuarto)|\\s+menos\\s+cuarto|\\s+de\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada))(?=[\\s,.;:]|$)';
+const HMARK='(?:[:.][0-5]\\d(?:\\s*hs?\\.?)?|\\s*hs?\\.?|\\s*[ap]\\.?\\s?m\\.?|\\s+y\\s+(?:media|cuarto|[0-5]?\\d)|\\s+menos\\s+cuarto|\\s+de\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada))(?=[\\s,.;:]|$)';
 // Pegada a una fecha ("viernes 9:30", "el lunes 19 15 hs", "15/10 9 y media")
-const HOUR_AFTER_DATE=new RegExp('(\\s(?:hoy|pasado\\s+ma[ñn]ana|ma[ñn]ana|'+WD_RE+'(?:,?\\s+\\d{1,2}(?![\\d\\/:.]))?|\\d{1,2}\\/\\d{1,2}|(?:\\d{1,2}|primero)\\s+de\\s+'+MONTH_RE+'),?)\\s+((?:[01]?\\d|2[0-3])'+HMARK+')','gi');
+const HOUR_AFTER_DATE=new RegExp('(\\s(?:hoy|pasado\\s+ma[ñn]ana|ma[ñn]ana|'+WD_RE+'(?:,?\\s+\\d{1,2}(?![\\d\\/:.]))?|\\d{1,2}\\/\\d{1,2}|(?:\\d{1,2}|primero)\\s+de\\s+'+MONTH_RE+'),?)\\s+((?:[01]?\\d|2[0-3])'+HMARK+'|(?:1\\d|2[0-3])\\s+horas(?=[\\s,.;:]|$))','gi');
 // Antes de estas palabras el número ya es parte de otra cosa ("de 9:30 a 11", "una llamada de 2hs", "en 3hs")
 const NOT_HOUR_BEFORE=/(?:^|\s)(?:a|la|las|de|desde|hasta|entre|en|por|durante|unas?|unos|cada)$/i;
+// Lo que sigue a un número es una cantidad: "15 cajas", "2 proveedores", "10 personas" (no "15 hs")
+function isCount(rest){const nx=(rest.match(/^\s+([a-záéíóúüñ]+)/i)||[])[1];return !!nx&&nx.length>3&&/[aeo]s$/i.test(nx)&&!/^(?:horas|menos|antes|todos|todas)$/i.test(nx)}
 function bareHours(t){
-  t=t.replace(/\s(?:al?\s+medio\s?d[íi]a|mediod[íi]a)(?=[\s,.;:])/gi,' a las 12 ')
+  t=t.replace(/(\sa\s+las?\s+\S+)\s+del\s+medio\s?d[íi]a(?=[\s,.;:])/gi,'$1')
+     .replace(/\s(?:al?\s+medio\s?d[íi]a|mediod[íi]a)(?=[\s,.;:])/gi,' a las 12 ')
      .replace(/\s(?:a\s+(?:la\s+)?)?medianoche(?=[\s,.;:])/gi,' a las 12 de la noche ');
   t=t.replace(HOUR_AFTER_DATE,'$1 a las $2');
   // "10:30" en cualquier lado; "15hs" o "9am" pegados en cualquier lado; "15 hs" o "9 am" separados, al final
   const fix=(m,h,off,str)=>NOT_HOUR_BEFORE.test(str.slice(0,off))?m:' a las '+h;
   t=t.replace(/\s((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*hs?\.?)?)(?=[\s,.;:]|$)/g,fix);
+  t=t.replace(/\s((?:[01]?\d|2[0-3])\.[0-5]\d(?:\s*hs?\.?)?)(?=[\s,;:]|\.?\s*$|\.\s)/g,(m,h,off,str)=>/(?:\$|u\$s|usd|versi[oó]n|v)\s*$/i.test(str.slice(0,off))?m:fix(m,h,off,str));
   t=t.replace(/\s((?:[01]?\d|2[0-3])(?:hs\.?|[ap]\.?m\.?))(?=[\s,.;:]|$)/gi,fix);
   t=t.replace(/\s((?:[01]?\d|2[0-3])\s+(?:hs\.?|[ap]\.?\s?m\.?))(?=[\s,.;:]*$)/gi,fix);
   return t;
@@ -879,10 +882,10 @@ function timeOf(text,day){
   const part=m[5]&&norm(m[5]),ap=m[6]&&m[6].toLowerCase();
   if(part==='tarde'||part==='noche'||ap==='p'){if(h<12)h+=12;else if(part==='noche'&&h===12)h=24}   // "las 12 de la noche" es medianoche
   else if(part==='madrugada'||ap==='a'){if(h===12)h=24}
-  else if(!part&&h>=1&&h<=7)h+=12;   // "a las 3", sin aclarar, es a la tarde
+  else if(!part&&h>=1&&h<=7&&!/^0/.test(m[1]))h+=12;   // "a las 3", sin aclarar, es a la tarde ("a las 06:30" no)
   // "a la una menos cuarto": 12:45
   if(m[4]){const x=minOf(m[4]);if(!(x>0&&x<60))return null;const tot=h*60-x;h=Math.floor(tot/60);min=tot%60;if(h<0)return null}
-  if(!part&&!ap&&day&&day===ymd(new Date())&&h>=1&&h<12){const n=new Date();if(h*60+min<=n.getHours()*60+n.getMinutes())h+=12}
+  if(!part&&!ap&&!/^0/.test(m[1])&&day&&day===ymd(new Date())&&h>=1&&h<12){const n=new Date();if(h*60+min<=n.getHours()*60+n.getMinutes())h+=12}
   return {h,m:min,text:m[0].trim()};
 }
 function timeLabel(tm){return String(tm.h%24).padStart(2,'0')+':'+String(tm.m).padStart(2,'0')}
@@ -906,7 +909,7 @@ const ART_RE='(?:el|la|los|las|lo|un|una|unos|unas|al|en|del|con|a(?!\\s+las?\\s
 const CMD_RE=new RegExp('^(?:(?:crear|cre[áa]|agregar|agreg[áa]|anotar|anot[áa]|nueva)\\s+(?:una\\s+)?tarea(?![\\s,:]+(?:en|de|del|para|con|a|al|sobre)(?![a-záéíóúñ]))'+
   '|(?:anot[áa]|agreg[áa])(?![\\s,:]+'+ART_RE+')'+
   '|record[áa]me|recu[ée]rdame|record[áa]|acordate|acu[ée]rdate|acord[áa]me|acu[ée]rdame|av[íi]same|agend[áa]me|agendá|anot[áa]me'+
-  '|no\\s+te\\s+olvides|no\\s+me\\s+dejes\\s+olvidar|tengo\\s+que|hay\\s+que)(?=[\\s,:]|$)[\\s,:]*(?:(?:de|que)\\s+)?','i');
+  '|no\\s+te\\s+olvides|no\\s+me\\s+dejes\\s+olvidar|tengo\\s+que|hay\\s+que)(?=[\\s,:]|$)[\\s,:]*(?:(?:de\\s+que|de|que)\\s+)?','i');
 // Estas piden un aviso (como "recordame"); "anotame", "tengo que" o "hay que" no
 const REMIND_RE=/^(?:record|recu|acord|acu|av[íi]s|agend|no\s)/i;
 // Dentro de un rato: "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media",
@@ -976,16 +979,17 @@ function parse(text,defaultDue){
     // "a Tres de Febrero" o "el informe del 3 de octubre" son nombres o referencias, no fechas.
     if(/^\w+ de \w+$/.test(nw)&&!/^\s(?:para\s+)?el\s|^\s(?:antes|hasta)\s/i.test(m)&&/\S/.test(before)&&
       (/^\s*del\s/i.test(m)||/^[A-ZÁÉÍÓÚÑ]/.test(w.split(/\s+de\s+/i).pop())||/(?:^|\s)(?:de|del|a|al|en|sucursal|calle|avenida|av\.?|barrio|los|las)$/i.test(before)))return m;
-    const d=wordDate(w);
-    if(!d){
-      // "el viernes 9" sin ningún viernes 9 cerca: manda el día de la semana, y el número es la hora
-      // ("el sábado 10" → el sábado a las 10). Si después viene una cantidad ("el viernes 15 cajas"), queda en el título.
-      const wm=nw.replace(/,/g,'').match(/^(domingo|lunes|martes|miercoles|jueves|viernes|sabado) (\d{1,2})$/);
-      if(!wm)return m;
-      out.due=baseDate(wm[1]);
-      const n=+wm[2],nx=(str.slice(off+m.length).match(/^\s+([a-záéíóúüñ]+)/i)||[])[1];
-      return n<=23&&!(nx&&nx.length>3&&/[aeo]s$/i.test(nx))?' a las '+n+' ':' '+wm[2]+' ';
-    }
+    // Día de la semana con un número: si el número no cae ese día ("el sábado 10" y el 10 es martes) o lo sigue
+    // una cantidad ("el lunes 2 cajas"), manda el día de la semana y el número queda en el título, a la vista
+    const wm=nw.replace(/,/g,'').match(/^(domingo|lunes|martes|miercoles|jueves|viernes|sabado) (\d{1,2})$/);
+    if(wm&&(isCount(str.slice(off+m.length))||!wordDate(w))){out.due=baseDate(wm[1]);return ' '+wm[2]+' '}
+    const d=wordDate(w);if(!d)return m;
+    out.due=d;return ' ';
+  });
+  // El día del mes solo: "pagar el alquiler el 15", "el día 20", "para el 5" (este mes si no pasó, si no el que viene)
+  if(out.due===undefined)t=t.replace(/\s(?:para\s+|hasta\s+)?(?:el|antes\s+del)\s+(?:d[íi]a\s+)?(\d{1,2})(?![\d\/:.,])(?=[\s;:]|[.,](?!\d))/i,(m,n,off,str)=>{
+    if(isCount(str.slice(off+m.length))||/(?:^|\s)(?:tomar|tom[áa]|agarrar|colectivo|l[íi]nea)$/i.test(str.slice(0,off)))return m;
+    const d=dayOfMonth(+n);if(!d)return m;
     out.due=d;return ' ';
   });
   const tidy=x=>x.replace(/\s+/g,' ').replace(/\s([,.;:])/g,'$1').replace(/[,;:](?=[,.;:])/g,'').replace(/^[\s,.;:]+|[\s,.;:]+$/g,'');

@@ -47,7 +47,7 @@ USO DIARIO
 - Si el texto no dice quien la pidio, en el celular aparece "De: Laura · Juan · Marcela": un toque la agrega.
 - Si te interrumpen mientras escribis, lo escrito queda guardado: la proxima vez que abras la app sigue ahi.
 - Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
-  Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, en 3 dias. Prioridad: !alta (o !), !media, !baja.
+  Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, el 15, en 3 dias. Prioridad: !alta (o !), !media, !baja.
   Una fecha como 15/10 que ya paso hace menos de un mes queda en este año (vencida, o el dia en que la hiciste);
   si paso hace mas, es la del año que viene.
   Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
@@ -55,7 +55,8 @@ USO DIARIO
   se guarda aparte (no queda en el texto). Tambien sin "a las": "el viernes 9:30", "mañana 10:30", "el martes 15 hs",
   "viernes 9am", "el viernes 9 y media", "el martes 8 de la mañana", "al mediodia" o "a la medianoche".
   Si decis un dia de la semana con un numero que no coincide ("el sabado 10" cuando el 10 no cae sabado), manda el
-  dia de la semana y el numero se toma como la hora. Mira siempre el "Detectado" antes de guardar. La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
+  dia de la semana y el numero queda en el texto, a la vista, para que lo corrijas. Mira siempre el "Detectado".
+  El dia del mes solo tambien sirve: "pagar el alquiler el 15", "el dia 20" (este mes, o el que viene si ya paso). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
   y la hora se pone en rojo cuando ya paso. Se cambia o se quita en Editar.
   Tambien entiende "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media" o "en 1 hora y 20"
   (hoy, a esa hora).
