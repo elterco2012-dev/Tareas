@@ -52,7 +52,10 @@ USO DIARIO
   si paso hace mas, es la del año que viene.
   Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
 - Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto" o "a las 8 de la noche"
-  se guarda aparte (no queda en el texto). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
+  se guarda aparte (no queda en el texto). Tambien sin "a las": "el viernes 9:30", "mañana 10:30", "el martes 15 hs",
+  "viernes 9am", "el viernes 9 y media", "el martes 8 de la mañana", "al mediodia" o "a la medianoche".
+  Si decis un dia de la semana con un numero que no coincide ("el sabado 10" cuando el 10 no cae sabado), manda el
+  dia de la semana y el numero se toma como la hora. Mira siempre el "Detectado" antes de guardar. La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
   y la hora se pone en rojo cuando ya paso. Se cambia o se quita en Editar.
   Tambien entiende "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media" o "en 1 hora y 20"
   (hoy, a esa hora).
@@ -66,6 +69,7 @@ USO DIARIO
     "recordame mañana a las 3 llamar al banco, es urgente, me lo pidio Laura"
     "tengo que mandar los remitos el viernes que viene"
     "crear tarea revisar stock el 15 de octubre"
+  Ademas de "recordame" entiende "acordame", "avisame", "agendame", "no te olvides de" y "anotame".
   Entiende: hoy, mañana, pasado mañana, lunes a domingo, "el viernes que viene", "la semana que viene",
   "el 15 de octubre", "en 3 dias", "en dos semanas"; la hora ("a las 3", "a las 9 de la mañana");
   "urgente", "importante" o "prioridad alta/media/baja"; y "me lo pidio Juan" o "de parte de Juan".
@@ -77,7 +81,9 @@ USO DIARIO
   tocando "Abrir" en el aviso de descarga) y el Calendario de Samsung (o Outlook, o el de Apple) lo agrega con
   su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
-  Despues de terminar, reagendar o borrar aparece "Deshacer" por unos segundos.
+  Despues de terminar, reagendar, borrar o guardar cambios aparece "Deshacer" por unos segundos.
+- Editar: si cambiaste algo y cerras con Atras, tocando afuera o con Esc, se guarda (con "Deshacer").
+  La ✕ y "Cancelar" descartan los cambios.
 - Terminadas: toca una para verla entera (con sus notas) sin volver a ponerla pendiente. Desde ahi podes corregir
   la nota o tocar "Volver a pendientes". Para volverla a pendientes tambien sirve el circulo con el ✓.
 - Links en las notas: se muestran cortos y se pueden tocar. Un ticket como
@@ -86,7 +92,8 @@ USO DIARIO
   de ticket) o quien la pidio. Las terminadas hace mas de un mes estan en el archivo: "Buscar tambien en el archivo"
   las trae (solo para ver).
 - Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
-  "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre.
+  "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre; por unos segundos aparece
+  "Deshacer", que las devuelve a la papelera.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
   Se sube a GitHub sola; si no habia señal, Chrome la sube cuando vuelve la conexion, aunque hayas cerrado la app
   (en Android, con la app instalada).
@@ -122,7 +129,9 @@ USO DIARIO
   esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
-  Sincronizacion, el informe) y vuelve a la lista. Con todo cerrado, sale de la app.
+  Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
+  cierra de a una. Con todo cerrado, sale de la app. Una lista pegada o compartida que se cierra con Atras se
+  puede recuperar con "Recuperar" en el aviso.
 - Orden: en cada grupo (Hoy, Mañana, Sin fecha...) van primero las de prioridad Alta, despues Media y abajo las
   Baja (en Hoy, antes las que tienen hora). Dentro de la misma prioridad, el orden lo elegis vos: en la compu,
   arrastra la tarea con el mouse o elegila y usa Alt + flecha arriba / abajo; en el celular, "⋯" > Subir o Bajar.

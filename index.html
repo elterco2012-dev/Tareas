@@ -826,24 +826,45 @@ const DATE_RE=new RegExp('\\s(?:para\\s+|antes\\s+del?\\s+|hasta\\s+el\\s+)?(?:e
   '|(?:la\\s+)?(?:semana\\s+que\\s+viene|pr[óo]xima\\s+semana)'+
   '|(?:en|dentro\\s+de)\\s+(?:\\d{1,3}|'+NUM_RE+')\\s+(?:d[íi]as?|semanas?)'+
   ')(?=[\\s,.;:])','gi');
-// Un día del mes sin mes ("el lunes 19"): este mes si no pasó, si no el que viene
-function dayOfMonth(d){
+// Un día del mes sin mes ("el lunes 19"): este mes si no pasó, si no el que viene.
+// wd: el día de la semana que se dijo; tiene que coincidir ("el viernes 20" en octubre, si el 20 cae martes,
+// es el viernes 20 de noviembre)
+function dayOfMonth(d,wd){
   if(!(d>=1&&d<=31))return null;
   const now=new Date();
-  for(let k=0;k<3;k++){const dt=new Date(now.getFullYear(),now.getMonth()+k,d);if(dt.getDate()===d&&ymd(dt)>=ymd(now))return ymd(dt)}
+  for(let k=0;k<3;k++){const dt=new Date(now.getFullYear(),now.getMonth()+k,d);if(dt.getDate()===d&&ymd(dt)>=ymd(now)&&(wd==null||dt.getDay()===wd))return ymd(dt)}
   return null;
 }
 function wordDate(w){
   const n=norm(w).replace(/,/g,'');
   // Con el día del mes, manda el número: "el viernes 16 de octubre", "el lunes 19"
-  const m=n.match(/^(?:domingo|lunes|martes|miercoles|jueves|viernes|sabado) (.+)$/);
-  if(m&&!/^(?:que viene|proximo)$/.test(m[1]))return /^\d{1,2}$/.test(m[1])?dayOfMonth(+m[1]):baseDate(m[1]);
+  const m=n.match(/^(domingo|lunes|martes|miercoles|jueves|viernes|sabado) (.+)$/);
+  if(m&&!/^(?:que viene|proximo)$/.test(m[2]))return /^\d{1,2}$/.test(m[2])?dayOfMonth(+m[2],WDAYS.indexOf(m[1])):baseDate(m[2]);
   return baseDate(n);
+}
+// Horas dichas sin "a las": "el viernes 9:30", "mañana 10:30", "el martes 15 hs", "viernes 9am",
+// "el viernes 9 y media", "el martes 8 de la mañana", "reunión 15hs", "al mediodía". Se escriben como
+// "a las …" para que las tome TIME_RE. Un número suelto ("pedir 15 cajas el viernes") no es una hora.
+const HMARK='(?:[:.][0-5]\\d(?:\\s*hs?\\.?)?|\\s*hs?\\.?|\\s*[ap]\\.?\\s?m\\.?|\\s+y\\s+(?:media|cuarto)|\\s+menos\\s+cuarto|\\s+de\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada))(?=[\\s,.;:]|$)';
+// Pegada a una fecha ("viernes 9:30", "el lunes 19 15 hs", "15/10 9 y media")
+const HOUR_AFTER_DATE=new RegExp('(\\s(?:hoy|pasado\\s+ma[ñn]ana|ma[ñn]ana|'+WD_RE+'(?:,?\\s+\\d{1,2}(?![\\d\\/:.]))?|\\d{1,2}\\/\\d{1,2}|(?:\\d{1,2}|primero)\\s+de\\s+'+MONTH_RE+'),?)\\s+((?:[01]?\\d|2[0-3])'+HMARK+')','gi');
+// Antes de estas palabras el número ya es parte de otra cosa ("de 9:30 a 11", "una llamada de 2hs", "en 3hs")
+const NOT_HOUR_BEFORE=/(?:^|\s)(?:a|la|las|de|desde|hasta|entre|en|por|durante|unas?|unos|cada)$/i;
+function bareHours(t){
+  t=t.replace(/\s(?:al?\s+medio\s?d[íi]a|mediod[íi]a)(?=[\s,.;:])/gi,' a las 12 ')
+     .replace(/\s(?:a\s+(?:la\s+)?)?medianoche(?=[\s,.;:])/gi,' a las 12 de la noche ');
+  t=t.replace(HOUR_AFTER_DATE,'$1 a las $2');
+  // "10:30" en cualquier lado; "15hs" o "9am" pegados en cualquier lado; "15 hs" o "9 am" separados, al final
+  const fix=(m,h,off,str)=>NOT_HOUR_BEFORE.test(str.slice(0,off))?m:' a las '+h;
+  t=t.replace(/\s((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*hs?\.?)?)(?=[\s,.;:]|$)/g,fix);
+  t=t.replace(/\s((?:[01]?\d|2[0-3])(?:hs\.?|[ap]\.?m\.?))(?=[\s,.;:]|$)/gi,fix);
+  t=t.replace(/\s((?:[01]?\d|2[0-3])\s+(?:hs\.?|[ap]\.?\s?m\.?))(?=[\s,.;:]*$)/gi,fix);
+  return t;
 }
 // Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto",
 // "a la una", "a las 8 de la noche", "a las 3 de la madrugada", "a las 8 p.m."
 const MIN_RE='(cuarto|\\d{1,2}|cinco|diez|veinte|veinticinco)';
-const TIME_RE=new RegExp('(?:^|\\s)a\\s+las?\\s+(\\d{1,2}|'+NUM_RE+')(?:[:.](\\d{2})|\\s+y\\s+(media|'+MIN_RE.slice(1)+'|\\s+menos\\s+'+MIN_RE+')?(?:\\s*(?:hs\\.?|horas?))?'+
+const TIME_RE=new RegExp('(?:^|\\s)a\\s+las?\\s+(\\d{1,2}|'+NUM_RE+')(?:[:.](\\d{2})|\\s+y\\s+(media|'+MIN_RE.slice(1)+'|\\s+menos\\s+'+MIN_RE+')?(?:\\s*(?:hs?\\.?|horas?))?'+
   '(?:\\s+de\\s+la\\s+(ma[ñn]ana|tarde|noche|madrugada)|\\s*([ap])\\.?\\s?m\\.?)?(?=[\\s,.;:]|$)','i');
 const MINW={media:30,cuarto:15,cinco:5,diez:10,veinte:20,veinticinco:25};
 function minOf(x){return /^\d+$/.test(x)?+x:MINW[norm(x)]}
@@ -852,7 +873,7 @@ function timeOf(text,day){
   const m=text.match(TIME_RE);if(!m)return null;
   // "a las 3 sucursales", "a las 4 personas": es una cantidad, no una hora
   const nx=(text.slice(m.index+m[0].length).match(/^\s+([a-záéíóúüñ]+)(?=[\s,.;:]|$)/i)||[])[1];
-  if(!m[2]&&!m[3]&&!m[4]&&!m[5]&&!m[6]&&!/(?:hs\.?|horas?)$/i.test(m[0])&&nx&&nx.length>3&&/[aeo]s$/i.test(nx)&&!/^(?:menos|antes|todos|todas|ellos|ellas|horas|\w*mos)$/i.test(nx))return null;
+  if(!m[2]&&!m[3]&&!m[4]&&!m[5]&&!m[6]&&!/(?:hs?\.?|horas?)$/i.test(m[0])&&nx&&nx.length>3&&/[aeo]s$/i.test(nx)&&!/^(?:menos|antes|todos|todas|ellos|ellas|horas|\w*mos)$/i.test(nx))return null;
   let h=toNum(norm(m[1])),min=m[2]?+m[2]:m[3]?minOf(m[3]):0;
   if(h==null||h>23||!(min>=0&&min<=59))return null;
   const part=m[5]&&norm(m[5]),ap=m[6]&&m[6].toLowerCase();
@@ -884,7 +905,10 @@ function taskTime(t){
 const ART_RE='(?:el|la|los|las|lo|un|una|unos|unas|al|en|del|con|a(?!\\s+las?\\s+(?:\\d|'+NUM_RE+')))(?![a-záéíóúñ])';
 const CMD_RE=new RegExp('^(?:(?:crear|cre[áa]|agregar|agreg[áa]|anotar|anot[áa]|nueva)\\s+(?:una\\s+)?tarea(?![\\s,:]+(?:en|de|del|para|con|a|al|sobre)(?![a-záéíóúñ]))'+
   '|(?:anot[áa]|agreg[áa])(?![\\s,:]+'+ART_RE+')'+
-  '|record[áa]me|recu[ée]rdame|acordate|acu[ée]rdate|tengo\\s+que|hay\\s+que)(?=[\\s,:]|$)[\\s,:]*(?:(?:de|que)\\s+)?','i');
+  '|record[áa]me|recu[ée]rdame|record[áa]|acordate|acu[ée]rdate|acord[áa]me|acu[ée]rdame|av[íi]same|agend[áa]me|agendá|anot[áa]me'+
+  '|no\\s+te\\s+olvides|no\\s+me\\s+dejes\\s+olvidar|tengo\\s+que|hay\\s+que)(?=[\\s,:]|$)[\\s,:]*(?:(?:de|que)\\s+)?','i');
+// Estas piden un aviso (como "recordame"); "anotame", "tengo que" o "hay que" no
+const REMIND_RE=/^(?:record|recu|acord|acu|av[íi]s|agend|no\s)/i;
 // Dentro de un rato: "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media",
 // "en 1 hora y 20", "en 2 horas y 30 minutos"
 const MINU='(?:minutos?|mins?\\.?)',RELN='(\\d{1,3}|'+NUM_RE+')';
@@ -938,6 +962,7 @@ function parse(text,defaultDue){
     out.rel={h:at.getHours(),m:at.getMinutes(),text:m.trim(),day:ymd(at)};
     return ' ';
   });
+  t=bareHours(t);
   // Fecha
   t=t.replace(DATE_RE,(m,w,off,str)=>{
     if(out.due)return m;
@@ -951,7 +976,16 @@ function parse(text,defaultDue){
     // "a Tres de Febrero" o "el informe del 3 de octubre" son nombres o referencias, no fechas.
     if(/^\w+ de \w+$/.test(nw)&&!/^\s(?:para\s+)?el\s|^\s(?:antes|hasta)\s/i.test(m)&&/\S/.test(before)&&
       (/^\s*del\s/i.test(m)||/^[A-ZÁÉÍÓÚÑ]/.test(w.split(/\s+de\s+/i).pop())||/(?:^|\s)(?:de|del|a|al|en|sucursal|calle|avenida|av\.?|barrio|los|las)$/i.test(before)))return m;
-    const d=wordDate(w);if(!d)return m;
+    const d=wordDate(w);
+    if(!d){
+      // "el viernes 9" sin ningún viernes 9 cerca: manda el día de la semana, y el número es la hora
+      // ("el sábado 10" → el sábado a las 10). Si después viene una cantidad ("el viernes 15 cajas"), queda en el título.
+      const wm=nw.replace(/,/g,'').match(/^(domingo|lunes|martes|miercoles|jueves|viernes|sabado) (\d{1,2})$/);
+      if(!wm)return m;
+      out.due=baseDate(wm[1]);
+      const n=+wm[2],nx=(str.slice(off+m.length).match(/^\s+([a-záéíóúüñ]+)/i)||[])[1];
+      return n<=23&&!(nx&&nx.length>3&&/[aeo]s$/i.test(nx))?' a las '+n+' ':' '+wm[2]+' ';
+    }
     out.due=d;return ' ';
   });
   const tidy=x=>x.replace(/\s+/g,' ').replace(/\s([,.;:])/g,'$1').replace(/[,;:](?=[,.;:])/g,'').replace(/^[\s,.;:]+|[\s,.;:]+$/g,'');
@@ -960,7 +994,7 @@ function parse(text,defaultDue){
   let cmd=false,lead='';
   for(let i=0;i<4;i++){
     const m=title.match(CMD_RE);
-    if(m){if(/^(?:record|recu|acord|acu)/i.test(m[0]))out.remind=true;title=title.slice(m[0].length);cmd=true;continue}
+    if(m){if(REMIND_RE.test(m[0]))out.remind=true;title=title.slice(m[0].length);cmd=true;continue}
     const tm=!lead&&timeOf(' '+title+' ');
     if(tm&&title.toLowerCase().startsWith(tm.text.toLowerCase())){
       lead=tm.text;title=title.slice(tm.text.length).replace(/^[\s,]+/,'');
@@ -2223,12 +2257,13 @@ $('title').addEventListener('beforeinput',e=>{
   if(!e.cancelable)setTimeout(()=>{t.value=prev;saveDraft();renderAdd()},0);   // si no se pudo cancelar, se deja como estaba
   openBulk(lines);
 });
-function openBulk(lines){
+// offs: las líneas destildadas (al recuperar una lista que se cerró con Atrás)
+function openBulk(lines,offs){
   closeMenu();bulk=true;
   const list=$('bulkList');list.replaceChildren();
-  lines.forEach(l=>{
+  lines.forEach((l,i)=>{
     const row=el('label','bulkrow'),cb=el('input'),inp=el('input','inp');
-    cb.type='checkbox';cb.checked=true;cb.setAttribute('aria-label','Cargar esta línea');
+    cb.type='checkbox';cb.checked=!(offs&&offs[i]);cb.setAttribute('aria-label','Cargar esta línea');
     inp.value=l.slice(0,500);inp.maxLength=500;inp.setAttribute('aria-label','Tarea');
     cb.addEventListener('change',renderBulk);inp.addEventListener('input',renderBulk);
     row.append(cb,inp);list.append(row);
@@ -2246,6 +2281,14 @@ function renderBulk(){
   $('bulkOk').textContent=n===1?'Agregar 1':'Agregar '+n;$('bulkOk').disabled=!n;
 }
 function closeBulk(){bulk=null;releaseFocus($('bulkOv'));$('bulkOv').classList.add('hidden');$('wrap').inert=false}
+// Atrás, tocar afuera o Esc: se cierra, pero la lista (pegada o compartida) se puede recuperar.
+// La ✕ y Cancelar descartan.
+function dismissBulk(){
+  const rows=[...$('bulkList').children].filter(r=>r.lastChild.value.trim());
+  const lines=rows.map(r=>r.lastChild.value),offs=rows.map(r=>!r.firstChild.checked);
+  closeBulk();
+  if(lines.length)toast('Se cerró la lista sin cargar',()=>openBulk(lines,offs),'Recuperar',8000);
+}
 $('bulkForm').addEventListener('submit',e=>{
   e.preventDefault();
   const def=dueFor(chip),now=new Date().toISOString();
@@ -2268,7 +2311,7 @@ $('bulkForm').addEventListener('submit',e=>{
 });
 $('bulkX').onclick=closeBulk;$('bulkCancel').onclick=closeBulk;
 $('bulkOv').addEventListener('pointerdown',e=>{downOn=e.target});
-$('bulkOv').addEventListener('click',e=>{if(e.target===$('bulkOv')&&downOn===e.target)closeBulk()});
+$('bulkOv').addEventListener('click',e=>{if(e.target===$('bulkOv')&&downOn===e.target)dismissBulk()});
 
 // ---- Dictado por voz ----
 // Con el campo vacío, el botón de Agregar es un micrófono. Lo dictado queda en el campo con
@@ -2559,11 +2602,15 @@ function renderTrash(){
   $('trashEmpty').textContent=confirmEmpty?'Tocá de nuevo para eliminarlas para siempre':'Vaciar papelera';
 }
 $('trashToggle').onclick=()=>{showTrash=!showTrash;confirmEmpty=false;renderTrash()};
+let confirmAt=0;
 $('trashEmpty').onclick=()=>{
-  if(!confirmEmpty){confirmEmpty=true;renderTrash();return}
-  const n=trash.length;confirmEmpty=false;
-  actMany(trash.map(t=>({type:'delete',id:t.id})));
-  toast(n===1?'1 tarea eliminada':n+' tareas eliminadas');
+  if(!confirmEmpty){confirmEmpty=true;confirmAt=Date.now();renderTrash();return}
+  // Un doble clic no la vacía: el segundo toque tiene que ser a propósito
+  if(Date.now()-confirmAt<600)return;
+  const gone=trash.map(t=>({...t})),n=gone.length;confirmEmpty=false;
+  actMany(gone.map(t=>({type:'delete',id:t.id})));
+  // Deshacer las vuelve a la papelera, con su fecha de borrado
+  toast(n===1?'1 tarea eliminada':n+' tareas eliminadas',()=>actMany(gone.map(task=>({type:'add',task}))),'Deshacer',8000);
 };
 $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
 
@@ -2629,8 +2676,7 @@ function closeEdit(){edit=null;releaseFocus($('editOv'));$('editOv').classList.a
 document.querySelectorAll('#eChips .chip').forEach(b=>b.addEventListener('click',()=>{edit.due=dueFor(b.dataset.v)||'';renderEdit()}));
 $('eDue').addEventListener('change',()=>{edit.due=$('eDue').value;renderEdit()});
 document.querySelectorAll('#ePrios .prio').forEach(b=>b.addEventListener('click',()=>{edit.priority=b.dataset.p;renderEdit()}));
-$('editForm').addEventListener('submit',e=>{
-  e.preventDefault();
+function saveEdit(){
   if(!edit)return;
   if(edit.readonly){closeEdit();return}
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
@@ -2639,8 +2685,22 @@ $('editForm').addEventListener('submit',e=>{
   if(t0&&!t0.done&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
   if(t0&&t0.inbox&&Object.keys(patch).length)patch.inbox=false;
   const id=edit.id;closeEdit();
-  if(Object.keys(patch).length){act({type:'edit',id,patch});toast('Cambios guardados')}
-});
+  if(!Object.keys(patch).length)return;
+  // Deshacer vuelve a los valores de antes (se calculan ahora, antes de aplicar el cambio)
+  const back=t0?undoOf(t0,patch):null;
+  act({type:'edit',id,patch});
+  toast('Cambios guardados',back&&(()=>act({type:'edit',id,patch:back})));
+}
+$('editForm').addEventListener('submit',e=>{e.preventDefault();saveEdit()});
+// Atrás, tocar afuera o Esc: si cambiaste algo, se guarda (con Deshacer), como en las apps de Android.
+// La ✕ y Cancelar son los que descartan.
+function dismissEdit(){
+  if(!edit)return;
+  if(edit.readonly||!Object.keys(editPatch()).length)return closeEdit();
+  // Sin título no se puede guardar: queda abierta para escribirlo o descartar con Cancelar
+  if(!$('eTitle').value.trim()){toast('Falta el título: escribilo, o tocá Cancelar para descartar los cambios');$('eTitle').focus();return}
+  saveEdit();
+}
 $('editX').onclick=closeEdit;$('eCancel').onclick=closeEdit;
 $('eNotes').addEventListener('input',renderLinks);
 // Volver a pendientes guarda también lo que hayas cambiado (por ejemplo, la nota); Deshacer solo deshace la reapertura
@@ -2656,7 +2716,7 @@ $('archBtn').onclick=()=>loadArchive();
 // Tocar el fondo oscuro cierra el modal, salvo que el toque empiece adentro
 // (por ejemplo, al arrastrar para seleccionar texto y soltar afuera)
 ['editOv','syncOv'].forEach(id=>$(id).addEventListener('pointerdown',e=>{downOn=e.target}));
-$('editOv').addEventListener('click',e=>{if(e.target===$('editOv')&&downOn===e.target)closeEdit()});
+$('editOv').addEventListener('click',e=>{if(e.target===$('editOv')&&downOn===e.target)dismissEdit()});
 $('eDel').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);if(t)del(t);else closeEdit()};
 
 // ---- Sincronización ----
@@ -2753,15 +2813,13 @@ document.addEventListener('keydown',e=>{
     if(listening)stopVoice(true);
     else if(ask)closeAsk();
     else if(waitFor)closeWait();
-    else if(edit)closeEdit();
+    else if(edit)dismissEdit();
     else if(proc)closeProc();
     else if(autoSave)cancelAutoSave();
     else if(dock)closeDock();
     else if(!$('textOv').classList.contains('hidden'))closeText();
     else if(repOpen())closeReport();
-    else if(waitFor)closeWait();
-    else if(bulk)closeBulk();
-    else if(edit)closeEdit();
+    else if(bulk)dismissBulk();
     else if(settingsOpen)closeSettings();
     else if(menuId)closeMenu();
     else if(searchOpen)closeSearch();
@@ -2856,40 +2914,52 @@ function splitLong(s){
 
 // ---- Botón Atrás (celular) y Atrás del navegador ----
 // Con una ventana abierta (una tarea, Sincronización, el informe, el menú ⋯, la búsqueda…), Atrás la cierra y
-// vuelve a la lista en lugar de salir de la app. Se deja una entrada en el historial mientras haya algo abierto.
+// vuelve a la lista en lugar de salir de la app. Mientras haya algo abierto queda una sola entrada "guarda" en el
+// historial, encima de la de la app; se reconoce por su estado, así que también sirve después de recargar.
 const BACKABLE=['askOv','waitOv','editOv','textOv','repOv','procOv','bulkOv','syncOv','menu','voiceDock','searchBar','filterBar'];
-let backGuard=false,ignorePop=0,backTimer=null;
+let navPending=0,navTimer=null,afterPop=false,backTimer=null;
 // Volver en el historial no tiene que mover la pantalla (lo maneja la app)
 try{history.scrollRestoration='manual'}catch{}
+const onGuard=()=>!!(history.state&&history.state.tareas==='atras');
 function backable(){return BACKABLE.some(id=>{const e=$(id);return e&&!e.classList.contains('hidden')})}
-// Cierra lo que esté más arriba (en el mismo orden que Esc)
+// Cierra lo que esté más arriba (en el mismo orden que Esc). Una tarea con cambios se guarda.
 function backClose(){
   if(ask)return closeAsk();
   if(waitFor)return closeWait();
-  if(edit)return closeEdit();
+  if(edit)return dismissEdit();
   if(!$('textOv').classList.contains('hidden'))return closeText();
   if(repOpen())return closeReport();
   if(proc)return closeProc();
-  if(bulk)return closeBulk();
+  if(bulk)return dismissBulk();
   if(settingsOpen)return closeSettings();
   if(menuId)return closeMenu();
   if(dock){if(listening)stopVoice(true);return closeDock()}
   if(searchOpen)return closeSearch();
   if(personFilter)return setPersonFilter(null);
 }
+// Moverse en el historial desde acá: hasta que llegue su popstate no se vuelve a decidir
+// (si no llegara, a los 1,5 s se sigue igual)
+function traverse(n){navPending++;clearTimeout(navTimer);navTimer=setTimeout(()=>{navPending=0;syncBack()},1500);history.go(n)}
 function syncBack(){
-  const open=backable();
-  if(open&&!backGuard){history.pushState({tareas:'atras'},'');backGuard=true}
-  else if(!open&&backGuard){backGuard=false;ignorePop++;history.back()}   // se cerró con ✕, Esc o Guardar
+  if(navPending)return;
+  const open=backable(),ap=afterPop;afterPop=false;
+  if(open&&!onGuard()){
+    // Después de un Atrás que dejó otra ventana abierta debajo se vuelve a la guarda que ya existe (está adelante).
+    // Crear una nueva sin que hayas tocado nada haría que Chrome saltee esta entrada, y el Atrás siguiente
+    // cerraría la app.
+    if(ap)traverse(1);else history.pushState({tareas:'atras'},'');
+  }
+  else if(!open&&onGuard())traverse(-1);   // se cerró con ✕, Esc o Guardar (o se recargó con la guarda puesta)
 }
+function scheduleBack(){clearTimeout(backTimer);backTimer=setTimeout(syncBack,0)}
 window.addEventListener('popstate',()=>{
-  if(ignorePop){ignorePop--;return}
-  if(!backGuard)return;
-  backGuard=false;backClose();
-  clearTimeout(backTimer);backTimer=setTimeout(syncBack,0);   // si queda otra abierta debajo, Atrás la cierra después
+  if(navPending){if(!--navPending)clearTimeout(navTimer);scheduleBack();return}   // el que pedimos recién
+  // Atrás desde la guarda: se cierra la de más arriba; si queda otra abierta, el próximo Atrás la cierra
+  if(!onGuard()){backClose();afterPop=true}
+  scheduleBack();
 });
-new MutationObserver(()=>{clearTimeout(backTimer);backTimer=setTimeout(syncBack,0)})
-  .observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+new MutationObserver(scheduleBack).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+scheduleBack();
 
 // ---- Inicio ----
 cfg=load(K_CFG,{})||{};
