@@ -821,7 +821,7 @@ const DATE_RE=new RegExp('\\s(?:para\\s+|antes\\s+del?\\s+|hasta\\s+el\\s+)?(?:e
   'hoy|pasado\\s+ma[ñn]ana|ma[ñn]ana'+
   // "15/10", "15 de octubre", "el viernes 16 de octubre", "el lunes 19"
   '|(?:'+WD_RE+',?\\s+)?(?:\\d{1,2}\\/\\d{1,2}|(?:\\d{1,2}|primero|'+NUM_RE+')\\s+de\\s+'+MONTH_RE+')'+
-  '|'+WD_RE+',?\\s+\\d{1,2}(?![\\d\\/])'+
+  '|'+WD_RE+',?\\s+\\d{1,2}(?![\\d\\/]|[:.]\\d|\\s*hs?\\.?(?=[\\s,.;:]|$))'+
   '|(?:pr[óo]ximo\\s+)?'+WD_RE+'(?:\\s+(?:que\\s+viene|pr[óo]ximo))?'+
   '|(?:la\\s+)?(?:semana\\s+que\\s+viene|pr[óo]xima\\s+semana)'+
   '|(?:en|dentro\\s+de)\\s+(?:\\d{1,3}|'+NUM_RE+')\\s+(?:d[íi]as?|semanas?)'+
@@ -844,22 +844,37 @@ function wordDate(w){
 // Horas dichas sin "a las": "el viernes 9:30", "mañana 10:30", "el martes 15 hs", "viernes 9am",
 // "el viernes 9 y media", "el martes 8 de la mañana", "reunión 15hs", "al mediodía". Se escriben como
 // "a las …" para que las tome TIME_RE. Un número suelto ("pedir 15 cajas el viernes") no es una hora.
-const HMARK='(?:[:.][0-5]\\d(?:\\s*hs?\\.?)?|\\s*hs?\\.?|\\s*[ap]\\.?\\s?m\\.?|\\s+y\\s+(?:media|cuarto|[0-5]?\\d)|\\s+menos\\s+cuarto|\\s+de\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada))(?=[\\s,.;:]|$)';
+const HMARK='(?:[:.][0-5]\\d(?:\\s*hs?\\.?)?|\\s*hs?\\.?|\\s*[ap]\\.?\\s?m\\.?|\\s+y\\s+(?:media|cuarto|[1-5][05]|0?5)|\\s+menos\\s+cuarto|\\s+de\\s+la\\s+(?:ma[ñn]ana|tarde|noche|madrugada))(?=[\\s,.;:]|$)';
 // Pegada a una fecha ("viernes 9:30", "el lunes 19 15 hs", "15/10 9 y media")
 const HOUR_AFTER_DATE=new RegExp('(\\s(?:hoy|pasado\\s+ma[ñn]ana|ma[ñn]ana|'+WD_RE+'(?:,?\\s+\\d{1,2}(?![\\d\\/:.]))?|\\d{1,2}\\/\\d{1,2}|(?:\\d{1,2}|primero)\\s+de\\s+'+MONTH_RE+'),?)\\s+((?:[01]?\\d|2[0-3])'+HMARK+'|(?:1\\d|2[0-3])\\s+horas(?=[\\s,.;:]|$))','gi');
-// Antes de estas palabras el número ya es parte de otra cosa ("de 9:30 a 11", "una llamada de 2hs", "en 3hs")
-const NOT_HOUR_BEFORE=/(?:^|\s)(?:a|la|las|de|desde|hasta|entre|en|por|durante|unas?|unos|cada)$/i;
+// Antes de estas palabras el número ya es parte de otra cosa ("de 9:30 a 11", "una llamada de 2hs", "en 3hs", "10 - 11 hs")
+const NOT_HOUR_BEFORE=/(?:^|\s)(?:a|la|las|de|desde|hasta|entre|en|por|durante|unas?|unos|cada|-|–|—)$/i;
 // Lo que sigue a un número es una cantidad: "15 cajas", "2 proveedores", "10 personas" (no "15 hs")
 function isCount(rest){const nx=(rest.match(/^\s+([a-záéíóúüñ]+)/i)||[])[1];return !!nx&&nx.length>3&&/[aeo]s$/i.test(nx)&&!/^(?:horas|menos|antes|todos|todas)$/i.test(nx)}
+// Una medida o un precio después del número con punto: "mañana 3.50 de nafta", "2.50 m", "12.50 USD"
+const UNIT_AFTER=/^\s*(?:de|x|m|mm|cm|km|kg|g|grs?|lts?|l|pesos|d[óo]lares|usd|%)(?=[\s,.;:]|$)/i;
+// El comienzo de un rango: "10:00 a 11:00", "10 - 11 hs" (no es la hora de la tarea; queda como está)
+const RANGE_AFTER=/^\s*(?:a|-|–|—|hasta)\s*(?:[01]?\d|2[0-3])(?:[:.][0-5]\d|\s*hs?\.?)?(?=[\s,.;:]|$)/i;
+// "3 hs" o "2 h" solos son un rato ("estudiar 3 hs"), no las 15
+const isDuration=h=>/^[1-7]\s*hs?\.?$/i.test(h);
+// Lo que reescribió bareHours: [lo que puso, lo que decía]. Lo que no termine siendo la hora vuelve a como estaba.
+let bareSubs=[];
 function bareHours(t){
+  bareSubs=[];
+  const sub=(orig,ins)=>{bareSubs.push([ins.trim(),orig.trim()]);return ins};
   t=t.replace(/(\sa\s+las?\s+\S+)\s+del\s+medio\s?d[íi]a(?=[\s,.;:])/gi,'$1')
-     .replace(/\s(?:al?\s+medio\s?d[íi]a|mediod[íi]a)(?=[\s,.;:])/gi,' a las 12 ')
-     .replace(/\s(?:a\s+(?:la\s+)?)?medianoche(?=[\s,.;:])/gi,' a las 12 de la noche ');
-  t=t.replace(HOUR_AFTER_DATE,'$1 a las $2');
-  // "10:30" en cualquier lado; "15hs" o "9am" pegados en cualquier lado; "15 hs" o "9 am" separados, al final
-  const fix=(m,h,off,str)=>NOT_HOUR_BEFORE.test(str.slice(0,off))?m:' a las '+h;
+     .replace(/\sal?\s+medio\s?d[íi]a(?=[\s,.;:])/gi,m=>sub(m,' a las 12 '))
+     .replace(/\sa\s+(?:la\s+)?medianoche(?=[\s,.;:])/gi,m=>sub(m,' a las 12 de la noche '));
+  t=t.replace(HOUR_AFTER_DATE,(m,d,h,off,str)=>isDuration(h)||/\.\d/.test(h)&&UNIT_AFTER.test(str.slice(off+m.length))?m:d+sub(' '+h,' a las '+h));
+  // "10:30" en cualquier lado; "9.30 hs" (con punto, solo si dice hs); "15hs" o "9am" pegados en cualquier lado;
+  // "15 hs" o "9 am" separados, al final
+  const fix=(m,h,off,str)=>{
+    const rest=str.slice(off+m.length);
+    if(NOT_HOUR_BEFORE.test(str.slice(0,off))||isDuration(h)||RANGE_AFTER.test(rest)&&!isCount(rest.replace(RANGE_AFTER,'')))return m;
+    return sub(m,' a las '+h);
+  };
   t=t.replace(/\s((?:[01]?\d|2[0-3]):[0-5]\d(?:\s*hs?\.?)?)(?=[\s,.;:]|$)/g,fix);
-  t=t.replace(/\s((?:[01]?\d|2[0-3])\.[0-5]\d(?:\s*hs?\.?)?)(?=[\s,;:]|\.?\s*$|\.\s)/g,(m,h,off,str)=>/(?:\$|u\$s|usd|versi[oó]n|v)\s*$/i.test(str.slice(0,off))?m:fix(m,h,off,str));
+  t=t.replace(/\s((?:[01]?\d|2[0-3])\.[0-5]\d\s*hs?\.?)(?=[\s,.;:]|$)/gi,fix);
   t=t.replace(/\s((?:[01]?\d|2[0-3])(?:hs\.?|[ap]\.?m\.?))(?=[\s,.;:]|$)/gi,fix);
   t=t.replace(/\s((?:[01]?\d|2[0-3])\s+(?:hs\.?|[ap]\.?\s?m\.?))(?=[\s,.;:]*$)/gi,fix);
   return t;
@@ -918,8 +933,10 @@ const MINU='(?:minutos?|mins?\\.?)',RELN='(\\d{1,3}|'+NUM_RE+')';
 const REL_RE=new RegExp('\\s(?:en|dentro\\s+de)\\s+(?:(media)\\s+hora|'+RELN+'\\s+'+MINU+'(?!\\s+y\\s+media)|'+RELN+'\\s+(?:horas?|hs\\.?|h)'+
   '(?:\\s+y\\s+(?:(\\d{1,2})\\s+'+MINU+'|(media|cuarto|cinco|diez|quince|veinte|veinticinco|treinta|cuarenta|cincuenta|[1-5][05](?!\\d)|5(?!\\d))(?:\\s+'+MINU+')?)|\\s+(\\d{1,2})\\s+'+MINU+')?(?!\\s+\\d))(?=[\\s,.;:])','i');
 const REL_MIN={media:30,cuarto:15,cinco:5,diez:10,quince:15,veinte:20,veinticinco:25,treinta:30,cuarenta:40,cincuenta:50};
-// defaultDue: la fecha elegida con los chips, si el texto no dice otra
-function parse(text,defaultDue){
+// defaultDue: la fecha elegida con los chips, si el texto no dice otra.
+// strict: solo lo seguro (sin horas sueltas ni "el 15"), para decidir si el resto de un mensaje largo trae fecha.
+function parse(text,defaultDue,strict){
+  bareSubs=[];
   const out={title:text.trim()};
   if(!out.title)return out;
   const up=/^[\s¿¡]*[A-ZÁÉÍÓÚÑ]/.test(out.title);
@@ -965,7 +982,7 @@ function parse(text,defaultDue){
     out.rel={h:at.getHours(),m:at.getMinutes(),text:m.trim(),day:ymd(at)};
     return ' ';
   });
-  t=bareHours(t);
+  if(!strict)t=bareHours(t);
   // Fecha
   t=t.replace(DATE_RE,(m,w,off,str)=>{
     if(out.due)return m;
@@ -986,10 +1003,16 @@ function parse(text,defaultDue){
     const d=wordDate(w);if(!d)return m;
     out.due=d;return ' ';
   });
-  // El día del mes solo: "pagar el alquiler el 15", "el día 20", "para el 5" (este mes si no pasó, si no el que viene)
-  if(out.due===undefined)t=t.replace(/\s(?:para\s+|hasta\s+)?(?:el|antes\s+del)\s+(?:d[íi]a\s+)?(\d{1,2})(?![\d\/:.,])(?=[\s;:]|[.,](?!\d))/i,(m,n,off,str)=>{
-    if(isCount(str.slice(off+m.length))||/(?:^|\s)(?:tomar|tom[áa]|agarrar|colectivo|l[íi]nea)$/i.test(str.slice(0,off)))return m;
-    const d=dayOfMonth(+n);if(!d)return m;
+  // El día del mes solo: "pagar el alquiler el 15", "el día 20", "para el 5" (este mes si no pasó, si no el que viene),
+  // "el 15 del mes que viene". No: "el pedido que hizo el 5", "el 30 por ciento", "entre el 1 y el 10", "me tomo el 15".
+  if(out.due===undefined&&!strict)t=t.replace(/\s(?:para\s+|hasta\s+)?(?:el|antes\s+del)\s+(?:d[íi]a\s+)?(\d{1,2})(?![\d\/:])(?:\s+del?\s+(?:(?:este|corriente)\s+mes|(mes\s+que\s+viene|mes\s+pr[óo]ximo|pr[óo]ximo\s+mes)))?(?=[\s;:]|[.,](?!\d)|$)/i,(m,n,nextM,off,str)=>{
+    const before=str.slice(0,off),rest=str.slice(off+m.length);
+    if(isCount(rest)||/(?:^|\s)(?:tomar|tom[áa]|tomo|agarrar|colectivo|l[íi]nea|en|por|entre|desde|hice|hizo|vi|vio|vino|vine|fue|fui|pas[óo]|lleg[óo]|llegu[ée]|mand[óé]|ped[íi]|pidi[óo]|pagu[ée]|pag[óo]|compr[óé])$/i.test(before)||
+      /^\s*(?:%|por\s+ciento|y\s+el\s+\d|al\s+\d|del?\s+(?:la\s+lista|mes\s+pasado))/i.test(rest))return m;
+    let d;
+    if(nextM){const now=new Date(),dt=new Date(now.getFullYear(),now.getMonth()+1,+n);d=dt.getDate()===+n?ymd(dt):null}
+    else d=dayOfMonth(+n);
+    if(!d)return m;
     out.due=d;return ' ';
   });
   const tidy=x=>x.replace(/\s+/g,' ').replace(/\s([,.;:])/g,'$1').replace(/[,;:](?=[,.;:])/g,'').replace(/^[\s,.;:]+|[\s,.;:]+$/g,'');
@@ -1015,6 +1038,11 @@ function parse(text,defaultDue){
   if(tm&&!out.time){
     if(!lead){const i=title.toLowerCase().indexOf(tm.text.toLowerCase());if(i>=0)title=tidy(title.slice(0,i)+' '+title.slice(i+tm.text.length))}
     out.time=tm;
+  }
+  // Las horas sueltas que se escribieron como "a las …" y no son la de la tarea vuelven a como las escribiste
+  for(const [ins,orig] of bareSubs){
+    if(out.time&&ins.toLowerCase()===String(out.time.text).toLowerCase())continue;
+    const i=title.toLowerCase().indexOf(ins.toLowerCase());if(i>=0)title=tidy(title.slice(0,i)+' '+orig+' '+title.slice(i+ins.length));
   }
   title=title.trim();
   if(!title)out.bare=true;   // solo había fecha, hora o persona ("recordame mañana a las 3")
@@ -1236,7 +1264,9 @@ function noteArrivals(prev,next,known){
   if(!fresh.length)return;
   fresh.forEach(t=>arrived.add(t.id));
   const srcs=new Set(fresh.map(t=>t.src||'')),from=srcs.size===1&&srcs.has('cel')?' desde el celular':srcs.size===1&&srcs.has('pc')?' desde la compu':'';
-  if(document.visibilityState==='visible')toast((fresh.length===1?'1 nueva':fresh.length+' nuevas')+from,()=>{const r=document.querySelector('.task.llego');if(r)r.scrollIntoView({block:'center',behavior:'smooth'})},'Ver',6000);
+  // Si en pantalla hay un Deshacer o Recuperar, no se lo tapa (las nuevas igual quedan marcadas en la lista)
+  const busy=toastAction&&toastKind!=='llegaron'&&!$('toast').classList.contains('hidden');
+  if(document.visibilityState==='visible'&&!busy)toast((fresh.length===1?'1 nueva':fresh.length+' nuevas')+from,()=>{const r=document.querySelector('.task.llego');if(r)r.scrollIntoView({block:'center',behavior:'smooth'})},'Ver',6000,null,'llegaron');
 }
 // Se desvanecen recién cuando la ventana tiene el foco: si llegaron mientras no estabas, siguen marcadas
 function settleArrivals(){
@@ -1748,16 +1778,18 @@ function closeMenu(){menuId=null;$('menu').classList.add('hidden');$('menuBackdr
 // ---- Acciones ----
 // Aviso abajo; la acción por defecto es "Deshacer"
 // more: más botones, [[texto, función], …]
-let toastMore=[];
-function toast(msg,action,label,ms,more){
-  $('toastMsg').textContent=msg;toastAction=action||null;toastMore=more||[];
+let toastMore=[],toastAt=-1,toastKind=null;
+// kind: 'llegaron' para el aviso de tareas nuevas de otro dispositivo (no tapa un Deshacer pendiente)
+function toast(msg,action,label,ms,more,kind){
+  $('toastMsg').textContent=msg;toastAction=action||null;toastMore=more||[];toastKind=kind||null;
+  toastAt=proc?proc.i:-1;   // en Procesar: sobre qué tarea fue la acción
   $('toastUndo').textContent=label||'Deshacer';
   $('toastUndo').classList.toggle('hidden',!action);
   ['toastB2','toastB3'].forEach((id,i)=>{const m=toastMore[i];$(id).classList.toggle('hidden',!m);$(id).textContent=m?m[0]:''});
   $('toast').classList.remove('hidden');
   clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||4500);
 }
-function hideToast(){$('toast').classList.add('hidden');toastAction=null;toastMore=[]}
+function hideToast(){$('toast').classList.add('hidden');toastAction=null;toastMore=[];toastKind=null}
 // Próxima vez de una tarea que se repite, contada desde su fecha (o desde hoy si no tenía).
 // Si esa fecha ya pasó, la primera de hoy en adelante. Mensual: mismo día, o el último del mes.
 function addDaysTo(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -1820,7 +1852,7 @@ function duePatch(t,due){
   return p;
 }
 // Lo que había antes de un cambio, para Deshacer
-function undoOf(t,patch){const u={};for(const k in patch)u[k]=k==='postponed'?(t.postponed||0):k==='inbox'?!!t.inbox:t[k]===undefined?null:t[k];return u}
+function undoOf(t,patch){const u={};for(const k in patch)u[k]=k==='postponed'?(t.postponed||0):k==='inbox'?!!t.inbox:k==='time'&&t.time===undefined?taskTime(t):t[k]===undefined?null:t[k];return u}
 function editWithUndo(t,patch,msg){act({type:'edit',id:t.id,patch});toast(msg,()=>act({type:'edit',id:t.id,patch:undoOf(t,patch)}))}
 function reschedule(t,v){
   const due=dueFor(v);
@@ -1936,7 +1968,7 @@ function procKey(e){
   const t=procCur();
   if(!t){if(e.key==='Enter'||e.key===' '){e.preventDefault();closeProc()}return}
   const k=e.key===' '?'Espacio':e.key==='Delete'||e.key==='Backspace'?'Supr':e.key==='ArrowRight'||e.key==='Enter'?'→':e.key.length===1?e.key.toUpperCase():e.key;
-  if((k==='Z'||k==='z')&&toastAction){e.preventDefault();const a=toastAction;hideToast();a();if(proc.i>0){proc.i--;proc.n=Math.max(0,proc.n-1)}renderProc();return}
+  if((k==='Z'||k==='z')&&toastAction){e.preventDefault();const a=toastAction,at=toastAt;hideToast();a();if(at>=0&&at<proc.i){proc.i=at;proc.n=Math.max(0,proc.n-1)}renderProc();return}
   const a=procActions(t).find(x=>x.k===k);
   if(a){e.preventDefault();a.fn()}
 }
@@ -2629,7 +2661,7 @@ function openEdit(t,opts={}){
   closeMenu();
   const archived=!!opts.archived;
   edit={id:t.id,due:t.due||'',priority:t.priority||'Media',readonly:archived,
-    orig:{title:t.title,due:t.due||null,time:t.time!==undefined?t.time||null:taskTime(t)?undefined:null,priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
+    orig:{title:t.title,due:t.due||null,time:taskTime(t),priority:t.priority||'Media',requester:t.requester||'',notes:t.notes||'',repeat:REPEAT_LABEL[t.repeat]?t.repeat:null}};
   // Las viejas con la hora en el título: al guardar, la hora pasa a ser un dato aparte
   $('eTime').value=taskTime(t)||'';
   $('eRepeat').value=edit.orig.repeat||'';
@@ -2670,7 +2702,7 @@ function renderEdit(){
   document.querySelectorAll('#ePrios .prio').forEach(b=>{const on=b.dataset.p===edit.priority;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
 }
 function editPatch(){
-  const vals={title:$('eTitle').value.trim(),due:edit.due||null,time:$('eTime').value||null,priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
+  const vals={title:$('eTitle').value.trim(),due:edit.due||null,time:$('eTime').validity.badInput?edit.orig.time:($('eTime').value||null),priority:edit.priority,requester:$('eRequester').value.trim(),notes:$('eNotes').value.trim(),repeat:$('eRepeat').value||null};
   const patch={};for(const k in vals)if(vals[k]!==edit.orig[k])patch[k]=vals[k];
   return patch;
 }
@@ -2678,22 +2710,27 @@ function editPatch(){
 function releaseFocus(ov){const a=document.activeElement;if(a&&ov.contains(a))a.blur()}
 function closeEdit(){edit=null;releaseFocus($('editOv'));$('editOv').classList.add('hidden');if(!proc)$('wrap').inert=false;else setTimeout(renderProc,0)}
 document.querySelectorAll('#eChips .chip').forEach(b=>b.addEventListener('click',()=>{edit.due=dueFor(b.dataset.v)||'';renderEdit()}));
-$('eDue').addEventListener('change',()=>{edit.due=$('eDue').value;renderEdit()});
+$('eDue').addEventListener('change',()=>{if($('eDue').validity.badInput)return;edit.due=$('eDue').value;renderEdit()});   // a medio escribir: todavía no
 document.querySelectorAll('#ePrios .prio').forEach(b=>b.addEventListener('click',()=>{edit.priority=b.dataset.p;renderEdit()}));
 function saveEdit(){
   if(!edit)return;
   if(edit.readonly){closeEdit();return}
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
-  const patch=editPatch(),t0=tasks.find(x=>x.id===edit.id);
+  const patch=editPatch(),t0=tasks.find(x=>x.id===edit.id),trashed=!t0&&trash.some(x=>x.id===edit.id);
+  // Si mientras tanto se eliminó en otro dispositivo, no hay dónde guardarla: queda abierta para copiar el texto
+  if(!t0&&!trashed&&!edit.readonly&&Object.keys(patch).length){toast('No se guardó: esta tarea se eliminó en otro dispositivo');return}
   if(t0&&!t0.done&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
   if(t0&&t0.inbox&&Object.keys(patch).length)patch.inbox=false;
+  // Una vieja con la hora en el título: si se cambia el título, la hora pasa a ser un dato aparte (si no, se perdería)
+  if(t0&&t0.time===undefined&&'title' in patch&&!('time' in patch)&&$('eTime').value&&!$('eTime').validity.badInput)patch.time=$('eTime').value;
   const id=edit.id;closeEdit();
   if(!Object.keys(patch).length)return;
-  // Deshacer vuelve a los valores de antes (se calculan ahora, antes de aplicar el cambio)
-  const back=t0?undoOf(t0,patch):null;
   act({type:'edit',id,patch});
-  toast('Cambios guardados',back&&(()=>act({type:'edit',id,patch:back})));
+  // Deshacer vuelve a los valores de antes (t0 es la copia de antes; se calcula después de act, que le agrega
+  // al cambio el lugar en el grupo nuevo, así vuelve también a su lugar)
+  const back=t0?undoOf(t0,patch):null;
+  toast(trashed?'Cambios guardados (la tarea está en la papelera)':'Cambios guardados',back&&(()=>act({type:'edit',id,patch:back})));
 }
 $('editForm').addEventListener('submit',e=>{e.preventDefault();saveEdit()});
 // Atrás, tocar afuera o Esc: si cambiaste algo, se guarda (con Deshacer), como en las apps de Android.
@@ -2911,7 +2948,7 @@ function splitLong(s){
   if(!m)return {title:s,note:''};
   const i=15+m.index+1;
   // Si el resto trae la fecha, la hora, la prioridad o quién la pidió, queda todo en el título para que se detecte
-  const r=parse(s.slice(i));
+  const r=parse(s.slice(i),undefined,true);
   if(r.due!==undefined||r.time||r.priority||r.requester||r.repeat||r.waiting||r.remind)return {title:s,note:''};
   return {title:s.slice(0,i).trim(),note:s.slice(i).trim()};
 }
