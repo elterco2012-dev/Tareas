@@ -12,9 +12,9 @@ await p.locator('#toastUndo').tap();await sleep(4000);gh.putDelay=0;
 ok(gh.items.length===1&&gh.items[0].id==='r'&&gh.items[0].done===false,'repeat undo during in-flight PUT leaves only the original: '+JSON.stringify(gh.items.map(x=>[x.title,x.due,x.done])));
 ok((await p.locator('.task',{hasText:'Semanal'}).count())===1,'one row in the UI');
 // 3) Terminar, reabrir y terminar otra vez → una sola próxima
-await p.locator('.task',{hasText:'Semanal'}).locator('.chk').tap();await sleep(500);
-await p.locator('#doneToggle').tap();await p.locator('.drow',{hasText:'Semanal'}).locator('.chk').tap();await sleep(500);
-await p.locator('#groups .task',{hasText:'Semanal'}).first().locator('.chk').tap();await sleep(600);
+await p.locator('.task',{hasText:'Semanal'}).locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done&&gh.items.length===2);
+await p.locator('#doneToggle').tap();await p.locator('.drow',{hasText:'Semanal'}).locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done===false);
+await p.locator('#groups .task',{hasText:'Semanal'}).first().locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done);
 const pend=gh.items.filter(x=>!x.done);
 ok(pend.length===1&&pend[0].due===day(7),'reopen + complete again → single next occurrence: '+JSON.stringify(gh.items.map(x=>[x.id.slice(0,4),x.due,x.done])));
 await ctx.close();

@@ -31,7 +31,7 @@ P.off.v=true;
 await row(P.p,'Dos').locator('.more').tap();await P.p.click('#menu button:has-text("Borrar")');await P.p.click('#toastUndo');await sleep(200);
 ok(await P.p.evaluate(()=>{const o=JSON.parse(localStorage.getItem('tareasPendientes'));return o.length===2&&o[0].patch.deletedAt&&o[1].patch.deletedAt===null}),'undo queues the restore');
 await row(D.p,'Dos').locator('.body').click();await D.p.fill('#eNotes','Pedir datos a Ana');await D.p.click('#editForm button[type=submit]');await sleep(300);
-await row(D.p,'Dos').locator('.chk').click();await sleep(400);await sleep(300);
+await row(D.p,'Dos').locator('.chk').click();await H.until(()=>gh.items.find(x=>x.id==='t1')?.done);
 P.off.v=false;await P.p.evaluate(()=>window.dispatchEvent(new Event('online')));await sleep(600);
 const dos=gh.items.find(x=>x.id==='t1');
 ok(dos&&dos.notes==='Pedir datos a Ana'&&dos.done===true&&!dos.deletedAt,'other device\'s edit + done survive phone undo-delete: '+JSON.stringify(dos&&{n:dos.notes,d:dos.done}));

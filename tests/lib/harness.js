@@ -42,11 +42,24 @@ const serve=()=>served||(served=server.start(ROOT));
 const appUrl=async()=>(await serve()).url;
 const appOrigin=async()=>(await serve()).origin;
 
+// Letra fija en todas las páginas. La app usa system-ui y cada Linux la resuelve distinto (Inter en una
+// máquina, DejaVu Sans en GitHub Actions): cambian los anchos (el botón Agregar mide 96 px con una y 104
+// con la otra) y una prueba que pasa acá falla allá. Liberation Sans (mismas medidas que Arial) viene con
+// `npx playwright install --with-deps chromium` (paquete fonts-liberation) y suele estar en cualquier Linux.
+// Va como hoja "adoptada" del documento: se pone antes de que corra el HTML, rige desde el primer pintado
+// y el parser no la puede pisar ni sacar (no es un nodo del DOM).
+const FONT_CSS='*,*::before,*::after{font-family:"Liberation Sans",Arial,sans-serif!important}';
+function pinFont(css){
+  try{const s=new CSSStyleSheet();s.replaceSync(css);document.adoptedStyleSheets=[...document.adoptedStyleSheets,s]}catch{}
+}
+
 // Opciones por defecto de cada contexto: zona horaria de Buenos Aires, sin service worker (como abrir
-// index.html con file://, así los pedidos a api.github.com siempre pasan por los mocks) y reloj en REF.
+// index.html con file://, así los pedidos a api.github.com siempre pasan por los mocks), reloj en REF y
+// la letra fija de arriba.
 // Opciones propias: clock (false = sin reloj falso; o un instante distinto de REF).
 // Las pruebas del service worker pasan serviceWorkers:'allow'.
 async function setupContext(ctx,clock){
+  await ctx.addInitScript(pinFont,FONT_CSS);
   if(clock!==false)await ctx.clock.install({time:clock===undefined?REF:clock});
   return ctx;
 }

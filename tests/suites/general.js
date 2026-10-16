@@ -109,7 +109,7 @@ ok(gh.items.find(x=>x.id==='v6').due===dayStr(1),'reschedule via menu');
 ok((await p.innerText('#toastMsg'))==='Pasada a mañana'&&await p.isVisible('#toastUndo'),'reschedule toast with Deshacer');
 await p.click('#toastUndo');await sleep(300);
 ok(gh.items.find(x=>x.id==='v6').due===dayStr(0),'undo reschedule');
-await row(p,'Para hoy B').locator('.chk').click();await sleep(400);await sleep(300);
+await row(p,'Para hoy B').locator('.chk').click();await H.until(()=>gh.items.find(x=>x.id==='v7')?.done);
 ok(gh.items.find(x=>x.id==='v7').done===true&&(await p.innerText('#toastMsg'))==='Tarea terminada','complete + toast');
 await p.click('#toastUndo');await sleep(300);
 ok(gh.items.find(x=>x.id==='v7').done===false,'undo complete');
@@ -118,10 +118,10 @@ ok(byTitle('Con nota').deletedAt&&!(await p.innerText('#groups')).includes('Con 
 await p.click('#toastUndo');await sleep(300);
 const restored=byTitle('Con nota');
 ok(restored&&restored.notes==='detalle de la nota'&&!restored.deletedAt&&(await p.innerText('#groups')).includes('Con nota'),'undo delete restores task with fields');
-// toast disappears after 4.5s
-await row(p,'Para hoy B').locator('.chk').click();await sleep(5300);
+// toast disappears after 4.5s (contados desde que se termina la tarea, después de la animación de la casilla)
+await row(p,'Para hoy B').locator('.chk').click();await H.until(()=>gh.items.find(x=>x.id==='v7')?.done);await sleep(4800);
 ok(!(await p.isVisible('#toast')),'toast hides after 4.5s');
-await p.locator('.drow',{hasText:'Para hoy B'}).locator('.chk').click();await sleep(400);await sleep(300);
+await p.locator('.drow',{hasText:'Para hoy B'}).locator('.chk').click();await H.until(()=>gh.items.find(x=>x.id==='v7')?.done===false);
 ok(gh.items.find(x=>x.id==='v7').done===false&&(await p.innerText('#toastMsg'))==='Volvió a pendientes','reopen from done list');
 await p.click('#doneToggle');
 
@@ -194,9 +194,9 @@ await c1.close();
 ({ctx:c1,p}=await device(b,{viewport:{width:390,height:844}}));
 gh.mode='offline';await sleep(100);
 await p.fill('#title','Off agregar');await p.press('#title','Enter');
-await row(p,'Para hoy A').locator('.chk').click();await sleep(400);
+await row(p,'Para hoy A').locator('.chk').click();await H.until(()=>p.evaluate(()=>tasks.find(t=>t.title==='Para hoy A')?.done));
 await p.fill('#title','Off para terminar y deshacer');await p.press('#title','Enter');
-await row(p,'Off para terminar y deshacer').locator('.chk').click();await sleep(400);await p.click('#toastUndo');
+await row(p,'Off para terminar y deshacer').locator('.chk').click();await H.until(()=>p.evaluate(()=>tasks.find(t=>t.title==='Off para terminar y deshacer')?.done));await p.click('#toastUndo');
 await row(p,'Tarea vieja sin campos nuevos').locator('.more').click();await p.click('#menu button:has-text("Borrar")');
 await p.fill('#title','Off borrar y deshacer');await p.press('#title','Enter');
 await row(p,'Off borrar y deshacer').locator('.more').click();await p.click('#menu button:has-text("Borrar")');await p.click('#toastUndo');

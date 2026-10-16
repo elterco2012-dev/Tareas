@@ -52,7 +52,7 @@ ok(gh.log[0]==='PUT'&&gh.items.some(x=>x.title==='Llamar al banco'),'add uploads
 ok(gh.messages.slice(-1)[0]==='+ Llamar al banco · pc','readable commit message: '+gh.messages.slice(-1)[0]);
 await row(p,'Uno').locator('.chk').click();
 ok(await row(p,'Uno').evaluate(n=>n.classList.contains('closing')),'checkbox: closing animation first');
-await sleep(600);
+await L.until(()=>gh.items.find(x=>x.id==='a')?.done);
 ok(gh.items.find(x=>x.id==='a').done===true&&gh.messages.slice(-1)[0]==='✓ Uno · pc','then done, message "✓ Uno · pc"');
 // otro dispositivo cambió: llega y se resalta
 gh.items.push(T('c','Anotada en el pasillo',{due:day(0),src:'cel'}));gh.sha++;

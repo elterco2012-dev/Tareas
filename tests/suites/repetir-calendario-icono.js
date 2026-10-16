@@ -14,7 +14,7 @@ for(const c of P.cases){const e=exp[c.x];if(!e){ok(c.repeat==='weekly'&&c.due,'"
 // fila con ↻
 ok((await p.innerText('#groups')).includes('↻ semanal'),'row shows ↻ semanal');
 // Terminar una que se repite → crea la próxima
-await p.locator('.task',{hasText:'Informe semanal'}).locator('.chk').click();await sleep(400);
+await p.locator('.task',{hasText:'Informe semanal'}).locator('.chk').click();await L.until(()=>gh.items.find(x=>x.id==='r')?.done);
 const nxt=gh.items.filter(x=>x.title==='Informe semanal'&&!x.done);
 const expDue=day(5);// due -2 + 7 = +5
 ok(gh.items.find(x=>x.id==='r').done===true,'original done');
@@ -77,7 +77,7 @@ ok((await p.evaluate(()=>window.__badge)).slice(-1)[0]===2,'badge = vencidas + h
 await p.click('#statusBtn');ok(await p.isVisible('#badgeRow')&&await p.isChecked('#badgeSw'),'switch visible and on by default');
 await p.click('#badgeSw');ok((await p.evaluate(()=>window.__badge)).slice(-1)[0]===0,'switch off clears badge');
 await p.click('#badgeSw');ok((await p.evaluate(()=>window.__badge)).slice(-1)[0]===2,'switch on sets badge again');
-await p.click('#syncX');await p.locator('.task',{hasText:'Hoy'}).first().locator('.chk').click();await sleep(400);await sleep(300);
+await p.click('#syncX');await p.locator('.task',{hasText:'Hoy'}).first().locator('.chk').click();await L.until(async()=>(await p.evaluate(()=>window.__badge)).slice(-1)[0]===1);
 ok((await p.evaluate(()=>window.__badge)).slice(-1)[0]===1,'badge updates on recompute');
 await ctx.close();
 ({ctx,p}=await device(b,gh,{viewport:{width:1100,height:900}},undefined,()=>{delete Navigator.prototype.setAppBadge;delete Navigator.prototype.clearAppBadge}));
