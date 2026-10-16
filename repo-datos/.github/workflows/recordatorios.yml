@@ -5,9 +5,13 @@ name: Recordatorios a la hora
 
 on:
   # Horario de GitHub: a veces se atrasa horas o se saltea. Para que sea puntual, lo puede disparar
-  # cron-job.org (ver INSTRUCCIONES.md): en ese caso se borran estas dos líneas de schedule.
+  # cron-job.org (ver INSTRUCCIONES.md). En ese caso, la línea de cron de abajo se cambia por esta de respaldo:
+  #   - cron: "37 9-23,0-1 * * *"   # respaldo: cada hora a los 37 minutos, de 6:37 a 22:37 en Argentina
+  # Así, si un día cron-job.org falla, los avisos salen igual (algo más tarde). No se repiten: lo enviado
+  # queda anotado en recordatorios-enviados.json. Minutos de Actions por mes: unos 1050 (cron-job.org)
+  # + 530 (respaldo) + los resúmenes ≈ 1600 de los 2000 gratis. Cada 15 minutos se pasaría.
   schedule:
-    - cron: "20,50 9-23 * * *"   # cada media hora, de 6:20 a 20:50 en Argentina (UTC-3)
+    - cron: "20,50 9-23,0-1 * * *"   # cada media hora, de 6:20 a 22:50 en Argentina (UTC-3): 9 a 23 y 0 a 1 en UTC
   workflow_dispatch:              # botón "Run workflow" para probarlo (y lo que usa cron-job.org)
     inputs:
       automatico:
@@ -39,6 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ZONA_HORARIA: America/Argentina/Buenos_Aires
           AUTOMATICO: ${{ inputs.automatico }}
+          APP_URL: ${{ vars.APP_URL }}
         run: |
           node --input-type=module <<'JS'
           import {readFileSync} from 'node:fs';
@@ -89,14 +94,25 @@ jobs:
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
           // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org)
           console.log(nuevas.length?nuevas.length+(nuevas.length===1?' recordatorio para enviar.':' recordatorios para enviar.'):'Mensaje de prueba.');
+          // Debajo del mensaje, un botón por tarea (hasta 8) que la abre en la app para posponerla o marcarla hecha.
+          // El texto de arriba no cambia: MacroDroid hace sonar la alarma por el ⏰. Sin APP_URL, sin botones.
+          const app=(E.APP_URL||'').trim();
+          const corto=(s,n)=>{const c=Array.from(s);return c.length<=n?s:c.slice(0,n-1).join('').trimEnd()+'…'};
+          const botones=nuevas.length&&app?nuevas.slice(0,8).map(t=>[{text:corto('Posponer o hecha · '+t.time+' '+t.title,60),url:app.replace(/\/?$/,'/')+'?tarea='+encodeURIComponent(t.id)}]):null;
 
           // Recién copiado y todavía sin secretos: las corridas programadas no fallan (ni mandan mails de error)
           if(!E.TELEGRAM_TOKEN&&!E.TELEGRAM_CHAT_ID&&automatico){console.log('Todavía no están cargados los secretos de Telegram: no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
           if(!E.TELEGRAM_TOKEN||!E.TELEGRAM_CHAT_ID){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID. Ver INSTRUCCIONES.md.');process.exit(1)}
           const tg=E.TELEGRAM_API||'https://api.telegram.org';
-          const r=await fetch(tg+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:msg,disable_web_page_preview:true})});
-          const j=await r.json().catch(()=>({}));
+          const mandar=extra=>fetch(tg+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:msg,disable_web_page_preview:true,...extra})});
+          let r=await mandar(botones?{reply_markup:{inline_keyboard:botones}}:{});
+          let j=await r.json().catch(()=>({}));
+          // Si Telegram no acepta los botones (por ejemplo, con APP_URL mal escrita), el aviso sale igual, sin botones
+          if(botones&&r.status===400){
+            console.log('Telegram respondió 400 con los botones ('+(j.description||'')+'): se prueba sin botones. Si se repite, revisá la variable APP_URL.');
+            r=await mandar({});j=await r.json().catch(()=>({}));
+          }
           if(!r.ok||!j.ok){console.error('Telegram respondió '+r.status+': '+(j.description||'')+'. Revisá TELEGRAM_TOKEN y TELEGRAM_CHAT_ID.');process.exit(1)}
           console.log('Enviado por Telegram.');
           if(!nuevas.length)process.exit(0);
