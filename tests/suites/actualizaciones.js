@@ -73,6 +73,77 @@ await p.evaluate(()=>{document.activeElement.blur();handleLaunch(new URLSearchPa
 ok(await p.evaluate(()=>document.activeElement.id)==='title','launch ?nueva=1 on the open app focuses the field');
 ok(errs.length===0,'no page errors '+errs);
 await ctx.close();
+// Correcciones de la revisión: lo compartido y la fecha elegida sobreviven a la actualización sola; con
+// Sincronización abierta no se recarga sola; "Dictar" con texto en el campo lo guarda aparte; compartir con algo
+// abierto espera a "Cargar"; después de una recarga forzada igual se avisa; una página vieja no se instala.
+{
+  const d=copyApp(),s3=await S.start(d);let ver=v1;
+  const bump=to=>{publish(d,ver,to);ver=to};
+  const c3=await b.newContext({serviceWorkers:'allow',viewport:{width:384,height:832},isMobile:true,hasTouch:true});
+  await c3.route('https://api.github.com/**',r=>r.abort());
+  const q=await c3.newPage();const e3=[];q.on('pageerror',e=>e3.push(e.message));
+  await q.goto(s3.url);
+  await until(()=>q.evaluate(()=>!!navigator.serviceWorker.controller),{timeout:8000});
+  const away=async()=>{await setVis(q,'hidden');await q.clock.fastForward(3*60e3);await Promise.all([q.waitForEvent('load'),setVis(q,'visible')]);await sleep(400)};
+  // Compartido + chip "Mañana" + versión nueva → al volver se actualiza sola y todo sigue en el campo
+  await q.goto(s3.url+'?text='+encodeURIComponent('me mandás el remito 4471'));
+  await until(async()=>(await q.inputValue('#title')).includes('remito'));
+  await q.locator('#chips .chip[data-v="1"]').tap();
+  bump('2099.2.1-1');await q.evaluate(()=>checkForUpdate(true));
+  await until(()=>q.evaluate(()=>newVersion),{timeout:8000});
+  await away();
+  ok(await q.evaluate(()=>APP_VERSION)==='2099.2.1-1','updated by itself on return');
+  ok((await q.inputValue('#title')).includes('remito')&&await q.evaluate(()=>chip==='1'&&chipTouched&&sharedFill),'shared text and the chosen date chip survive the update reload');
+  await q.fill('#title','');await q.evaluate(()=>{chip='0';chipTouched=false;sharedFill=false;saveDraft();renderAdd()});
+  // Con Sincronización abierta no se recarga sola
+  bump('2099.2.1-2');await q.evaluate(()=>checkForUpdate(true));
+  await until(()=>q.evaluate(()=>newVersion==='2099.2.1-2'),{timeout:8000});
+  await q.click('#statusBtn');await q.fill('#owner','escribiendo');
+  await setVis(q,'hidden');await q.clock.fastForward(3*60e3);await setVis(q,'visible');await sleep(800);
+  ok(await q.evaluate(()=>APP_VERSION)==='2099.2.1-1'&&await q.isVisible('#syncOv')&&await q.inputValue('#owner')==='escribiendo','no automatic reload with Sincronización open');
+  await Promise.all([q.waitForEvent('load'),q.click('#appUpdate')]);await sleep(400);
+  ok(await q.evaluate(()=>APP_VERSION)==='2099.2.1-2','Actualizar inside Sincronización still works');
+  // "Dictar" con la app abierta y algo escrito: lo escrito queda aparte (no se mezcla con lo dictado)
+  await q.fill('#title','llamar a Marta por');
+  await q.evaluate(()=>handleLaunch(new URLSearchParams('voz=1'),false));
+  ok(await q.isVisible('#voiceDock')&&await q.inputValue('#title')===''&&await q.evaluate(()=>heldDraft&&heldDraft.t==='llamar a Marta por'),'Dictar on the open app keeps the typed text aside');
+  await q.click('#dockClose');await q.evaluate(()=>{heldDraft=null;$('title').value='';saveDraft()});
+  // Compartir con una tarea abierta: espera a "Cargar"
+  await q.fill('#title','Revisar stock');await q.press('#title','Enter');await sleep(200);
+  await q.locator('.task .ttext',{hasText:'Revisar stock'}).tap();await sleep(200);
+  await q.evaluate(()=>handleLaunch(new URLSearchParams('text=pasame el presupuesto'),false));
+  ok(await q.isVisible('#editOv')&&(await q.innerText('#toastMsg'))==='Llegó un texto compartido'&&(await q.innerText('#toastUndo'))==='Cargar','share with a task open waits for Cargar');
+  await q.click('#editX');await sleep(200);
+  await q.evaluate(()=>loadPendingShare());
+  ok((await q.inputValue('#title')).toLowerCase().includes('presupuesto'),'Cargar puts the shared text in the field');
+  await q.fill('#title','');await q.evaluate(()=>{sharedFill=false;saveDraft()});
+  // Después de una recarga forzada (sin service worker) igual se avisa la versión siguiente
+  const cdp=await c3.newCDPSession(q);
+  await Promise.all([q.waitForEvent('load'),cdp.send('Page.reload',{ignoreCache:true})]);await sleep(500);
+  ok(await q.evaluate(()=>!navigator.serviceWorker.controller),'hard reload: page not controlled');
+  bump('2099.2.1-3');await q.evaluate(()=>checkForUpdate(true));
+  ok(await until(()=>q.evaluate(()=>newVersion==='2099.2.1-3'),{timeout:8000}),'after a hard reload the next version is still offered');
+  await Promise.all([q.waitForEvent('load'),q.evaluate(()=>reloadApp())]);await sleep(400);
+  // Una página vieja no se instala con un service worker nuevo: queda la versión anterior hasta que llegue la buena
+  const sw=path.join(d,'sw.js');fs.writeFileSync(sw,fs.readFileSync(sw,'utf8').split('2099.2.1-3').join('2099.2.1-4'));
+  await q.evaluate(()=>checkForUpdate(true));await sleep(2000);
+  const st=await q.evaluate(async()=>({keys:await caches.keys(),nv:newVersion,v:APP_VERSION}));
+  ok(JSON.stringify(st.keys)===JSON.stringify(['tareas-2099.2.1-3'])&&!st.nv,'sw.js new but page old: not installed '+JSON.stringify(st));
+  for(const f of ['index.html','sync-core.js']){const fp=path.join(d,f);fs.writeFileSync(fp,fs.readFileSync(fp,'utf8').split('2099.2.1-3').join('2099.2.1-4'))}ver='2099.2.1-4';
+  await q.evaluate(()=>{lastSwCheck=0;checkForUpdate(true)});
+  ok(await until(()=>q.evaluate(()=>newVersion==='2099.2.1-4'),{timeout:8000}),'once the page is new too, it installs');
+  // Si otro sitio de github.io borra las cachés, la app se vuelve a guardar sola (página y núcleo juntos)
+  await Promise.all([q.waitForEvent('load'),q.evaluate(()=>reloadApp())]);await sleep(400);
+  await q.evaluate(async()=>{for(const k of await caches.keys())await caches.delete(k)});
+  await q.reload();await sleep(800);
+  const again=await q.evaluate(async()=>{const k=await caches.keys();if(k.length!==1)return k;const c=await caches.open(k[0]);return (await c.keys()).map(r=>r.url.replace(location.origin,''))});
+  ok(Array.isArray(again)&&again.includes('/Tareas/')&&again.includes('/Tareas/sync-core.js?v=2099.2.1-4'),'after the caches are wiped, page and core are cached again: '+JSON.stringify(again));
+  await c3.setOffline(true);await q.reload({waitUntil:'domcontentloaded'});await sleep(500);
+  ok(await q.evaluate(()=>typeof applyAll==='function'&&APP_VERSION==='2099.2.1-4'),'and it opens offline with its core');
+  await c3.setOffline(false);
+  ok(e3.length===0,'no page errors '+e3);
+  await c3.close();
+}
 // Página de una versión y núcleo de otra (sin service worker): recarga una sola vez y sigue
 {
   const d=copyApp();const sc=path.join(d,'sync-core.js');fs.writeFileSync(sc,fs.readFileSync(sc,'utf8').replace("CORE_VERSION='"+v1+"'","CORE_VERSION='1999.1.1-1'"));

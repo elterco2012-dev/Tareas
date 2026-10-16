@@ -6,11 +6,16 @@
 // sube la versión (en sw.js, index.html y sync-core.js) y guarda la huella nueva.
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const ROOT=path.resolve(__dirname,'..','..');
-// Lo que guarda el service worker (el manifest no: Chrome lo revisa por su cuenta)
-const FILES=['index.html','sync-core.js','icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png'];
 const VER='\\d{4}\\.\\d{1,2}\\.\\d{1,2}-\\d+';
 const read=f=>fs.readFileSync(path.join(ROOT,f));
 const text=f=>read(f).toString('utf8').replace(/\r\n/g,'\n');
+// Lo que guarda el service worker: se lee de SHELL en sw.js ('./' es index.html; sin el ?v=), así no hay dos listas
+function shellFiles(){
+  const m=text('sw.js').match(/const SHELL=\[([^\]]*)\]/);
+  if(!m)throw new Error('No encontré SHELL en sw.js');
+  return [...m[1].matchAll(/'([^']+)'/g)].map(x=>x[1].replace(/^\.\//,'')).map(f=>f===''?'index.html':f.replace(/\?.*$/,''));
+}
+const FILES=shellFiles();
 function fingerprint(){
   const h=crypto.createHash('sha256');
   for(const f of FILES){
@@ -28,11 +33,15 @@ function versions(){
     core:m('sync-core.js',/const CORE_VERSION='([^']+)'/),
   };
 }
-// La versión de hoy: AAAA.M.D-n (n = 1, 2, … si hay más de una en el día)
+// La versión de hoy, en la hora de Buenos Aires: AAAA.M.D-n (n = 1, 2, … si hay más de una en el día).
+// Siempre más nueva que la actual (aunque se corra desde una máquina con otra hora).
 function nextVersion(cur,now=new Date()){
-  const today=now.getFullYear()+'.'+(now.getMonth()+1)+'.'+now.getDate();
-  const [d,n]=String(cur||'').split('-');
-  return today+'-'+(d===today?(+n||0)+1:1);
+  const [y,m,d]=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit'}).format(now).split('-').map(Number);
+  const today=y+'.'+m+'.'+d;
+  const [cd,cn]=String(cur||'').split('-');
+  const key=v=>v.split('.').map(Number).reduce((a,x)=>a*1000+x,0);
+  if(cd&&/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(cd)&&key(cd)>=key(today))return cd+'-'+((+cn||0)+1);
+  return today+'-1';
 }
 function setVersion(v){
   const put=(f,re,to)=>{const p=path.join(ROOT,f),s=fs.readFileSync(p,'utf8');if(!re.test(s))throw new Error('No encontré la versión en '+f);fs.writeFileSync(p,s.replace(re,to))};

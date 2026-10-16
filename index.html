@@ -624,11 +624,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
-<script src="sync-core.js?v=2026.10.16-1"></script>
+<script src="sync-core.js?v=2026.10.16-3"></script>
 <script>
 'use strict';
-// La versión de esta página (la misma que sw.js y sync-core.js; npm run version la cambia en los tres)
-const APP_VERSION='2026.10.16-1';
+// La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
+const APP_VERSION='2026.10.16-3';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -2138,14 +2138,17 @@ $('title').addEventListener('pointerdown',()=>cancelAutoSave());
 $('note').addEventListener('input',()=>{cancelAutoSave();saveDraft()});
 $('note').addEventListener('focus',()=>cancelAutoSave());
 // ---- Borrador: lo que estabas escribiendo no se pierde si te interrumpen ----
+// Con la fecha elegida en los chips y de dónde vino el texto (compartido, dictado), así vuelve igual
 function saveDraft(){
   const t=$('title').value,n=$('note').value;
-  if(t.trim()||n.trim())store(K_DRAFT,{t,n,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
+  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
 }
 function restoreDraft(){
   const d=load(K_DRAFT,null);
   if(!d||!(Date.now()-d.at<12*3600000)||$('title').value.trim())return;
   const i=$('title');i.value=d.t||'';if(d.n){setNote(true);$('note').value=d.n}
+  if(d.ct&&typeof d.c==='string'){chip=d.c;chipTouched=true}
+  sharedFill=!!d.sf;voiceFilled=!!d.vf;
   try{i.setSelectionRange(i.value.length,i.value.length)}catch{}
   renderAdd();
 }
@@ -2174,7 +2177,7 @@ $('title').addEventListener('blur',()=>{
   document.addEventListener('pointerup',after,true);document.addEventListener('pointercancel',after,true);
 });
 // Elegir otra fecha durante la cuenta regresiva la vuelve a empezar
-document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;chipTouched=true;if(autoSave)startAutoSave();renderAdd();if(!dock)$('title').focus()}));
+document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;chipTouched=true;if(autoSave)startAutoSave();renderAdd();saveDraft();if(!dock)$('title').focus()}));
 function setNote(on){
   $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar nota':'+ Nota';
   if(!on)$('note').value='';
@@ -3029,36 +3032,59 @@ WIDE.addEventListener('change',renderList);
 // La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
-// initial: al abrir la app; si no, con la app ya abierta (en la compu, "Nueva tarea" o "Dictar" del ícono)
+// Algo abierto encima de la lista (una tarea, Sincronización, el informe, Procesar…)
+function overlayOpen(){return !!(edit||bulk||waitFor||ask||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))}
+// Lo compartido: en el campo (o, si son varias líneas, la lista para cargarlas). Lo que estaba en el campo queda
+// guardado aparte y vuelve después (como al abrir compartiendo).
+function fillShared(params){
+  const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
+  const lines=splitLines(text);
+  if(lines.length>=2){
+    const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
+    openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
+    return;
+  }
+  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,at:Date.now()};
+  const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
+  const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
+  $('title').value=sp.title.slice(0,500);sharedFill=true;voiceFilled=false;
+  setNote(!!sp.note);$('note').value=sp.note?sp.note.slice(0,2000):'';
+  if(sp.note)toast('El resto del mensaje quedó en la nota');
+  saveDraft();renderAdd();
+}
+let pendingShare=null;
+// initial: al abrir la app; si no, con la app ya abierta (en la compu, "Nueva tarea" o "Dictar" del ícono;
+// en el celular, si Chrome reusa la ventana abierta al compartir)
 function handleLaunch(params,initial){
   const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar');
   if(!initial){
     closeMenu();
-    // Si hay algo abierto, solo se trae la ventana adelante
-    if(edit||bulk||waitFor||ask||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))return;
+    if(overlayOpen()){
+      // Con algo abierto no se interrumpe: lo compartido espera y se carga al tocar el aviso
+      if(shared){pendingShare=params;toast('Llegó un texto compartido',loadPendingShare,'Cargar',15000)}
+      else if(revisar)toast('Revisión de la semana',()=>{if(!overlayOpen())openProc(true,true)},'Abrir',15000);
+      return;
+    }
   }
   // Desde el Telegram de los viernes: la revisión de la semana (al abrir, después de traer lo último)
   if(revisar)(initial?Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}):Promise.resolve()).then(()=>openProc(true,true));
   if(initial){if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft()}
+  // "Dictar" con la app abierta y algo escrito: lo escrito queda guardado aparte y vuelve después de dictar
+  else if(voz&&($('title').value.trim()||$('note').value.trim())){
+    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,at:Date.now()};
+    $('title').value='';$('note').value='';setNote(false);sharedFill=false;voiceFilled=false;renderAdd();
+  }
   // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
   if(voz)openDock();
   else if(initial?FINE||params.has('nueva')||shared||COARSE&&STANDALONE:params.has('nueva')||shared)$('title').focus();
   // Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
   // Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
-  if(shared&&(initial||!$('title').value.trim())){
-    const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
-    const lines=splitLines(text);
-    if(lines.length>=2){
-      const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
-      openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
-    }else{
-      const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
-      const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
-      $('title').value=sp.title.slice(0,500);sharedFill=true;
-      if(sp.note){setNote(true);$('note').value=sp.note.slice(0,2000);toast('El resto del mensaje quedó en la nota')}
-      renderAdd();
-    }
-  }
+  if(shared)fillShared(params);
+}
+function loadPendingShare(){
+  if(!pendingShare)return;
+  if(overlayOpen()){toast('Cerrá lo que tenés abierto y tocá Cargar',loadPendingShare,'Cargar',15000);return}
+  const p=pendingShare;pendingShare=null;$('title').focus();fillShared(p);
 }
 handleLaunch(params,true);
 // Con la app ya abierta en la compu, los accesos del ícono llegan acá en lugar de abrir otra ventana
@@ -3072,7 +3098,7 @@ document.addEventListener('visibilitychange',()=>{
   sync();
   checkForUpdate();
   // Volviste después de un rato y hay una versión nueva lista: si no hay nada abierto, se actualiza sola
-  if(newVersion&&hiddenAt&&Date.now()-hiddenAt>120000&&readyForReload()){reloadApp();return}
+  if(newVersion&&hiddenAt&&Date.now()-hiddenAt>120000&&!settingsOpen&&readyForReload()){reloadApp();return}
   if(newVersion)offerUpdate(newVersion);
   // Al volver después de un rato, en el celular: arriba de todo y lista para anotar
   if(COARSE&&hiddenAt&&Date.now()-hiddenAt>120000)readyToCapture();
@@ -3094,7 +3120,7 @@ window.addEventListener('storage',e=>{if(e.key===K_OUTBOX||e.key===K_CACHE){load
 let swReg=null,newVersion=null,storageKept=null,lastSwCheck=0;
 // "2026.10.16-2" es más nueva que "2026.10.16-1" y que "2026.10.9-5"
 function isNewer(a,b){const k=v=>String(v).split(/[.-]/).map(Number);const x=k(a),y=k(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
-// Nada que se pierda al recargar (lo que estás escribiendo en el campo queda en el borrador y vuelve)
+// Nada que se pierda al recargar (lo que está en el campo de alta queda en el borrador, con su fecha, y vuelve)
 function readyForReload(){return !edit&&!bulk&&!waitFor&&!ask&&!dock&&!listening&&!autoSave&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')}
 function reloadApp(){
   if(!readyForReload()){toast('Guardá o cerrá lo que tenés abierto y tocá Actualizar de nuevo');return}
@@ -3128,11 +3154,9 @@ keepStorage();
 try{if(sessionStorage.getItem('actualizada')){sessionStorage.removeItem('actualizada');toast('App actualizada · versión '+APP_VERSION)}}catch{}
 renderDevice();
 if('serviceWorker' in navigator&&location.protocol!=='file:'){
-  let hadController=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;lastSwCheck=Date.now()}).catch(()=>{});
-  // Se instaló una versión nueva y tomó el control: se le pregunta cuál es (la primera vez es esta misma)
+  // Un service worker tomó el control: se le pregunta qué versión trae (si es esta misma, no pasa nada)
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(!hadController){hadController=true;return}
     const c=navigator.serviceWorker.controller;if(c)c.postMessage({type:'version'});
   });
   navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='version')offerUpdate(e.data.version)});

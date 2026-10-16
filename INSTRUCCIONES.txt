@@ -140,7 +140,9 @@ USO DIARIO
   oracion queda como tarea y el resto va a la nota.
 - Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo los datos
   de la app instalada (Chrome los revisa como mucho una vez por dia). Para forzarlo: en Chrome escribi about://webapks,
-  busca "Mis tareas" y toca "Update" (con la app cerrada). No hace falta desinstalarla.
+  busca "Mis tareas" y toca "Update". Despues abri la app una vez, cerrala (deslizala fuera de las recientes) y espera
+  un par de minutos: Chrome instala la actualizacion con la app cerrada. Si no aparece, repetilo una vez (no antes
+  de un minuto). No hace falta desinstalarla.
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
   Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
