@@ -92,7 +92,33 @@ jobs:
               aviso='⚠ El token de GitHub de la app '+(d<0?'venció el '+dm:d===0?'vence hoy':d===1?'vence mañana':'vence en '+d+' días ('+dm+')')+'. Generá uno nuevo y cargalo en Sincronización, con su fecha.';
             }
           }catch{}
-          if(!vencidas.length&&!paraHoy.length&&!esperando.length&&!aviso){console.log('Nada vencido, para hoy ni esperando respuesta: no se envía nada.');process.exit(0)}
+          // Recordatorios a la hora que no salieron ayer (los lunes, desde el viernes): se comparan las tareas con lo
+          // que anotó recordatorios.yml en recordatorios-enviados.json. Sin ese archivo (no se usan los recordatorios), no se mira.
+          let perdidos='';
+          try{
+            const enviados=JSON.parse(readFileSync('recordatorios-enviados.json','utf8'));
+            if(enviados&&typeof enviados==='object'&&!Array.isArray(enviados)){
+              const mediodia=Date.parse(hoy+'T12:00:00Z'),lunes=new Date(mediodia).getUTCDay()===1;
+              const revisar=(lunes?[3,2,1]:[1]).map(n=>new Date(mediodia-n*86400000).toISOString().slice(0,10));
+              // La corrida que tenía que avisar: la primera a las :20 o :50, de 6 a 22, que avisa esa hora
+              // (como en recordatorios.yml: hasta 39 minutos antes y hasta 3 horas tarde). Si no hay, queda fuera del horario.
+              const corrida=hora=>{const m=Number(hora.slice(0,2))*60+Number(hora.slice(3,5));
+                for(let h=6;h<=22;h++)for(const x of [20,50]){const c=h*60+x;if(c>=m-39&&c<=m+180)return String(h).padStart(2,'0')+':'+x}return null};
+              const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+              const local=s=>{const d=new Date(s);if(isNaN(d))return '';const p=Object.fromEntries(fmt.formatToParts(d).map(x=>[x.type,x.value]));return p.year+'-'+p.month+'-'+p.day+'T'+p.hour+':'+p.minute};
+              let n=0;
+              for(const t of tareas){
+                if(!t||t.deletedAt||!revisar.includes(t.due)||!/^\d{2}:\d{2}$/.test(t.time||''))continue;
+                const c=corrida(t.time);if(!c)continue;
+                const R=t.due+'T'+c;
+                if(t.createdAt&&local(t.createdAt)>R)continue;                       // la cargaste después de esa corrida
+                if(t.done&&(!t.completedAt||local(t.completedAt)<=R))continue;      // la terminaste antes del aviso
+                if(!enviados[t.id+'|'+t.due+'|'+t.time])n++;
+              }
+              if(n)perdidos='⚠ '+(lunes?'Desde el viernes':'Ayer')+(n===1?' no salió 1 aviso':' no salieron '+n+' avisos')+' por Telegram (revisá cron-job.org y que Actions esté activo).';
+            }
+          }catch{}
+          if(!vencidas.length&&!paraHoy.length&&!esperando.length&&!aviso&&!perdidos){console.log('Nada vencido, para hoy ni esperando respuesta: no se envía nada.');process.exit(0)}
 
           const plural=(n,a,b)=>n+' '+(n===1?a:b);
           const partes=[];
@@ -100,7 +126,8 @@ jobs:
           if(paraHoy.length)partes.push(paraHoy.length+' para hoy');
           if(esperando.length)partes.push(esperando.length+' esperando respuesta');
           const linea=t=>'• '+(t.time&&t.due===hoy?t.time+' ':'')+t.title+(t.priority==='Alta'?' (ALTA)':'')+(t.requester?' · @'+t.requester:'')+((t.postponed||0)>=3?' (pospuesta '+t.postponed+' veces)':'');
-          const encabezado=(aviso?aviso+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
+          const avisos=[aviso,perdidos].filter(Boolean).join('\n');
+          const encabezado=(avisos?avisos+'\n\n':'')+'Buen día.'+(partes.length?' '+partes.join(', '):'');
           let msg=encabezado;
           if(vencidas.length)msg+='\n\nVencidas\n'+vencidas.map(t=>{const d=dias(hoy,t.due);return linea(t)+' · '+(d===1?'venció ayer':'venció hace '+d+' días')}).join('\n');
           if(paraHoy.length)msg+='\n\nPara hoy\n'+paraHoy.map(linea).join('\n');
@@ -108,7 +135,7 @@ jobs:
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
           // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org)
           console.log(encabezado);
-          await enviar(msg,partes.join(', ')||'aviso del token');
+          await enviar(msg,partes.join(', ')||[aviso&&'aviso del token',perdidos&&'avisos que no salieron'].filter(Boolean).join(', '));
 
           async function telegram(texto){
             const api=E.TELEGRAM_API||'https://api.telegram.org';

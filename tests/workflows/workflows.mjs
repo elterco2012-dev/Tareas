@@ -10,9 +10,11 @@ const listen=srv=>new Promise(r=>srv.listen(0,'127.0.0.1',()=>r(srv.address().po
 const yml=f=>{const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows',f),'utf8').replace(/\r\n/g,'\n');const m=t.match(/<<'JS'\n([\s\S]*?)\n\s*JS\n/);if(!m)throw new Error('No encontré el bloque <<\'JS\' en '+f);return m[1].split('\n').map(l=>l.replace(/^ {10}/,'')).join('\n')};
 fs.writeFileSync(dir+'/rec.mjs',yml('recordatorios.yml'));fs.writeFileSync(dir+'/res.mjs',yml('resumen.yml'));
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FAIL')+' '+m);if(!c)fails++};
-// Telegram falso
-let tg=[],tgFail=false;
-const TG_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{if(tgFail){s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: chat not found'}));return}tg.push({url:q.url,...JSON.parse(b)});s.writeHead(200,{'Content-Type':'application/json'});s.end('{"ok":true}')})}));
+// Telegram falso (con tgSinBotones rechaza los mensajes con botones, como con una APP_URL mal escrita)
+let tg=[],tgFail=false,tgSinBotones=false,tgRechazos=0;
+const TG_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{if(tgFail){s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: chat not found'}));return}
+  const j=JSON.parse(b);if(tgSinBotones&&j.reply_markup){tgRechazos++;s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: BUTTON_URL_INVALID'}));return}
+  tg.push({url:q.url,...j});s.writeHead(200,{'Content-Type':'application/json'});s.end('{"ok":true}')})}));
 // GitHub falso (solo recordatorios-enviados.json)
 let file=null,sha=0,conflicts=0,puts=[],auth=[];
 const GH_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{
@@ -44,6 +46,7 @@ let r=await run('rec.mjs',NOW);
 ok(r.code===0&&tg.length===1,'sends one message: code '+r.code+' '+r.err);
 ok(tg[0]&&tg[0].text==='⏰ 12:00 · Atrasada\n⏰ 14:55 · Urgente (ALTA) · @Laura\n⏰ 15:00 · Llamar al banco\n⏰ 15:30 · Más tarde','message text: '+JSON.stringify(tg[0]&&tg[0].text));
 ok(tg[0]&&tg[0].url==='/botabc/sendMessage'&&tg[0].chat_id==='99','token and chat id');
+ok(tg[0]&&!('reply_markup' in tg[0])&&tg[0].disable_web_page_preview===true,'no APP_URL → no buttons (as before)');
 let st=JSON.parse(file||'{}');
 ok(Object.keys(st).sort().join()==='a|2026-10-12|15:00,b|2026-10-12|15:30,c|2026-10-12|12:00,i|2026-10-12|14:55','state saved: '+Object.keys(st));
 // Anticipación: cada hora avisa entre 10 y 39 minutos antes (corridas a las :20 y :50)
@@ -99,6 +102,39 @@ fs.rmSync(repo+'/tareas.json');r=await run('rec.mjs',NOW);ok(r.code===0&&/Todav�
 // Zona horaria: 23:00 UTC es 20:00 en Argentina del mismo día
 file=null;put([T('p','Cena',{time:'20:05',due:'2026-10-12'})]);tg=[];
 r=await run('rec.mjs','2026-10-12T23:00:00Z');ok(tg.length===1&&tg[0].text==='⏰ 20:05 · Cena','timezone: 20:00 local = 23:00 UTC');
+// Plantilla: cada media hora de 6:20 a 22:50 en Argentina, y el horario de respaldo (para quien usa cron-job.org) en un comentario
+{const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows','recordatorios.yml'),'utf8');
+ ok(/^ {4}- cron: "20,50 9-23,0-1 \* \* \*"/m.test(t)&&/^ *# +- cron: "37 9-23,0-1 \* \* \*"/m.test(t)&&/^ {10}APP_URL: \$\{\{ vars\.APP_URL \}\}$/m.test(t),'rec template: schedule 6:20–22:50, backup schedule in a comment, APP_URL in the env')}
+let logs='';const log=x=>{logs+=x.out+x.err;return x};   // para ver que en los registros no quedan títulos
+// De noche: la corrida de las 22:20 avisa la tarea de las 22:30. El script no tiene límite de hora (lo pone el horario)
+file=null;tg=[];put([T('n1','Cerrar caja',{time:'22:30'}),T('n2','Muy de noche',{time:'23:45'})]);
+r=log(await run('rec.mjs','2026-10-13T01:20:00Z'));ok(r.code===0&&tg.length===1&&tg[0].text==='⏰ 22:30 · Cerrar caja','22:20 run → 22:30 reminder: '+JSON.stringify(tg[0]&&tg[0].text));
+r=log(await run('rec.mjs','2026-10-13T02:20:00Z'));ok(r.code===0&&tg.length===2&&tg[1].text==='⏰ 23:45 · Muy de noche','no hour limit in the script itself (23:20 run → 23:45 reminder): '+JSON.stringify(tg[1]&&tg[1].text));
+// Botón "Posponer o hecha" debajo de cada recordatorio, con APP_URL
+const largo='Revisar la propuesta del proveedor nuevo de cajas y embalajes',emojis='Emojis '+'🎉'.repeat(40);
+file=null;tg=[];put([T('a','Llamar al banco',{time:'15:00'}),T('x y/ñ&?','Pagar',{time:'14:55'}),T('l',largo,{time:'15:10'}),T('e2',emojis,{time:'15:20'})]);
+r=log(await run('rec.mjs',NOW,{APP_URL:' https://yo.github.io/app '}));
+ok(r.code===0&&tg.length===1&&tg[0].text==='⏰ 14:55 · Pagar\n⏰ 15:00 · Llamar al banco\n⏰ 15:10 · '+largo+'\n⏰ 15:20 · '+emojis&&tg[0].disable_web_page_preview===true,'buttons: message text unchanged (MacroDroid): '+JSON.stringify(tg[0]&&tg[0].text));
+{const kb=(tg[0]&&tg[0].reply_markup&&tg[0].reply_markup.inline_keyboard)||[];const b=[0,1,2,3].map(i=>(kb[i]&&kb[i][0])||{});
+ ok(kb.length===4&&kb.every(row=>row.length===1),'buttons: one row per reminder: '+JSON.stringify(kb));
+ ok(b[0].text==='Posponer o hecha · 14:55 Pagar'&&b[1].text==='Posponer o hecha · 15:00 Llamar al banco','buttons: text "Posponer o hecha · HH:MM título": '+JSON.stringify(b.map(x=>x.text)));
+ ok(b[0].url==='https://yo.github.io/app/?tarea=x%20y%2F%C3%B1%26%3F'&&b[1].url==='https://yo.github.io/app/?tarea=a','buttons: url = APP_URL + "/?tarea=" + encoded id: '+JSON.stringify(b.map(x=>x.url)));
+ ok(b[2].text==='Posponer o hecha · 15:10 Revisar la propuesta del proveedor…','buttons: long title cut to 60 characters with "…": '+JSON.stringify(b[2].text));
+ const e=b[3].text||'';ok(Array.from(e).length===60&&e.endsWith('🎉…')&&!/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(e),'buttons: emojis are not split when cutting: '+JSON.stringify(e))}
+// Más de 8: botones solo para las primeras 8 (el texto trae todas)
+file=null;tg=[];put(Array.from({length:10},(_,i)=>T('m'+i,'Tarea '+i,{time:'15:0'+i})));
+r=log(await run('rec.mjs',NOW,{APP_URL:'https://yo.github.io/app/'}));
+{const kb=(tg[0]&&tg[0].reply_markup&&tg[0].reply_markup.inline_keyboard)||[];
+ ok(tg.length===1&&tg[0].text.split('\n').length===10&&kb.length===8&&kb.every((row,i)=>row.length===1&&row[0].text==='Posponer o hecha · 15:0'+i+' Tarea '+i&&row[0].url==='https://yo.github.io/app/?tarea=m'+i),'buttons: at most 8, for the first 8 reminders: '+kb.length)}
+// El mensaje de prueba no lleva botones
+file=null;tg=[];put([T('k','Noche',{time:'21:00'})]);
+r=log(await run('rec.mjs',NOW,{GITHUB_EVENT_NAME:'workflow_dispatch',APP_URL:'https://yo.github.io/app/'}));
+ok(tg.length===1&&/funcionan/.test(tg[0].text)&&!('reply_markup' in tg[0]),'test message: no buttons');
+// Telegram no acepta los botones (APP_URL mal escrita): el aviso sale igual, sin botones, y se anota
+file=null;tg=[];tgSinBotones=true;put([T('a','Llamar al banco',{time:'15:00'})]);
+r=log(await run('rec.mjs',NOW,{APP_URL:'yo.github.io app'}));tgSinBotones=false;
+ok(r.code===0&&tgRechazos===1&&tg.length===1&&!('reply_markup' in tg[0])&&tg[0].text==='⏰ 15:00 · Llamar al banco'&&JSON.parse(file||'{}')['a|2026-10-12|15:00']&&/sin botones/.test(r.out),'buttons rejected by Telegram → reminder sent without them and recorded: '+JSON.stringify(r.out+r.err));
+ok(logs&&!['Cerrar caja','Muy de noche','Llamar al banco','Pagar',largo,'Emojis','Tarea 0','Noche'].some(x=>logs.includes(x)),'rec: no task titles in the logs');
 // ===== Resumen diario =====
 put([T('q','Sin hora hoy',{}),T('r','Banco',{time:'15:00'}),T('s','Temprano',{time:'09:00',requester:'Ana'}),T('t','En la papelera',{deletedAt:'2026-10-11T10:00:00Z'}),T('u','Vencida',{due:'2026-10-10',time:'10:00'})]);
 tg=[];r=await run('res.mjs','2026-10-12T10:00:00Z');
@@ -163,4 +199,47 @@ ok(tg[0]&&tg[0].text.startsWith('Buen día. 1 para hoy, 1 esperando respuesta\n'
 put([T('w4','Mirar ayer',{waiting:true,waitingOn:'Leo',waitingSince:'2026-10-01T12:00:00Z',followUp:'2026-10-09'}),T('w5','Vieja',{waiting:true,waitingOn:'Ana',waitingSince:'2026-10-07T12:00:00Z'})]);
 tg=[];r=await run('res.mjs','2026-10-12T10:00:00Z');
 ok(tg[0]&&tg[0].text==='Buen día. 2 esperando respuesta\n\nEsperando respuesta\n• Mirar ayer · Leo, había que mirarla el 9/10\n• Vieja · Ana, hace 5 días','daily: past follow-up date: '+JSON.stringify(tg[0]&&tg[0].text));
+// ===== Resumen diario: recordatorios de ayer que no salieron (recordatorios-enviados.json del checkout) =====
+const ENV=repo+'/recordatorios-enviados.json',PERD=' por Telegram (revisá cron-job.org y que Actions esté activo).';
+const MARTES='2026-10-13T10:00:00Z',LUNES='2026-10-19T10:00:00Z';logs='';
+const ayer=[T('m1','Perdida',{time:'15:00',createdAt:'2026-10-11T12:00:00Z'}),   // la corrida de las 14:50 no la avisó
+  T('s1','Salió bien',{time:'16:00'}),
+  T('c1','Cargada tarde',{time:'15:00',createdAt:'2026-10-12T18:30:00Z'}),                    // 15:30: después de la corrida de las 14:50
+  T('d1','Hecha antes',{time:'15:00',done:true,completedAt:'2026-10-12T17:00:00Z'}),          // 14:00
+  T('d3','Hecha justo',{time:'15:00',done:true,completedAt:'2026-10-12T17:50:40Z'}),          // 14:50, el mismo minuto de la corrida
+  T('d2','Hecha después',{time:'15:00',done:true,completedAt:'2026-10-12T19:00:00Z'}),        // 16:00: el aviso tenía que haber salido
+  T('o1','Muy de noche',{time:'23:45'}),T('o2','Madrugada',{time:'02:00'}),                    // fuera del horario (6:20 a 22:50)
+  T('n1','Cerrar caja',{time:'22:30'}),                                                        // la corrida de las 22:20
+  T('x1','Borrada',{time:'15:00',deletedAt:'2026-10-12T20:00:00Z'}),T('y1','Hora rara',{time:'3pm'}),T('w1','En espera con hora',{time:'11:00',waiting:true}),
+  T('z1','Anteayer',{due:'2026-10-11',time:'15:00'}),T('h1','Hoy con hora',{due:'2026-10-13',time:'09:00'})];
+// s1 y w1 se avisaron; m1 se avisó con otra hora (después se la cambiaron): esa no cuenta
+fs.writeFileSync(ENV,JSON.stringify({'s1|2026-10-12|16:00':'2026-10-12T18:50:05Z','w1|2026-10-12|11:00':'2026-10-12T13:50:04Z','m1|2026-10-12|14:00':'2026-10-12T16:50:00Z'}));
+put(ayer);tg=[];r=log(await run('res.mjs',MARTES));
+ok(r.code===0&&tg.length===1&&tg[0].text.startsWith('⚠ Ayer no salieron 3 avisos'+PERD+'\n\nBuen día. 8 vencidas, 1 para hoy'),'missed: not sent / done after it / 22:30 count; sent, created late, done before, outside the hours, deleted, other days do not: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,150)));
+ok(/Ayer no salieron 3 avisos/.test(r.out),'missed: the count is in the log');
+put([T('d2','Hecha después',{time:'15:00',done:true,completedAt:'2026-10-12T19:00:00Z'})]);tg=[];r=log(await run('res.mjs',MARTES));
+ok(r.code===0&&tg.length===1&&tg[0].text==='⚠ Ayer no salió 1 aviso'+PERD+'\n\nBuen día.','missed only: still sent, singular: '+JSON.stringify(tg[0]&&tg[0].text));
+mails=[];tg=[];r=log(await run('res.mjs',MARTES,{TELEGRAM_TOKEN:'',...MAIL}));
+ok(r.code===0&&mails.length===1&&mails[0].includes('Subject: =?UTF-8?B?'+Buffer.from('Mis tareas: avisos que no salieron').toString('base64')),'missed only, by mail: subject');
+fs.writeFileSync(ENV,JSON.stringify({'d2|2026-10-12|15:00':'2026-10-12T17:50:09Z'}));tg=[];r=log(await run('res.mjs',MARTES));
+ok(r.code===0&&tg.length===0&&/no se envía nada/.test(r.out),'missed: it was sent → no warning, nothing to send');
+fs.rmSync(ENV);put(ayer);tg=[];r=log(await run('res.mjs',MARTES));
+ok(r.code===0&&tg.length===1&&tg[0].text.startsWith('Buen día. 8 vencidas')&&!tg[0].text.includes('⚠'),'no recordatorios-enviados.json (reminders not used) → no warning');
+for(const roto of ['{roto','[]','null']){fs.writeFileSync(ENV,roto);tg=[];r=log(await run('res.mjs',MARTES));
+  ok(r.code===0&&tg.length===1&&tg[0].text.startsWith('Buen día. 8 vencidas'),'invalid recordatorios-enviados.json ('+roto+') → ignored')}
+// Los lunes se mira desde el viernes (viernes, sábado y domingo; el jueves no)
+fs.writeFileSync(ENV,JSON.stringify({'f3|2026-10-18|12:00':'2026-10-18T14:50:03Z'}));
+const finde=[T('f0','Del jueves',{due:'2026-10-15',time:'15:00'}),T('f1','Del viernes',{due:'2026-10-16',time:'15:00'}),T('f2','Del sábado',{due:'2026-10-17',time:'10:00'}),
+  T('f3','Del domingo',{due:'2026-10-18',time:'12:00'}),T('f4','Domingo a la noche',{due:'2026-10-18',time:'22:00'})];
+put(finde);tg=[];r=log(await run('res.mjs',LUNES));
+ok(tg.length===1&&tg[0].text.startsWith('⚠ Desde el viernes no salieron 3 avisos'+PERD+'\n\nBuen día. 5 vencidas'),'Monday: Friday to Sunday: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,120)));
+// Con el aviso del token: primero el token, después los recordatorios
+fs.writeFileSync(repo+'/ajustes.json',JSON.stringify({tokens:{abc123:'2026-10-21'}}));tg=[];r=log(await run('res.mjs',LUNES));
+ok(tg[0]&&tg[0].text.startsWith('⚠ El token de GitHub de la app vence en 2 días (21/10). Generá uno nuevo y cargalo en Sincronización, con su fecha.\n⚠ Desde el viernes no salieron 3 avisos'+PERD+'\n\nBuen día.'),'token warning, then the missed reminders: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,200)));
+fs.rmSync(repo+'/ajustes.json');
+// La revisión de los viernes no lo lleva
+put([T('f0','Del jueves',{due:'2026-10-15',time:'15:00'}),T('sf','Sin fecha',{due:null})]);fs.writeFileSync(ENV,'{}');tg=[];r=log(await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5'}));
+ok(tg.length===1&&tg[0].text.startsWith('Revisión de la semana: 1 sin fecha.')&&!tg[0].text.includes('⚠'),'weekly review: no missed-reminders line');
+ok(logs&&![...ayer,...finde].some(t=>logs.includes(t.title))&&!logs.includes('Sin fecha'),'res: no task titles in the logs');
+fs.rmSync(ENV);
 console.log('fails',fails);process.exit(fails?1:0);
