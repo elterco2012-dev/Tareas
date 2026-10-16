@@ -136,6 +136,14 @@ ok(tg.length===1&&/funcionan/.test(tg[0].text)&&!('reply_markup' in tg[0]),'test
 file=null;tg=[];tgSinBotones=true;put([T('a','Llamar al banco',{time:'15:00'})]);
 r=log(await run('rec.mjs',NOW,{APP_URL:'yo.github.io app'}));tgSinBotones=false;
 ok(r.code===0&&tgRechazos===1&&tg.length===1&&!('reply_markup' in tg[0])&&tg[0].text==='⏰ 15:00 · Llamar al banco'&&JSON.parse(file||'{}')['a|2026-10-12|15:00']&&/sin botones/.test(r.out),'buttons rejected by Telegram → reminder sent without them and recorded: '+JSON.stringify(r.out+r.err));
+// La corrida de cron-job.org que empieza tarde (14:21 o 14:28) cuenta como la de las 14:20: la de las 15:00 espera a la de las 14:50
+{const tareas=[T('a1','La de las 15',{time:'15:00'}),T('a2','La de las 14:59',{time:'14:59'})];
+ for(const [hora,env,esperado,nombre] of [['17:21:40',{GITHUB_EVENT_NAME:'workflow_dispatch',AUTOMATICO:'true'},'⏰ 14:59 · La de las 14:59','cron-job.org run starting at 14:21'],
+   ['17:28:10',{GITHUB_EVENT_NAME:'schedule',HORARIO:'20,50 9-23,0-1 * * *'},'⏰ 14:59 · La de las 14:59','the :20/:50 GitHub schedule starting at 14:28'],
+   ['17:30:10',{GITHUB_EVENT_NAME:'workflow_dispatch',AUTOMATICO:'true'},'⏰ 14:59 · La de las 14:59\n⏰ 15:00 · La de las 15','a run 10 minutes late counts from when it starts'],
+   ['17:21:40',{GITHUB_EVENT_NAME:'workflow_dispatch',AUTOMATICO:'false'},'⏰ 14:59 · La de las 14:59\n⏰ 15:00 · La de las 15','a manual Run workflow counts from when it starts']]){
+   file=null;tg=[];put(tareas);r=log(await run('rec.mjs','2026-10-12T'+hora+'Z',env));
+   ok(tg.length===1&&tg[0].text===esperado,nombre+': '+JSON.stringify(tg[0]&&tg[0].text))}}
 // Respaldo (horario de GitHub, a los :37) con cron-job.org andando: solo lo que ya tendría que haber salido
 {const R37='2026-10-12T17:37:00Z',REF='u/datos/.github/workflows/recordatorios.yml@refs/heads/main',B={GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF,HORARIO:'37 9-23,0-1 * * *'};   // 14:37 en Argentina
  const tareas=[T('r1','Ya tendría que haber salido',{time:'14:55'}),T('r2','La de las 15',{time:'15:00'}),T('r3','15:16',{time:'15:16'}),T('r4','Recién pasada',{time:'14:40'})];

@@ -89,9 +89,13 @@ jobs:
             if(soloAtrasadas)console.log('Respaldo: cron-job.org anda, solo se manda lo atrasado.');
           }
           const corrida=T=>{const c=380+Math.ceil((Math.max(T-ANTES,380)-380)/30)*30;return c<=1370?c:null};   // la de cron-job.org que la avisa
+          // La corrida de cron-job.org (o la del horario de las :20 y :50) puede empezar un par de minutos tarde: cuenta como
+          // la de las :20 o :50, así la de las 15:00 sale a las 14:50 y no en la de las 14:20 (40 minutos antes)
+          const turno=ahora-((ahora-20)%30+30)%30;
+          const base=(E.AUTOMATICO==='true'&&E.GITHUB_EVENT_NAME!=='schedule'||E.GITHUB_EVENT_NAME==='schedule'&&/^20,50\s/.test(E.HORARIO||''))&&ahora-turno<10?turno:ahora;
           const toca=conHora.filter(t=>{
             const T=min(t.time);
-            if(T>ahora+ANTES||T<ahora-TARDE)return false;
+            if(T>base+ANTES||T<base-TARDE)return false;
             if(!soloAtrasadas)return true;
             const c=corrida(T);return c!==null&&c<=ahora-5;   // 5 minutos para que termine la de cron-job.org
           });

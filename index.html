@@ -959,7 +959,8 @@ function remindRun(due,time,from){
 // "Recordame…" sin hora: a las 9, para que llegue el aviso. Si es para hoy y el de las 9 ya no llega, queda sin hora.
 function withRemindTime(p,due){
   if(!p.remind||p.time||!due)return p;
-  if(due===ymd(new Date())){const r=remindRun(due,'09:00');if(r==null||r>9*60)return p}
+  // (si se repite, igual: la serie queda a las 9, aunque el aviso de hoy llegue tarde o no llegue)
+  if(due===ymd(new Date())&&!p.repeat){const r=remindRun(due,'09:00');if(r==null||r>9*60)return p}
   return {...p,time:{h:9,m:0,text:''}};
 }
 // Cuándo llega el aviso de una tarea con esa fecha y hora: ['Aviso 14:50'] o, si no llega a tiempo, [texto,'warn'].
@@ -969,7 +970,7 @@ function avisoTag(due,time){
   if(!due)return ['Sin aviso (no tiene fecha)','warn'];
   if(due<ymd(new Date()))return ['Sin aviso (ya pasó)','warn'];
   const r=remindRun(due,time),T=hm(time);
-  if(r==null)return ['Sin aviso ('+(T<AV_FIRST?'muy temprano':T>AV_LAST+AV_ANTES?'muy tarde':'ya pasó la hora')+')','warn'];
+  if(r==null)return ['Sin aviso ('+(T<AV_FIRST?'muy temprano':T>AV_LAST+AV_ANTES?'muy tarde':due===ymd(new Date())&&T>nowMin()?'ya no hay más avisos hoy':'ya pasó la hora')+')','warn'];
   return r>T?['Aviso '+hmLabel(r)+' (tarde)','warn']:['Aviso '+hmLabel(r)];
 }
 // Hora de una tarea ("15:00" o null). Las cargadas antes de que la hora fuera un dato aparte
@@ -1221,6 +1222,7 @@ async function sync(){
       // Lo que ya subió el service worker en segundo plano sale de la cola
       let forceGet=await takeBackgroundSent();
       if(forceGet)changed=true;
+      const bgSent=forceGet;   // lo subió el service worker: lo nuevo cuenta desde ahora para el control de avisos
       do{
         syncAgain=false;
         // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
@@ -1238,7 +1240,7 @@ async function sync(){
               // Si desaparecieron terminadas, el otro dispositivo las archivó: la copia del archivo ya no sirve
               if(archiveData){const now=new Set(latest.items.map(t=>t.id));if(remote.some(t=>t.done&&!now.has(t.id)))archiveStale()}
               remote=latest.items;remoteSha=latest.sha;changed=true;
-              noteKeys(remote,prevPull);
+              noteKeys(remote,bgSent?Date.now():prevPull);
             }
             remoteEtag=latest.etag||null;base=latest;
             saveCache(c);
@@ -1253,7 +1255,7 @@ async function sync(){
           if(++conflicts>=5)throw Error('Otro dispositivo está guardando al mismo tiempo');
           forceGet=true;syncAgain=true;continue;
         }
-        noteKeys(next,lastPull);
+        noteKeys(next,lastPull,base.items);
         remote=next;remoteSha=typeof saved==='string'?saved:null;remoteEtag=null;lastPull=Date.now();changed=true;
         const sent=new Set(ops.map(o=>o.opId));
         setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
@@ -1482,13 +1484,16 @@ async function checkAvisos(force){
 // Desde cuándo está en GitHub cada fecha y hora de hoy en adelante, según lo que vio este dispositivo: para no
 // reclamar un aviso que no podía salir (por ejemplo, de una tarea que el otro dispositivo pasó a hoy recién).
 // 0: desde que se creó la tarea.
-function noteKeys(items,prevPull){
+// before: lo que había en GitHub antes de una subida de este dispositivo (lo nuevo de esa subida cuenta desde ahora,
+// aunque se haya creado antes sin señal)
+function noteKeys(items,prevPull,before){
   const s=load(K_VISTOS,null)||{},m=s.m||{},P=prevPull||s.at||0,today=ymd(new Date()),now=Date.now(),out={};
+  const prev=before&&new Set(before.map(t=>t&&t.id+'|'+t.due+'|'+t.time));
   for(const t of items){
     if(!t||t.deletedAt||!t.due||t.due<today||!HM_RE.test(t.time||''))continue;
     const k=t.id+'|'+t.due+'|'+t.time;
     // Nueva para este dispositivo: si la tarea ya existía la última vez que leyó GitHub, la fecha u hora cambió después
-    out[k]=k in m?m[k]:P&&Date.parse(t.createdAt)<=P?now:0;
+    out[k]=k in m?m[k]:prev&&!prev.has(k)||P&&Date.parse(t.createdAt)<=P?now:0;
   }
   store(K_VISTOS,{m:out,at:now});
 }
@@ -1504,10 +1509,11 @@ function missedAvisos(){
     if(!t||t.deletedAt||t.due!==today||!HM_RE.test(t.time||''))continue;
     const k=t.id+'|'+t.due+'|'+t.time,r=remindRun(today,t.time,Math.max(since(Date.parse(t.createdAt)||0),since(Date.parse(t.whenAt)||0),seen[k]?since(seen[k]):0));
     if(r==null||now<r+20)continue;
+    if(!(avisos.at>=at(r)+20*60000))continue;   // lo último leído es de antes: todavía no se sabe (sin señal, recién vuelta a la app)
     if(t.done&&!(Date.parse(t.completedAt)>=at(r)))continue;   // la terminaste antes del aviso (o no se sabe cuándo)
     // Salió el de esta tarea (aunque sea antes, por el horario de respaldo) o alguno desde esa corrida
     if(avisos.enviados[k]||sent.some(x=>x>=at(r)-120000))continue;
-    out.push({r,t});
+    out.push({r,t,k});
   }
   return out.sort((a,b)=>a.r-b.r);
 }
@@ -1530,11 +1536,12 @@ function renderAvisoBar(){
     btn=['Al calendario',()=>openCalendar(u)];
     bar.dataset.k='u:'+u.id;
   }else{
-    const m=missedAvisos(),x=load(K_AVISOX,null),today=ymd(new Date());
-    if(m.length&&!(x&&x.d===today&&x.n>=m.length)){
+    // Oculta con ✕ hasta mañana, salvo que falte otro
+    const m=missedAvisos(),x=load(K_AVISOX,null),today=ymd(new Date()),hid=x&&x.d===today&&Array.isArray(x.k)?x.k:[];
+    if(m.some(a=>!hid.includes(a.k))){
       msg=m.length===1?'No salió el aviso por Telegram de «'+m[0].t.title+'» ('+m[0].t.time+'). Revisá que cron-job.org siga andando.':
         'No salieron '+m.length+' avisos de hoy por Telegram (el primero, de las '+m[0].t.time+'). Revisá que cron-job.org siga andando.';
-      bar.dataset.k='m:'+m.length;
+      bar.dataset.k='m:'+m.map(a=>a.k).join('\n');
     }
   }
   bar.classList.toggle('hidden',!msg);
@@ -1546,7 +1553,7 @@ function renderAvisoBar(){
 $('avisoX').onclick=()=>{
   const k=$('avisoBar').dataset.k||'';
   if(k.startsWith('u:'))avisoHidden.add(k.slice(2));
-  else if(k.startsWith('m:'))store(K_AVISOX,{d:ymd(new Date()),n:Number(k.slice(2))});   // hasta mañana, salvo que falte otro
+  else if(k.startsWith('m:'))store(K_AVISOX,{d:ymd(new Date()),k:k.slice(2).split('\n')});
   renderAvisoBar();
 };
 function whenSent(ms){const d=new Date(ms),n=daysUntil(ymd(d));return (n===0?'hoy':n===-1?'ayer':'el '+dm(d))+' a las '+timeNow(d)}
@@ -2015,7 +2022,7 @@ function toggle(t){
   // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
   // en otro dispositivo), no se crea otra
   if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
-    next={id:crypto.randomUUID(),repeatOf:t.id,...repeatOrder(t),...(t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    next={id:crypto.randomUUID(),repeatOf:t.id,...repeatOrder(t),...(t.repeatTime!=null?{time:t.repeatTime||null}:t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
     if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
     ops.push({type:'add',task:next});
   }
@@ -2049,6 +2056,8 @@ function reschedule(t,v){
 // A otra fecha y hora (posponer desde el aviso, "En 1 hora")
 function moveTo(t,due,time,msg){
   const patch=duePatch(t,due);patch.time=time;
+  // Si se repite, la serie conserva su hora: la próxima vuelve a la de siempre ('' = sin hora)
+  if(t.repeat&&t.repeatTime==null)patch.repeatTime=taskTime(t)||'';
   const av=avisoTag(due,time);
   editWithUndo(t,patch,msg+(av?' · '+av[0].toLowerCase():''));
 }
@@ -2221,14 +2230,14 @@ function openPos(t){
   const add=(label,fn,cls)=>{const b=el('button',cls||null,label);b.type='button';b.onclick=()=>{const cur=tasks.find(x=>x.id===pos);closePos();if(cur)fn(cur)};box.append(b)};
   if(t.done){
     $('posH').textContent='Ya está terminada';
-    add('Volver a pendientes',toggle);
+    add('Volver a pendientes',cur=>{if(cur.done)toggle(cur)});
   }else{
     $('posH').textContent='Posponer';
     const w=inHour(),today=ymd(new Date());
     add('En 1 hora ('+w.time+')',postponeHour,'main');
     if(nowMin()<17*60+45&&!(t.due===today&&t.time==='18:00'))add('Hoy 18:00',cur=>moveTo(cur,today,'18:00','Pasada a hoy a las 18:00'));
     add('Mañana 9:00',cur=>moveTo(cur,addDays(1),'09:00','Pasada a mañana a las 9:00'));
-    add('Hecha',toggle);
+    add('Hecha',cur=>{if(!cur.done)toggle(cur);else toast('Ya estaba terminada')});
   }
   add('Abrir',cur=>openEdit(cur));
   $('posOv').classList.remove('hidden');$('wrap').inert=true;
@@ -2245,12 +2254,18 @@ async function openPosById(id,initial){
   }
   if(!t){
     toast(!configured()?'Abrí el aviso en la app instalada, conectada a GitHub (en Telegram, desactivá el navegador integrado)':
-      trash.some(x=>x.id===id)?'Esa tarea está en la papelera':'No encontré esa tarea: puede que se haya borrado',null,null,8000);
+      trash.some(x=>x.id===id)?'Esa tarea está en la papelera':
+      syncing||lastError?'No pude traer lo último de GitHub ('+(lastError||'tarda mucho')+'): tocá el botón del aviso de nuevo en un rato':
+      'No encontré esa tarea: puede que se haya borrado',null,null,8000);
     return;
   }
   if(pos&&pos!==id)closePos();
-  if(overlayOpen()&&pos!==id){toast('Aviso de «'+t.title+'»',()=>{const x=tasks.find(y=>y.id===id);if(x&&!overlayOpen())openPos(x)},'Abrir',15000);return}
+  if(overlayOpen()&&pos!==id){posLater(id,'Aviso de «'+t.title+'»');return}
   openPos(t);
+}
+// Con algo abierto no interrumpe: lo ofrece en el aviso de abajo (y si sigue abierto al tocarlo, lo vuelve a ofrecer)
+function posLater(id,msg){
+  toast(msg,()=>{const x=tasks.find(y=>y.id===id);if(!x)return;if(overlayOpen()&&pos!==id){posLater(id,'Cerrá lo que tenés abierto y tocá Abrir');return}openPos(x)},'Abrir',15000);
 }
 $('posX').onclick=closePos;
 $('posOv').addEventListener('pointerdown',e=>{downOn=e.target});
@@ -2967,6 +2982,8 @@ function saveEdit(){
   if(!t0&&!trashed&&!edit.readonly&&Object.keys(patch).length){toast('No se guardó: esta tarea se eliminó en otro dispositivo');return}
   if(t0&&!t0.done&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
   if(t0&&t0.inbox&&Object.keys(patch).length)patch.inbox=false;
+  // La hora elegida en Editar es la de la serie (si se había pospuesto, deja de valer la de antes)
+  if(t0&&t0.repeatTime!=null&&('time' in patch||'repeat' in patch))patch.repeatTime=null;
   // Una vieja con la hora en el título: si se cambia el título, la hora pasa a ser un dato aparte (si no, se perdería)
   if(t0&&t0.time===undefined&&'title' in patch&&!('time' in patch)&&$('eTime').value&&!$('eTime').validity.badInput)patch.time=$('eTime').value;
   const id=edit.id;closeEdit();
@@ -3117,6 +3134,8 @@ document.addEventListener('keydown',e=>{
     else if(sel){sel=null;renderList()}
     return;
   }
+  // Con la hoja de posponer abierta, las teclas son para sus botones (no para la lista de atrás)
+  if(pos)return;
   // Procesar tiene sus propias teclas
   // (Espacio/Enter sobre un botón con foco lo activan a él)
   if(proc&&!ask&&!waitFor&&!edit){if(!typing&&!e.metaKey&&!e.ctrlKey&&!((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter')))procKey(e);return}

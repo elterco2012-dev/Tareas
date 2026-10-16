@@ -119,7 +119,8 @@ const b=await L.launch();
   const tasksM=()=>[
     T('m','Pagar expensas',{due:day(0),time:'09:30',createdAt:L.ago(1)}),                    // tocaba a las 9:20
     T('n','Nueva de recién',{due:day(0),time:'09:45',createdAt:new Date(L.REF-10*60000).toISOString()}),   // creada 9:50: a las 10:20
-    T('h','Hecha temprano',{due:day(0),time:'09:15',done:true,completedAt:new Date(L.REF-3*3600000).toISOString(),createdAt:L.ago(1)})
+    T('h','Hecha temprano',{due:day(0),time:'09:15',done:true,completedAt:new Date(L.REF-3*3600000).toISOString(),createdAt:L.ago(1)}),
+    T('m2','Llamar al contador',{due:day(0),time:'10:30',createdAt:L.ago(1)})   // a las 10:20: todavía no
   ];
   const gh=makeGH(tasksM());
   gh.files[ENV]=envFile({['x|'+day(-1)+'|20:00']:'2026-10-13T22:50:20.000Z'});
@@ -136,6 +137,13 @@ const b=await L.launch();
   ok(!await p.isVisible('#avisoBar'),'✕ la oculta');
   await p.reload();await sleep(1500);
   ok(!await p.isVisible('#avisoBar'),'oculta hasta mañana (también al volver a abrir)');
+  // Si después falta otro, vuelve a aparecer
+  await p.clock.fastForward('45:00');
+  await p.evaluate(async()=>{await sync();await checkAvisos(true)});await sleep(800);
+  ok(await p.isVisible('#avisoBar')&&/No salieron 3 avisos/.test(await p.textContent('#avisoMsg')),'si falta otro, vuelve: "'+await p.textContent('#avisoMsg')+'"');
+  // Con lo leído de antes de la hora del aviso (sin señal, recién vuelta a la app) no se sabe todavía: no se reclama
+  await p.evaluate(()=>{avisos.at=Date.now()-3*3600e3;renderAvisoBar()});
+  ok(!await p.isVisible('#avisoBar')&&await p.evaluate(()=>missedAvisos().length===0),'datos viejos (leídos antes de las corridas): no reclama');
   await ctx.close();
   // Si salió alguno desde esa corrida (la de las 9:20), no falta nada
   const gh2=makeGH(tasksM());
@@ -237,6 +245,67 @@ const b=await L.launch();
   const bt=await p.$$eval('#posBtns button',e=>e.map(x=>x.textContent));
   ok(await p.textContent('#posH')==='Ya está terminada'&&bt.join('|')==='Volver a pendientes|Abrir','terminada: '+bt.join(' | '));
   await d.ctx.close();
+}
+
+// ---- Correcciones de la revisión ----
+{
+  // Posponer una que se repite: la serie conserva su hora
+  const gh=makeGH([T('rp','Tomar remedio',{due:day(0),time:'09:45',repeat:'daily'}),T('x','Otra',{due:day(0),time:'12:00'})]);
+  let d=await device(b,gh,DESK,(await L.appUrl())+'?tarea=rp',AVISOS_ON);let p=d.p;
+  await until(()=>p.isVisible('#posOv'),{timeout:5000});
+  await p.click('#posBtns button.main');await sleep(1500);
+  let rp=gh.items.find(x=>x.id==='rp');
+  ok(rp.time==='11:00'&&rp.repeatTime==='09:45','pospuesta "En 1 hora": esta vez a las 11:00, la serie sigue a las 09:45 ('+rp.time+' / '+rp.repeatTime+')');
+  await p.evaluate(()=>toggle(tasks.find(t=>t.id==='rp')));await sleep(1500);
+  const nx=gh.items.find(x=>x.repeatOf==='rp');
+  ok(nx&&nx.due===day(1)&&nx.time==='09:45'&&!('repeatTime' in nx),'la de mañana vuelve a las 09:45 ('+JSON.stringify(nx&&{due:nx.due,time:nx.time})+')');
+  // En la compu, con la hoja abierta las teclas no tocan la lista
+  await p.evaluate(()=>{sel='x';openPos(tasks.find(t=>t.id==='x'))});await sleep(200);
+  for(const k of ['m','h','Delete','x'])await p.keyboard.press(k);
+  await sleep(1200);
+  const xx=gh.items.find(t=>t.id==='x');
+  ok(xx&&!xx.deletedAt&&!xx.done&&xx.due===day(0)&&await p.isVisible('#posOv'),'con la hoja abierta, M/H/Supr/X no cambian la tarea de atrás');
+  // Hecha cuando ya la terminaste en el otro dispositivo: no la vuelve a abrir
+  gh.items.find(t=>t.id==='x').done=true;gh.items.find(t=>t.id==='x').completedAt=new Date(L.REF).toISOString();gh.sha++;
+  await p.evaluate(()=>sync());await sleep(1200);
+  await p.locator('#posBtns button',{hasText:'Hecha'}).click();await sleep(1500);
+  ok(gh.items.find(t=>t.id==='x').done===true&&/Ya estaba terminada/.test(await p.textContent('#toastMsg')),'Hecha con la tarea ya terminada en el otro: sigue terminada ("'+await p.textContent('#toastMsg')+'")');
+  // El aviso de abajo con algo abierto: si sigue abierto al tocar Abrir, lo vuelve a ofrecer
+  await p.evaluate(()=>{openSettings();handleLaunch(new URLSearchParams('tarea=x'),false)});await sleep(400);
+  await p.click('#toastUndo');await sleep(300);
+  ok(/Cerrá lo que tenés abierto/.test(await p.textContent('#toastMsg'))&&await p.isVisible('#toastUndo'),'Abrir con Sincronización abierta: "'+await p.textContent('#toastMsg')+'"');
+  await p.evaluate(()=>closeSettings());await sleep(300);
+  await p.click('#toastUndo');await sleep(400);
+  ok(await p.isVisible('#posOv'),'cerrada Sincronización, Abrir abre la hoja');
+  ok(!p.errs.length,'sin errores ('+p.errs.join(' | ')+')');
+  await d.ctx.close();
+  // Sin señal, una tarea que todavía no llegó: no dice que se borró
+  const gh2=makeGH([]);
+  d=await device(b,gh2,PHONE,null,AVISOS_ON);p=d.p;await sleep(800);
+  gh2.items.push(T('z','Del otro',{due:day(0),time:'12:00'}));gh2.mode='offline';
+  await p.evaluate(()=>handleLaunch(new URLSearchParams('tarea=z'),false));await sleep(2500);
+  ok(/No pude traer lo último de GitHub \(Sin conexión\)/.test(await p.textContent('#toastMsg')),'sin señal: "'+await p.textContent('#toastMsg')+'"');
+  // Creada sin señal antes de la hora de su aviso y subida después: no culpa a cron-job.org
+  await type(p,'Llamar al proveedor a las 10:30');await p.press('#title','Enter');await sleep(400);
+  await p.clock.fastForward('41:00');gh2.files[ENV]=envFile({['x|'+day(-1)+'|20:00']:'2026-10-13T22:50:20.000Z'});gh2.mode='ok';
+  await p.evaluate(async()=>{await sync();await checkAvisos(true)});await sleep(1500);
+  ok(gh2.items.some(t=>/proveedor/.test(t.title))&&!await p.isVisible('#avisoBar')&&await p.evaluate(()=>missedAvisos().length===0),'creada sin señal y subida después de su corrida: no hay barra de aviso que no salió');
+  await d.ctx.close();
+}
+{
+  // "recordame todos los días" a las 10: la serie queda a las 9
+  const gh=makeGH([]);
+  const {ctx,p}=await device(b,gh,DESK,null,AVISOS_ON);await sleep(800);
+  await type(p,'recordame tomar agua todos los días');
+  const t=await tags(p);
+  ok(t.includes('09:00'),'"recordame … todos los días" a las 10:00: igual a las 09:00 ('+t.join(', ')+')');
+  await ctx.close();
+  // Pasada la última corrida (22:50), una hora que todavía no llegó: "ya no hay más avisos hoy"
+  const d2=await device(b,makeGH([]),{...DESK,clock:Date.parse('2026-10-15T01:55:00Z')},null,AVISOS_ON);await sleep(800);
+  await type(d2.p,'algo a las 23:15');
+  const t2=await tags(d2.p);
+  ok(t2.includes('Sin aviso (ya no hay más avisos hoy)!'),'a las 22:55, 23:15: "Sin aviso (ya no hay más avisos hoy)" ('+t2.join(', ')+')');
+  await d2.ctx.close();
 }
 
 // ---- whenAt: cuándo se le puso la fecha u hora (o se volvió a abrir), para no reclamar avisos que no podían salir ----
