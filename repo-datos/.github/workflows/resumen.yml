@@ -97,8 +97,13 @@ jobs:
           let perdidos='';
           try{
             const enviados=JSON.parse(readFileSync('recordatorios-enviados.json','utf8'));
-            if(enviados&&typeof enviados==='object'&&!Array.isArray(enviados)){
-              const mediodia=Date.parse(hoy+'T12:00:00Z'),lunes=new Date(mediodia).getUTCDay()===1;
+            // Si hace más de 30 días que no sale ninguno, se dejaron de usar: no se mira (como en la app)
+            const ultimo=enviados&&typeof enviados==='object'?Math.max(...Object.values(enviados).map(v=>Date.parse(v)).filter(x=>x>0)):0;
+            if(enviados&&typeof enviados==='object'&&!Array.isArray(enviados)&&Date.now()-ultimo<30*86400000){
+              // Los lunes, desde el viernes, si el resumen sale de lunes a viernes (si sale todos los días, el
+              // del domingo ya miró el sábado)
+              const mediodia=Date.parse(hoy+'T12:00:00Z'),semana=E.PROGRAMA==='diario'||/\b1-5$/.test(E.PROGRAMA||'');
+              const lunes=semana&&new Date(mediodia).getUTCDay()===1;
               const revisar=(lunes?[3,2,1]:[1]).map(n=>new Date(mediodia-n*86400000).toISOString().slice(0,10));
               // La corrida que tenía que avisar: la primera a las :20 o :50, de 6 a 22, que avisa esa hora
               // (como en recordatorios.yml: hasta 39 minutos antes y hasta 3 horas tarde). Si no hay, queda fuera del horario.
@@ -111,7 +116,8 @@ jobs:
                 if(!t||t.deletedAt||!revisar.includes(t.due)||!/^\d{2}:\d{2}$/.test(t.time||''))continue;
                 const c=corrida(t.time);if(!c)continue;
                 const R=t.due+'T'+c;
-                if(t.createdAt&&local(t.createdAt)>R)continue;                       // la cargaste después de esa corrida
+                // La cargaste, le cambiaste la fecha o la hora (whenAt, lo anota la app) o la volviste a abrir después de esa corrida
+                if([t.createdAt,t.whenAt].some(x=>x&&local(x)>R))continue;
                 if(t.done&&(!t.completedAt||local(t.completedAt)<=R))continue;      // la terminaste antes del aviso
                 if(!enviados[t.id+'|'+t.due+'|'+t.time])n++;
               }

@@ -137,23 +137,32 @@ file=null;tg=[];tgSinBotones=true;put([T('a','Llamar al banco',{time:'15:00'})])
 r=log(await run('rec.mjs',NOW,{APP_URL:'yo.github.io app'}));tgSinBotones=false;
 ok(r.code===0&&tgRechazos===1&&tg.length===1&&!('reply_markup' in tg[0])&&tg[0].text==='⏰ 15:00 · Llamar al banco'&&JSON.parse(file||'{}')['a|2026-10-12|15:00']&&/sin botones/.test(r.out),'buttons rejected by Telegram → reminder sent without them and recorded: '+JSON.stringify(r.out+r.err));
 // Respaldo (horario de GitHub, a los :37) con cron-job.org andando: solo lo que ya tendría que haber salido
-{const R37='2026-10-12T17:37:00Z',REF='u/datos/.github/workflows/recordatorios.yml@refs/heads/main';   // 14:37 en Argentina
+{const R37='2026-10-12T17:37:00Z',REF='u/datos/.github/workflows/recordatorios.yml@refs/heads/main',B={GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF,HORARIO:'37 9-23,0-1 * * *'};   // 14:37 en Argentina
  const tareas=[T('r1','Ya tendría que haber salido',{time:'14:55'}),T('r2','La de las 15',{time:'15:00'}),T('r3','15:16',{time:'15:16'}),T('r4','Recién pasada',{time:'14:40'})];
- file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch'}];
- r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF}));
+ file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch',display_title:'Recordatorios (cron-job.org)'}];
+ r=log(await run('rec.mjs',R37,B));
  ok(r.code===0&&tg.length===1&&tg[0].text==='⏰ 14:40 · Recién pasada\n⏰ 14:55 · Ya tendría que haber salido'&&/Respaldo/.test(r.out),'backup with cron-job.org working: only the overdue ones (15:00 still waits for 14:50): '+JSON.stringify(tg[0]&&tg[0].text));
- ok(runsUrl.length===1&&runsUrl[0]==='Bearer tok /repos/u/datos/actions/workflows/recordatorios.yml/runs?event=workflow_dispatch&per_page=1','backup asks GitHub for the last cron-job.org run: '+runsUrl[0]);
- file=null;tg=[];put(tareas);runs=[{created_at:'2026-10-12T15:20:31Z',event:'workflow_dispatch'}];
- r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF}));
+ ok(runsUrl.length===1&&runsUrl[0]==='Bearer tok /repos/u/datos/actions/workflows/recordatorios.yml/runs?event=workflow_dispatch&per_page=10','backup asks GitHub for the last cron-job.org runs: '+runsUrl[0]);
+ // Un "Run workflow" de prueba (sin el nombre de cron-job.org) no cuenta como que cron-job.org anda
+ file=null;tg=[];put(tareas);runs=[{created_at:'2026-10-12T17:30:00Z',event:'workflow_dispatch',display_title:'Recordatorios a la hora'},{created_at:'2026-10-12T15:20:31Z',event:'workflow_dispatch',display_title:'Recordatorios (cron-job.org)'}];
+ r=log(await run('rec.mjs',R37,B));
+ ok(tg.length===1&&tg[0].text.split('\n').length===4&&!/Respaldo/.test(r.out),'a manual Run workflow 7 min ago does not count as cron-job.org working: reminds as usual');
+ // El horario de las :20 y :50 (quien no usa cron-job.org) nunca es respaldo, aunque haya una corrida de cron-job.org reciente
+ file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch',display_title:'Recordatorios (cron-job.org)'}];
+ r=log(await run('rec.mjs',R37,{...B,HORARIO:'20,50 9-23,0-1 * * *'}));
+ ok(tg.length===1&&tg[0].text.split('\n').length===4&&runsUrl.length===0,'the :20/:50 GitHub schedule is never the backup (does not even ask)');
+ file=null;tg=[];put(tareas);runs=[{created_at:'2026-10-12T15:20:31Z',event:'workflow_dispatch',display_title:'Recordatorios (cron-job.org)'}];
+ r=log(await run('rec.mjs',R37,B));
  ok(tg.length===1&&tg[0].text.split('\n').length===4,'backup with cron-job.org stopped (last run 2 h ago): reminds as usual: '+JSON.stringify(tg[0]&&tg[0].text));
  file=null;tg=[];put(tareas);runs=500;
- r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF}));runs=null;
+ r=log(await run('rec.mjs',R37,B));runs=null;
  ok(r.code===0&&tg.length===1&&tg[0].text.split('\n').length===4,'backup, GitHub fails to answer about runs: reminds as usual');
- file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch'}];
+ file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch',display_title:'Recordatorios (cron-job.org)'}];
  r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'workflow_dispatch',AUTOMATICO:'true'}));runs=null;
  ok(tg.length===1&&tg[0].text.split('\n').length===4&&runsUrl.length===0,'cron-job.org runs never ask and remind as usual');
  const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows','recordatorios.yml'),'utf8');
- ok(/^permissions:\n {2}contents: write.*\n {2}actions: read/m.test(t),'rec template: actions: read (to see the cron-job.org runs)')}
+ ok(/^permissions:\n {2}contents: write.*\n {2}actions: read/m.test(t),'rec template: actions: read (to see the cron-job.org runs)');
+ ok(/^run-name: \$\{\{ \(inputs\.automatico == true \|\| inputs\.automatico == 'true'\) && 'Recordatorios \(cron-job\.org\)' \|\| 'Recordatorios a la hora' \}\}$/m.test(t)&&/^ {10}HORARIO: \$\{\{ github\.event\.schedule \}\}$/m.test(t),'rec template: run-name marks the cron-job.org runs, HORARIO in the env')}
 ok(logs&&!['Cerrar caja','Muy de noche','Llamar al banco','Pagar',largo,'Emojis','Tarea 0','Noche'].some(x=>logs.includes(x)),'rec: no task titles in the logs');
 // ===== Resumen diario =====
 put([T('q','Sin hora hoy',{}),T('r','Banco',{time:'15:00'}),T('s','Temprano',{time:'09:00',requester:'Ana'}),T('t','En la papelera',{deletedAt:'2026-10-11T10:00:00Z'}),T('u','Vencida',{due:'2026-10-10',time:'10:00'})]);
@@ -243,6 +252,13 @@ mails=[];tg=[];r=log(await run('res.mjs',MARTES,{TELEGRAM_TOKEN:'',...MAIL}));
 ok(r.code===0&&mails.length===1&&mails[0].includes('Subject: =?UTF-8?B?'+Buffer.from('Mis tareas: avisos que no salieron').toString('base64')),'missed only, by mail: subject');
 fs.writeFileSync(ENV,JSON.stringify({'d2|2026-10-12|15:00':'2026-10-12T17:50:09Z'}));tg=[];r=log(await run('res.mjs',MARTES));
 ok(r.code===0&&tg.length===0&&/no se envía nada/.test(r.out),'missed: it was sent → no warning, nothing to send');
+// Pasada a hoy (o con la hora cambiada, o vuelta a abrir) después de su corrida: la app anota whenAt y no cuenta
+put([T('v1','Vencida pasada a hoy',{time:'08:00',createdAt:'2026-10-09T12:00:00Z',whenAt:'2026-10-12T14:30:00Z'}),T('v2','Cambiada antes',{time:'15:00',createdAt:'2026-10-09T12:00:00Z',whenAt:'2026-10-12T12:00:00Z'})]);
+fs.writeFileSync(ENV,JSON.stringify({'zz|2026-10-11|10:00':'2026-10-11T12:50:00Z'}));tg=[];r=log(await run('res.mjs',MARTES));
+ok(tg.length===1&&tg[0].text.startsWith('⚠ Ayer no salió 1 aviso'),'whenAt after the run (moved to today in the afternoon) does not count; changed before the run does: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,80)));
+// Hace más de 30 días que no sale ninguno: se dejaron de usar, no se reclama
+fs.writeFileSync(ENV,JSON.stringify({'zz|2026-09-01|10:00':'2026-09-01T12:50:00Z'}));put(ayer);tg=[];r=log(await run('res.mjs',MARTES));
+ok(tg.length===1&&tg[0].text.startsWith('Buen día. 8 vencidas')&&!tg[0].text.includes('⚠'),'last reminder more than 30 days ago (reminders no longer used) → no warning');
 fs.rmSync(ENV);put(ayer);tg=[];r=log(await run('res.mjs',MARTES));
 ok(r.code===0&&tg.length===1&&tg[0].text.startsWith('Buen día. 8 vencidas')&&!tg[0].text.includes('⚠'),'no recordatorios-enviados.json (reminders not used) → no warning');
 for(const roto of ['{roto','[]','null']){fs.writeFileSync(ENV,roto);tg=[];r=log(await run('res.mjs',MARTES));
@@ -251,10 +267,14 @@ for(const roto of ['{roto','[]','null']){fs.writeFileSync(ENV,roto);tg=[];r=log(
 fs.writeFileSync(ENV,JSON.stringify({'f3|2026-10-18|12:00':'2026-10-18T14:50:03Z'}));
 const finde=[T('f0','Del jueves',{due:'2026-10-15',time:'15:00'}),T('f1','Del viernes',{due:'2026-10-16',time:'15:00'}),T('f2','Del sábado',{due:'2026-10-17',time:'10:00'}),
   T('f3','Del domingo',{due:'2026-10-18',time:'12:00'}),T('f4','Domingo a la noche',{due:'2026-10-18',time:'22:00'})];
-put(finde);tg=[];r=log(await run('res.mjs',LUNES));
+put(finde);tg=[];r=log(await run('res.mjs',LUNES,{PROGRAMA:'0 10 * * 1-5'}));
 ok(tg.length===1&&tg[0].text.startsWith('⚠ Desde el viernes no salieron 3 avisos'+PERD+'\n\nBuen día. 5 vencidas'),'Monday: Friday to Sunday: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,120)));
+tg=[];r=log(await run('res.mjs',LUNES,{PROGRAMA:'diario'}));
+ok(tg.length===1&&tg[0].text.startsWith('⚠ Desde el viernes no salieron 3 avisos'),'Monday from cron-job.org (diario, Monday to Friday): Friday to Sunday');
+tg=[];r=log(await run('res.mjs',LUNES,{PROGRAMA:'0 10 * * *'}));
+ok(tg.length===1&&tg[0].text.startsWith('⚠ Ayer no salió 1 aviso'),'Monday with a daily summary: only Sunday (Saturday was already counted): '+JSON.stringify(tg[0]&&tg[0].text.slice(0,80)));
 // Con el aviso del token: primero el token, después los recordatorios
-fs.writeFileSync(repo+'/ajustes.json',JSON.stringify({tokens:{abc123:'2026-10-21'}}));tg=[];r=log(await run('res.mjs',LUNES));
+fs.writeFileSync(repo+'/ajustes.json',JSON.stringify({tokens:{abc123:'2026-10-21'}}));tg=[];r=log(await run('res.mjs',LUNES,{PROGRAMA:'0 10 * * 1-5'}));
 ok(tg[0]&&tg[0].text.startsWith('⚠ El token de GitHub de la app vence en 2 días (21/10). Generá uno nuevo y cargalo en Sincronización, con su fecha.\n⚠ Desde el viernes no salieron 3 avisos'+PERD+'\n\nBuen día.'),'token warning, then the missed reminders: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,200)));
 fs.rmSync(repo+'/ajustes.json');
 // La revisión de los viernes no lo lleva

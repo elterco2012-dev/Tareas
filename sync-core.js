@@ -20,7 +20,7 @@ function applyOp(a,op,cmp){
       }
       break;
     case 'done':
-      if(item&&!!item.done!==op.done){item.done=op.done;item.completedAt=op.done?op.at:null}
+      if(item&&!!item.done!==op.done){item.done=op.done;item.completedAt=op.done?op.at:null;if(!op.done&&op.whenAt)item.whenAt=op.whenAt}
       break;
     case 'edit':
       if(item)Object.assign(item,op.patch);

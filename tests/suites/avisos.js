@@ -239,6 +239,23 @@ const b=await L.launch();
   await d.ctx.close();
 }
 
+// ---- whenAt: cuándo se le puso la fecha u hora (o se volvió a abrir), para no reclamar avisos que no podían salir ----
+{
+  const gh=makeGH([T('v','Vencida de las 8',{due:day(-1),time:'08:00',createdAt:L.ago(2)}),T('r','Hecha de las 9:30',{due:day(0),time:'09:30',done:true,completedAt:L.ago(0.1),createdAt:L.ago(2)})]);
+  gh.files[ENV]=envFile({['x|'+day(-1)+'|20:00']:'2026-10-13T22:50:20.000Z'});
+  const {ctx,p}=await device(b,gh,PHONE,null,AVISOS_ON);await sleep(1200);
+  await p.evaluate(()=>reschedule(tasks.find(t=>t.id==='v'),'0'));await sleep(1500);
+  const v=gh.items.find(x=>x.id==='v');
+  ok(v.due===day(0)&&v.time==='08:00'&&Date.parse(v.whenAt)>=L.REF,'pasada a hoy: queda con whenAt ('+v.whenAt+')');
+  await p.evaluate(()=>toggle(tasks.find(t=>t.id==='r')));await sleep(1500);
+  const r=gh.items.find(x=>x.id==='r');
+  ok(r.done===false&&Date.parse(r.whenAt)>=L.REF,'vuelta a abrir: queda con whenAt ('+r.whenAt+')');
+  await p.evaluate(()=>checkAvisos(true));await sleep(800);
+  ok(await p.evaluate(()=>missedAvisos().length===0)&&!await p.isVisible('#avisoBar'),'ni la pasada a hoy (8:00) ni la reabierta (9:30) cuentan como avisos que no salieron');
+  ok(!p.errs.length,'sin errores ('+p.errs.join(' | ')+')');
+  await ctx.close();
+}
+
 // ---- "En 1 hora" en el menú ⋯ ----
 {
   const gh=makeGH([T('a','Alfa',{due:day(0)})]);

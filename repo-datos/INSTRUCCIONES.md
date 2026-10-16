@@ -102,6 +102,8 @@ En `.github/workflows/resumen.yml`, la línea `cron: "0 10 * * 1-5"` usa la hora
 | 8:30 de lunes a viernes | `"30 11 * * 1-5"` |
 | 7:00 todos los días | `"0 10 * * *"` |
 
+Si llega de lunes a viernes, el de los lunes cuenta los avisos que no salieron desde el viernes; si llega todos los días, cada uno cuenta solo los del día anterior.
+
 ## Opcional: recibirlo también por mail
 
 Además de Telegram (o en lugar de Telegram), puede llegarte por mail. Cargá estos secretos, igual que en el paso 4:
@@ -175,7 +177,7 @@ Cómo funciona:
 - GitHub lo revisa cada media hora, entre las 6:20 y las 22:50. Avisan las tareas con hora entre las 6:30 y las 23:29; las de más tarde no.
 - El aviso llega entre 10 y 40 minutos antes de la hora (si es en punto o y media, unos 10 minutos antes). GitHub a veces demora sus tareas programadas: si se atrasa, el aviso llega igual (hasta 3 horas tarde) y no se repite.
 - Las tareas que cargaste antes de esta versión tenían la hora dentro del texto: la app la pasa sola a su lugar la próxima vez que la abrís con conexión, así que también avisan.
-- Para recordar qué ya avisó, guarda el archivo `recordatorios-enviados.json` en tu repositorio de datos. No hace falta tocarlo.
+- Para recordar qué ya avisó, guarda el archivo `recordatorios-enviados.json` en tu repositorio de datos. No hace falta tocarlo. Si dejás de usar los recordatorios, el resumen deja de reclamar avisos que no salieron a los 30 días del último (o enseguida, si borrás ese archivo).
 - Usa unos 1050 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (cada revisión cuenta como 1 minuto, aunque tarde segundos). Junto con el resumen diario quedan unos 900 libres.
 - Si una tarea no tiene hora, no hay aviso: aparece en el resumen de la mañana.
 - Si un recordatorio no salió (por ejemplo, porque GitHub o cron-job.org no corrieron), el resumen de las 7 del día siguiente empieza con un aviso, aunque no haya nada más para contarte:
@@ -208,9 +210,9 @@ Para el horario hasta las 22:50, el botón "Posponer o hecha" y el aviso ⚠ del
 
 ## Opcional: cambiar el horario de los recordatorios
 
-En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23,0-1 * * *"` usa la hora universal (UTC, 3 horas adelante de Argentina). `9-23,0-1` son las horas en UTC (de 9 a 23 y de 0 a 1): de 6 a 22 en Argentina. Por ejemplo, para que no avise a la noche (solo tareas hasta las 21:30), poné `"20,50 9-23 * * *"` (usa unos 120 minutos menos por mes). Si usás cron-job.org, el horario se cambia allá, en la hora de Argentina: `20,50 6-20 * * *`.
+En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23,0-1 * * *"` usa la hora universal (UTC, 3 horas adelante de Argentina). `9-23,0-1` son las horas en UTC (de 9 a 23 y de 0 a 1): de 6 a 22 en Argentina. Por ejemplo, para que no avise a la noche (solo tareas hasta las 21:30), poné `"20,50 9-23 * * *"` (usa unos 120 minutos menos por mes). Si usás cron-job.org, el horario se cambia allá, en la hora de Argentina: `20,50 6-20 * * *`, y también la línea de respaldo de `recordatorios.yml`, para que no avise a la noche: `"37 9-23 * * *"` (de 6:37 a 20:37).
 
-Ojo: el aviso ⚠ del resumen de las 7 cuenta el horario completo, hasta las 22:50. Si lo acortás, las tareas con hora de la noche van a aparecer como avisos que no salieron.
+Ojo: el aviso ⚠ del resumen de las 7 y el de la app cuentan el horario completo, hasta las 22:50. Si lo acortás, las tareas con hora de la noche van a aparecer como avisos que no salieron.
 
 ---
 
@@ -295,7 +297,7 @@ En tu repositorio de datos:
    ```
    Tocá **Commit changes…** → **Commit changes**.
 
-Con el respaldo, si un día cron-job.org falla (o se desactiva), los recordatorios salen igual por el horario de GitHub (cada hora, entre 40 minutos antes y unos 20 después de la hora). Mientras cron-job.org anda, el respaldo solo manda lo que tendría que haber salido y no salió: no adelanta ningún aviso (el de las 15:00 sigue llegando a las 14:50). Si corren los dos, el aviso no se repite: lo que ya salió queda anotado en `recordatorios-enviados.json`.
+Con el respaldo, si un día cron-job.org falla (o se desactiva), los recordatorios salen igual por el horario de GitHub (cada hora, entre 40 minutos antes y unos 20 después de la hora). Mientras cron-job.org anda, el respaldo solo manda lo que tendría que haber salido y no salió: no adelanta ningún aviso (el de las 15:00 sigue llegando a las 14:50). El último respaldo es a las 22:37: las tareas de las 23:17 a las 23:29 dependen solo de la corrida de cron-job.org de las 22:50. Las corridas de cron-job.org aparecen en **Actions** como "Recordatorios (cron-job.org)"; los "Run workflow" de prueba, como "Recordatorios a la hora". Si corren los dos, el aviso no se repite: lo que ya salió queda anotado en `recordatorios-enviados.json`.
 
 Minutos de GitHub (cada corrida cuenta como 1 minuto): cron-job.org dispara 34 recordatorios por día (unos 1050 por mes), el respaldo 17 (unos 530) y los resúmenes unos 25. En total, unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados. No los pongas más seguido (por ejemplo, cada 15 minutos): se pasaría de los 2000 y GitHub dejaría de correrlos hasta el mes siguiente. Si preferís no gastar esos minutos, borrá también las líneas de `schedule:` de `recordatorios.yml`, como en el resumen: sin respaldo usa unos 1080.
 

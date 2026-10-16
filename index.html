@@ -1135,7 +1135,14 @@ function placeMoved(ops){
 function actMany(ops){
   const now=Date.now();
   placeMoved(ops);
-  ops.forEach(o=>{o.opId=crypto.randomUUID();o.ts=now});
+  // Cuándo se le puso la fecha u hora que tiene (o se volvió a abrir): el control de avisos (acá y en el resumen de
+  // la mañana) no reclama un aviso que no podía salir, como el de una vencida de las 8 pasada a hoy a la tarde
+  const iso=new Date(now).toISOString();
+  ops.forEach((o,i)=>{
+    if(o.type==='edit'&&o.patch&&('due' in o.patch||'time' in o.patch))ops[i]=o={...o,patch:{...o.patch,whenAt:iso}};
+    else if(o.type==='done'&&!o.done)ops[i]=o={...o,whenAt:iso};
+    o.opId=crypto.randomUUID();o.ts=now;
+  });
   if(ops.length)setOutbox([...getOutbox(),...ops]);
   recompute();sync();
   // "sin subir" aparece en la fila solo si la subida tarda más de 5 s
@@ -1495,7 +1502,7 @@ function missedAvisos(){
   const out=[];
   for(const t of remote){
     if(!t||t.deletedAt||t.due!==today||!HM_RE.test(t.time||''))continue;
-    const k=t.id+'|'+t.due+'|'+t.time,r=remindRun(today,t.time,Math.max(since(Date.parse(t.createdAt)||0),seen[k]?since(seen[k]):0));
+    const k=t.id+'|'+t.due+'|'+t.time,r=remindRun(today,t.time,Math.max(since(Date.parse(t.createdAt)||0),since(Date.parse(t.whenAt)||0),seen[k]?since(seen[k]):0));
     if(r==null||now<r+20)continue;
     if(t.done&&!(Date.parse(t.completedAt)>=at(r)))continue;   // la terminaste antes del aviso (o no se sabe cuándo)
     // Salió el de esta tarea (aunque sea antes, por el horario de respaldo) o alguno desde esa corrida

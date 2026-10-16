@@ -2,6 +2,8 @@
 # Va en el repositorio PRIVADO de datos, en .github/workflows/recordatorios.yml.
 # Pasos para configurarlo: ver INSTRUCCIONES.md.
 name: Recordatorios a la hora
+# Las corridas de cron-job.org se ven como "Recordatorios (cron-job.org)": así el respaldo sabe si cron-job.org anda
+run-name: ${{ (inputs.automatico == true || inputs.automatico == 'true') && 'Recordatorios (cron-job.org)' || 'Recordatorios a la hora' }}
 
 on:
   # Horario de GitHub: a veces se atrasa horas o se saltea. Para que sea puntual, lo puede disparar
@@ -46,6 +48,7 @@ jobs:
           ZONA_HORARIA: America/Argentina/Buenos_Aires
           AUTOMATICO: ${{ inputs.automatico }}
           APP_URL: ${{ vars.APP_URL }}
+          HORARIO: ${{ github.event.schedule }}
         run: |
           node --input-type=module <<'JS'
           import {readFileSync} from 'node:fs';
@@ -71,16 +74,16 @@ jobs:
           const api=E.GITHUB_API||'https://api.github.com',ruta='recordatorios-enviados.json';
           const hdr={'Authorization':'Bearer '+E.GH_TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'};
 
-          // Corrida del horario de GitHub con cron-job.org andando (disparó este workflow hace menos de 45 minutos): es el
-          // respaldo, y solo manda las que cron-job.org ya tendría que haber avisado (a las :20 y :50, de 6:20 a 22:50) y no
-          // avisó. Así no se adelanta: la de las 15:00 sigue llegando a las 14:50, no a las 14:37. Si cron-job.org no anda,
-          // avisa como siempre.
+          // Corrida del horario de respaldo (el de GitHub que no es el de las :20 y :50) con cron-job.org andando (lo disparó
+          // hace menos de 45 minutos; los "Run workflow" de prueba no cuentan): solo manda las que cron-job.org ya tendría
+          // que haber avisado (a las :20 y :50, de 6:20 a 22:50) y no avisó. Así no se adelanta: la de las 15:00 sigue
+          // llegando a las 14:50, no a las 14:37. Si cron-job.org no anda, avisa como siempre.
           let soloAtrasadas=false;
-          if(E.GITHUB_EVENT_NAME==='schedule'){
+          if(E.GITHUB_EVENT_NAME==='schedule'&&!/^20,50\s/.test(E.HORARIO||'')){
             try{
               const wf=(E.GITHUB_WORKFLOW_REF||'').split('@')[0].split('/').pop()||'recordatorios.yml';
-              const r=await fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/actions/workflows/'+encodeURIComponent(wf)+'/runs?event=workflow_dispatch&per_page=1',{headers:hdr});
-              const u=r.ok?((await r.json()).workflow_runs||[])[0]:null;
+              const r=await fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/actions/workflows/'+encodeURIComponent(wf)+'/runs?event=workflow_dispatch&per_page=10',{headers:hdr});
+              const u=r.ok?((await r.json()).workflow_runs||[]).find(x=>x&&x.display_title==='Recordatorios (cron-job.org)'):null;
               soloAtrasadas=!!u&&Date.now()-Date.parse(u.created_at)<45*60000;
             }catch{}
             if(soloAtrasadas)console.log('Respaldo: cron-job.org anda, solo se manda lo atrasado.');
