@@ -163,6 +163,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .acct[open]{padding-bottom:14px}
 .acct[open]>*:not(summary){margin-top:12px}
 .devsec{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--divider);padding-top:12px}
+.appinfo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:13px;color:var(--muted)}
 .themerow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:var(--text)}
 .seg{display:inline-flex;border:1px solid var(--chip);border-radius:10px;padding:2px;gap:2px;background:var(--card)}
 .seg button{border:0;background:none;color:var(--text2);border-radius:8px;padding:6px 12px;font-size:13.5px;font-weight:600;min-height:34px}
@@ -538,6 +539,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
         <button type="button" data-t="auto">Automática</button><button type="button" data-t="light">Clara</button><button type="button" data-t="dark">Oscura</button>
       </div></div>
       <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
+      <div id="appInfo" class="appinfo"><span id="appVer"></span><button type="button" id="appUpdate" class="linkbtn hidden">Actualizar</button></div>
       <button type="button" id="clearCfg" class="clearbtn"></button>
     </div>
   </div>
@@ -622,9 +624,21 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
-<script src="sync-core.js"></script>
+<script src="sync-core.js?v=2026.10.16-1"></script>
 <script>
 'use strict';
+// La versión de esta página (la misma que sw.js y sync-core.js; npm run version la cambia en los tres)
+const APP_VERSION='2026.10.16-1';
+// Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
+// navegador): se recarga una sola vez, así llega todo de la misma versión
+(()=>{
+  const core=typeof CORE_VERSION==='undefined'?null:CORE_VERSION;
+  if(core===APP_VERSION)return;
+  let tried=false;try{tried=sessionStorage.getItem('recargaVersion')===APP_VERSION;sessionStorage.setItem('recargaVersion',APP_VERSION)}catch{}
+  if(tried)return;
+  location.reload();
+  throw new Error('Versiones distintas ('+APP_VERSION+' / '+core+'): se recarga');
+})();
 const $=id=>document.getElementById(id);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
 const file='tareas.json';
@@ -2769,7 +2783,7 @@ function openSettings(){
   $('acct').open=!configured()||errorKind==='hard';
   $('credBtn').classList.toggle('hidden',!window.PasswordCredential);
   $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
-  renderStatus();
+  renderDevice();renderStatus();
 }
 function closeSettings(){settingsOpen=false;confirmClear=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
 function renderSync(st){
@@ -2797,7 +2811,7 @@ $('saveCfg').onclick=()=>{
   if(next.tokenExp!==cfg.tokenExp)try{localStorage.removeItem(K_TOKENX)}catch{}
   const prevToken=cfg.token;
   cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;
-  closeSettings();recompute();sync();
+  closeSettings();recompute();sync();keepStorage();
   // Con fecha, se guarda para el otro dispositivo y el Telegram; sin fecha, se trae la que haya cargado el
   // otro. Un token nuevo sin fecha borra la del anterior, para que el Telegram no siga avisando.
   tokenDateChecked=!!next.tokenExp;
@@ -3007,40 +3021,59 @@ cfg=load(K_CFG,{})||{};
 loadCache();
 recompute();   // muestra al instante lo guardado en el dispositivo
 const firstSync=sync();        // y después trae lo último de GitHub
-// Desde el acceso directo "Nueva tarea" (?nueva=1) el foco va al campo también en el celular
-const params=new URLSearchParams(location.search);
-// Al compartir, Chrome arma la dirección con title/text/url (reemplaza el ?share=1 del manifest)
-const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar');
-if(params.has('nueva')||shared||voz||revisar)history.replaceState(null,'',location.pathname+location.hash);
-// Desde el Telegram de los viernes: la revisión de la semana
-if(revisar)Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}).then(()=>openProc(true,true));
+// Lo que pide la dirección con que se abrió: "Nueva tarea" (?nueva=1), "Dictar" (?voz=1), lo compartido desde
+// otra app (Chrome arma la dirección con title/text/url) o la revisión de la semana del Telegram (?revisar=1)
+const LAUNCH_URL=location.href,params=new URLSearchParams(location.search);
+if(['nueva','share','title','text','url','voz','revisar'].some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
 WIDE.addEventListener('change',renderList);
 // La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
-if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft();
-// En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
-if(voz)openDock();
-else if(FINE||params.has('nueva')||shared||COARSE&&STANDALONE)$('title').focus();
-// Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
-// Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
-if(shared){
-  const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
-  const lines=splitLines(text);
-  if(lines.length>=2){
-    const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
-    openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
-  }else{
-    const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
-    const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
-    $('title').value=sp.title.slice(0,500);sharedFill=true;
-    if(sp.note){setNote(true);$('note').value=sp.note.slice(0,2000);toast('El resto del mensaje quedó en la nota')}
-    renderAdd();
+// initial: al abrir la app; si no, con la app ya abierta (en la compu, "Nueva tarea" o "Dictar" del ícono)
+function handleLaunch(params,initial){
+  const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar');
+  if(!initial){
+    closeMenu();
+    // Si hay algo abierto, solo se trae la ventana adelante
+    if(edit||bulk||waitFor||ask||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))return;
   }
+  // Desde el Telegram de los viernes: la revisión de la semana (al abrir, después de traer lo último)
+  if(revisar)(initial?Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}):Promise.resolve()).then(()=>openProc(true,true));
+  if(initial){if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft()}
+  // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
+  if(voz)openDock();
+  else if(initial?FINE||params.has('nueva')||shared||COARSE&&STANDALONE:params.has('nueva')||shared)$('title').focus();
+  // Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
+  // Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
+  if(shared&&(initial||!$('title').value.trim())){
+    const title=(params.get('title')||'').trim(),text=(params.get('text')||'').trim(),url=(params.get('url')||'').trim();
+    const lines=splitLines(text);
+    if(lines.length>=2){
+      const extra=[title&&!text.includes(title)?title:'',url&&!text.includes(url)?url:''].filter(Boolean);
+      openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
+    }else{
+      const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
+      const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
+      $('title').value=sp.title.slice(0,500);sharedFill=true;
+      if(sp.note){setNote(true);$('note').value=sp.note.slice(0,2000);toast('El resto del mensaje quedó en la nota')}
+      renderAdd();
+    }
+  }
+}
+handleLaunch(params,true);
+// Con la app ya abierta en la compu, los accesos del ícono llegan acá en lugar de abrir otra ventana
+// (launch_handler del manifest). La primera vez llega la misma dirección con que se abrió: ya está hecha.
+if('launchQueue' in window){
+  let first=true;
+  launchQueue.setConsumer(p=>{const skip=first&&p.targetURL===LAUNCH_URL;first=false;if(p.targetURL&&!skip)handleLaunch(new URL(p.targetURL).searchParams,false)});
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible'){clearTimeout(pollTimer);registerBackground();return}
   sync();
+  checkForUpdate();
+  // Volviste después de un rato y hay una versión nueva lista: si no hay nada abierto, se actualiza sola
+  if(newVersion&&hiddenAt&&Date.now()-hiddenAt>120000&&readyForReload()){reloadApp();return}
+  if(newVersion)offerUpdate(newVersion);
   // Al volver después de un rato, en el celular: arriba de todo y lista para anotar
   if(COARSE&&hiddenAt&&Date.now()-hiddenAt>120000)readyToCapture();
 });
@@ -3054,7 +3087,59 @@ function readyToCapture(){
 }
 window.addEventListener('online',sync);
 window.addEventListener('storage',e=>{if(e.key===K_OUTBOX||e.key===K_CACHE){loadCache();recompute()}});
-if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ---- Versión y actualizaciones ----
+// Cuando se publica una versión nueva, Chrome la baja sola (cambia sw.js) y la deja lista. La app avisa
+// "Hay una versión nueva · Actualizar"; si volvés después de un rato y no hay nada abierto, se actualiza sola.
+let swReg=null,newVersion=null,storageKept=null,lastSwCheck=0;
+// "2026.10.16-2" es más nueva que "2026.10.16-1" y que "2026.10.9-5"
+function isNewer(a,b){const k=v=>String(v).split(/[.-]/).map(Number);const x=k(a),y=k(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
+// Nada que se pierda al recargar (lo que estás escribiendo en el campo queda en el borrador y vuelve)
+function readyForReload(){return !edit&&!bulk&&!waitFor&&!ask&&!dock&&!listening&&!autoSave&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')}
+function reloadApp(){
+  if(!readyForReload()){toast('Guardá o cerrá lo que tenés abierto y tocá Actualizar de nuevo');return}
+  try{sessionStorage.setItem('actualizada','1')}catch{}
+  location.reload();
+}
+function offerUpdate(v){
+  if(!v||!isNewer(v,APP_VERSION))return;
+  newVersion=v;renderDevice();
+  // No tapa un Deshacer pendiente: queda en Sincronización y se vuelve a avisar al volver a la app
+  const busy=toastAction&&toastKind!=='version'&&!$('toast').classList.contains('hidden');
+  if(!busy)toast('Hay una versión nueva de la app',reloadApp,'Actualizar',12000,null,'version');
+}
+function checkForUpdate(force){
+  if(!swReg||!force&&Date.now()-lastSwCheck<3600e3)return;
+  lastSwCheck=Date.now();swReg.update().catch(()=>{});
+}
+function renderDevice(){
+  $('appVer').textContent='Versión '+APP_VERSION+' · '+(STANDALONE?'app instalada':'en el navegador')+
+    (newVersion?' · hay una nueva ('+newVersion+')':'')+(storageKept===false&&configured()?' · el navegador puede borrar los datos de este dispositivo si le falta espacio':'');
+  $('appUpdate').classList.toggle('hidden',!newVersion);
+}
+$('appUpdate').onclick=reloadApp;
+// Pedir que el navegador no borre los datos de la app (la conexión y lo que todavía no subió) si le falta espacio.
+// En una app instalada o muy usada, Chrome lo concede sin preguntar.
+function keepStorage(){
+  if(!(navigator.storage&&navigator.storage.persist))return;
+  navigator.storage.persisted().then(p=>p||configured()&&navigator.storage.persist()).then(p=>{storageKept=!!p;renderDevice()}).catch(()=>{});
+}
+keepStorage();
+try{if(sessionStorage.getItem('actualizada')){sessionStorage.removeItem('actualizada');toast('App actualizada · versión '+APP_VERSION)}}catch{}
+renderDevice();
+if('serviceWorker' in navigator&&location.protocol!=='file:'){
+  let hadController=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;lastSwCheck=Date.now()}).catch(()=>{});
+  // Se instaló una versión nueva y tomó el control: se le pregunta cuál es (la primera vez es esta misma)
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!hadController){hadController=true;return}
+    const c=navigator.serviceWorker.controller;if(c)c.postMessage({type:'version'});
+  });
+  navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='version')offerUpdate(e.data.version)});
+  if(navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({type:'version'});
+  // Con la ventana abierta todo el día (la compu), se fija si hay una nueva una vez por hora
+  setInterval(()=>{if(document.visibilityState==='visible')checkForUpdate()},600e3);
+}
 </script>
 </body>
 </html>

@@ -33,6 +33,13 @@ La app se sirve con un servidor de Node en `http://127.0.0.1:<puerto libre>/Tare
 Pages. El service worker está bloqueado salvo donde se prueba (`pwa.js`, `segundo-plano.js` y abrir sin
 señal en `captura-celular.js`): así los pedidos a api.github.com siempre pasan por el GitHub falso.
 
+## Al cambiar la app: subir la versión
+
+El service worker guarda la app en una caché por versión. Si cambiás `index.html`, `sync-core.js` o los íconos,
+corré `npm run nueva-version` antes de publicar: sube la versión en `sw.js`, `index.html` y `sync-core.js` y guarda
+la huella de los archivos. `suites/version.js` falla si te olvidaste (si no, los dispositivos se quedarían con la
+versión vieja).
+
 ## En GitHub (CI)
 
 `.github/workflows/test.yml` corre en cada pull request y en cada push a `main`: `npm ci`, instala Chromium
