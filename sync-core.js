@@ -10,8 +10,8 @@ function applyOp(a,op,cmp){
   switch(op.type){
     case 'add':
       // La próxima de una tarea que se repite se agrega una sola vez, aunque dos dispositivos la terminen
-      // (si la que había quedó en la papelera, no cuenta)
-      if(op.task.repeatOf&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id&&!x.deletedAt))break;
+      // (si la que había quedó en la papelera, no cuenta; y la que vuelve directo a la papelera tampoco)
+      if(op.task.repeatOf&&!op.task.deletedAt&&a.some(x=>x.repeatOf===op.task.repeatOf&&x.id!==op.task.id&&!x.deletedAt))break;
       if(!a.some(x=>x.id===op.task.id)){
         const order=op.task.order??(Math.max(-1,...a.filter(t=>!t.done).map(t=>Number(t.order)||0))+1);
         a.push({...op.task,order});
