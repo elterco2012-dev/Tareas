@@ -1,26 +1,61 @@
-// Permite abrir la app sin conexión y al instante: responde con la copia guardada y, en paralelo,
-// trae la versión nueva de la red para la próxima vez. No toca las llamadas a GitHub.
-importScripts('sync-core.js');
-const CACHE='tareas-v8';
-const SHELL=['./','./sync-core.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
+// Service worker de Mis tareas. Guarda la app (la página, sync-core.js y los íconos) en una caché propia de
+// cada versión y la sirve desde ahí: abre al instante y sin conexión, y la página y su núcleo son siempre de
+// la misma versión. Para publicar cambios se sube VERSION (npm run nueva-version; una prueba lo exige): Chrome ve
+// que sw.js cambió, arma la versión nueva en otra caché y la app avisa "Hay una versión nueva".
+// No toca las llamadas a GitHub ni el manifest (Chrome lo revisa por su cuenta).
+const VERSION='2026.10.16-3';
+// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: 6107fecd9e96ef55
+importScripts('sync-core.js?v='+VERSION);
+const CACHE='tareas-'+VERSION;
+const SHELL=['./','./sync-core.js?v='+VERSION,'./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
+const CORE_PATH=new URL('./sync-core.js',self.registration.scope).pathname;
+const abs=u=>new URL(u,self.registration.scope).href;
+const SHELL_URLS=new Set(SHELL.map(abs));
+// La app se abre en la raíz o en index.html, con o sin parámetros (?nueva=1, ?voz=1, lo compartido)
+const APP_PATHS=new Set(['./','./index.html'].map(u=>new URL(abs(u)).pathname));
 
 self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
+  e.waitUntil((async()=>{
+    // Todo directo de la red (sin la caché del navegador), así la versión nueva no se arma con un archivo viejo.
+    // La página, con su versión en la dirección (GitHub Pages la ignora) y revisada: si llegara una vieja,
+    // no se instala (ni se crea su caché) y Chrome lo vuelve a intentar más tarde.
+    const page=await fetch(new Request('./?v='+VERSION,{cache:'reload'}));
+    if(!page.ok||!(await page.clone().text()).includes("APP_VERSION='"+VERSION+"'"))throw new Error('La página no es de la versión '+VERSION);
+    const c=await caches.open(CACHE);
+    await c.addAll(SHELL.slice(1).map(u=>new Request(u,{cache:'reload'})));
+    await c.put(abs('./'),page);
+    await self.skipWaiting();
+  })());
 });
 self.addEventListener('activate',e=>{
   e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('tareas-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
+// De la caché de esta versión; si falta (otro sitio de github.io borró las cachés, por ejemplo), de la red, y se guarda
+async function fromCache(key,req){
+  const c=await caches.open(CACHE);
+  const hit=await c.match(key);
+  if(hit)return hit;
+  const res=await fetch(req);
+  if(res.ok&&!res.redirected)await c.put(key,res.clone());
+  return res;
+}
 self.addEventListener('fetch',e=>{
   const req=e.request;
-  if(req.method!=='GET'||new URL(req.url).origin!==location.origin)return;
-  const key=req.mode==='navigate'?'./':req;
-  const net=fetch(req).then(res=>{
-    if(res.ok&&!res.redirected){const copy=res.clone();caches.open(CACHE).then(c=>c.put(key,copy))}
-    return res;
-  });
-  e.waitUntil(net.catch(()=>{}));
-  e.respondWith(caches.match(key,{ignoreSearch:true}).then(cached=>cached||net));
+  if(req.method!=='GET')return;
+  const u=new URL(req.url);
+  if(u.origin!==location.origin)return;
+  if(req.mode==='navigate'){
+    // Otra página del sitio (el manifest, un archivo) va directo a la red y no pisa la copia de la app
+    if(!APP_PATHS.has(u.pathname))return;
+    // Los parámetros (lo compartido desde WhatsApp, por ejemplo) no viajan a la red: se pide la app sola
+    e.respondWith(fromCache(abs('./'),new Request(abs('./'),{cache:'no-cache'})));
+    return;
+  }
+  // Los archivos de la app; sync-core.js de cualquier versión, así el que pida la página siempre queda guardado con ella
+  if(SHELL_URLS.has(u.href)||u.pathname===CORE_PATH)e.respondWith(fromCache(u.href,req));
 });
+// La página pregunta qué versión está lista (para avisar que hay una nueva)
+self.addEventListener('message',e=>{if(e.data&&e.data.type==='version'&&e.source)e.source.postMessage({type:'version',version:VERSION})});
 
 // ---- Subir en segundo plano ----
 // La página deja en IndexedDB la conexión y los cambios sin subir y registra 'subir'. Chrome despierta

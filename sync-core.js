@@ -2,6 +2,8 @@
 // sobre tareas.json, cómo se arma el mensaje de cada subida y dónde quedan los cambios para subir
 // en segundo plano. Todo lo que está acá tiene que funcionar en los dos lados.
 'use strict';
+// La versión de la app: tiene que ser la misma que la de index.html y sw.js (si no, la página recarga una vez)
+const CORE_VERSION='2026.10.16-3';
 
 // ---- Cambios: cada acción es una operación que se puede reaplicar sobre la última versión ----
 // cmp: orden de las pendientes, solo para 'move' (de una versión vieja); sin cmp, 'move' no hace nada

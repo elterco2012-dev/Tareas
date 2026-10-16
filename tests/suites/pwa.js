@@ -21,6 +21,8 @@ const cdp=await ctx.newCDPSession(p);
 const inst=await cdp.send('Page.getInstallabilityErrors');
 ok(inst.installabilityErrors.length===0,'Chrome installability errors: '+JSON.stringify(inst.installabilityErrors));
 const appMan=await cdp.send('Page.getAppManifest');
+// El id es el mismo que Chrome calculaba antes con start_url: la app instalada sigue siendo la misma
+ok(appMan.manifest&&appMan.manifest.id===new URL('/Tareas/',APP).href,'manifest id keeps the same app identity: '+(appMan.manifest&&appMan.manifest.id));
 ok(!appMan.errors||appMan.errors.length===0,'manifest parse errors: '+JSON.stringify(appMan.errors));
 ok(await p.evaluate(()=>!!navigator.serviceWorker.controller)||true,'sw registered');
 // Offline: reabrir sin red

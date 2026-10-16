@@ -20,12 +20,24 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 8) Abre la misma URL desde tu celular y configura los mismos datos una sola vez.
 
 INSTALAR COMO APLICACION
-- Android (Chrome): abri la URL > menu ⋮ > "Instalar aplicacion" (o "Agregar a pantalla principal").
+- Android (Chrome): abri la URL > menu ⋮ > "Instalar aplicacion" (o "Agregar a pantalla principal" > "Instalar").
+  No elijas "Crear acceso directo": abre en Chrome, sin los atajos ni "Compartir con Tareas".
 - iPhone (Safari): abri la URL > boton Compartir > "Agregar a inicio".
 - Compu (Chrome/Edge): icono de instalar en la barra de direcciones, o menu > "Instalar Mis tareas".
 - En iPhone la app instalada no comparte datos con Safari: al abrirla por primera vez desde el icono,
   carga de nuevo usuario, repositorio y token en Sincronizacion. Usa siempre la app instalada (no Safari)
   para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
+- Desinstalar de verdad (Android): mantene apretado el icono > Desinstalar (o Ajustes > Aplicaciones > Tareas >
+  Desinstalar). Para confirmar que no quedo escondida, en Chrome escribi about://webapks: no tiene que aparecer
+  "Mis tareas". Si Chrome dice "ya esta instalada" pero no la ves, buscala ahi.
+- Antes de desinstalar o de borrar los datos del sitio, mira que Sincronizacion diga "Al dia": lo que todavia no
+  subio se pierde.
+
+VERSION Y ACTUALIZACIONES
+- En Sincronizacion > Este dispositivo se ve la version de la app y si esta abierta como app instalada.
+- Cuando se publica una version nueva, la app la baja sola y avisa "Hay una version nueva · Actualizar".
+  Si volves a la app despues de un rato y no tenes nada abierto, se actualiza sola ("App actualizada").
+  Con una tarea abierta no se actualiza: guardala o cerrala y toca Actualizar.
 
 ABRIR MAS RAPIDO (celular)
 - La app instalada abre con el campo listo para escribir. Si volves a ella despues de un rato, vuelve arriba
@@ -126,8 +138,11 @@ USO DIARIO
   "Tareas". El texto queda en el campo para revisarlo y tocar Agregar, sin el saludo ni el "gracias"
   ("Che, ¿me mandas el remito? Gracias!" queda "Me mandas el remito"). Si el mensaje es largo, la primera
   oracion queda como tarea y el resto va a la nota.
-- Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo la app instalada:
-  esperá un dia o desinstalala y volve a instalarla desde Chrome (las tareas no se pierden, estan en GitHub).
+- Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo los datos
+  de la app instalada (Chrome los revisa como mucho una vez por dia). Para forzarlo: en Chrome escribi about://webapks,
+  busca "Mis tareas" y toca "Update". Despues abri la app una vez, cerrala (deslizala fuera de las recientes) y espera
+  un par de minutos: Chrome instala la actualizacion con la app cerrada. Si no aparece, repetilo una vez (no antes
+  de un minuto). No hace falta desinstalarla.
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
   Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),

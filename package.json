@@ -3,7 +3,8 @@
   "private": true,
   "description": "Pruebas de navegador de Mis tareas (la app no tiene dependencias).",
   "scripts": {
-    "test": "node --test --test-reporter=spec tests/run.test.mjs"
+    "test": "node --test --test-reporter=spec tests/run.test.mjs",
+    "nueva-version": "node tests/lib/huella.js --bump"
   },
   "devDependencies": {
     "playwright": "1.56.1"
