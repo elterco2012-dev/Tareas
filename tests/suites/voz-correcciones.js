@@ -7,7 +7,7 @@ async function mock(ctx){await ctx.route('https://api.github.com/**',async route
 const FAKE=()=>{
   localStorage.setItem('githubTasksConfig',JSON.stringify({owner:'u',repo:'r',token:'x'}));
   window.__opened=[];window.open=u=>{window.__opened.push(u);return null};
-  class F{start(){window.__rec=this;const say=window.__say||[];say.forEach((t,i)=>setTimeout(()=>{if(this.onresult)this.onresult({results:[[{transcript:t}]]})},100+500*i));if(!window.__hold)setTimeout(()=>this.onend&&this.onend(),100+500*say.length)}
+  class F{start(){window.__rec=this;const say=window.__say||[];say.forEach((t,i)=>setTimeout(()=>{if(this.onresult)this.onresult({results:[[{transcript:t}]]})},(window.__delay||100)+500*i));if(!window.__hold)setTimeout(()=>this.onend&&this.onend(),100+500*say.length)}
     stop(){window.__stopped=(window.__stopped||0)+1;if(!window.__noend)setTimeout(()=>this.onend&&this.onend(),20)}
     abort(){window.__aborted=(window.__aborted||0)+1;if(!window.__noend)setTimeout(()=>this.onend&&this.onend(),20)}}
   window.SpeechRecognition=F;window.webkitSpeechRecognition=F;
@@ -29,11 +29,13 @@ ok((await mode())==='saving'&&(await p.inputValue('#title'))==='llamar al banco 
 await p.evaluate(()=>cancelAutoSave());
 ok((await p.innerText('#detected')).split('\n')[0]==='Llamar al banco','Detectado shows the full title to be saved: '+(await p.innerText('#detected')).replace(/\n/g,' | '));
 await p.fill('#title','');
-// Escribir mientras escucha corta el dictado y no se pisa
-await p.evaluate(()=>{window.__say=['algo dictado'];window.__hold=true;window.__aborted=0});
-await p.locator('#addBtn').tap();await sleep(30);
-await p.focus('#title');await p.keyboard.type('pagar luz');await sleep(400);
+// Escribir mientras escucha corta el dictado y no se pisa. El resultado de mentira llega tarde (1,5 s), después
+// de lo que se escribe, así se prueba que un resultado que llega después no pisa lo escrito.
+await p.evaluate(()=>{window.__say=['algo dictado'];window.__hold=true;window.__aborted=0;window.__delay=1500});
+await p.locator('#addBtn').tap();
+await p.focus('#title');await p.keyboard.type('pagar luz');await sleep(1800);
 ok(await p.evaluate(()=>window.__aborted>=1)&&(await p.inputValue('#title'))==='pagar luz'&&(await mode())==='add','typing during dictation aborts it and keeps typed text');
+await p.evaluate(()=>{window.__delay=0});
 await p.fill('#title','');await p.evaluate(()=>document.activeElement.blur());
 // El navegador nunca avisa el fin: el botón se libera igual
 await p.evaluate(()=>{window.__say=[];window.__hold=true;window.__noend=true});

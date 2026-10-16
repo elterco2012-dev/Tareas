@@ -38,7 +38,7 @@ const b=await L.launch();
 {
   const gh=makeGH([T('r','Revisar mails',{due:day(0),order:5,repeat:'daily'}),T('o','Otra hoy',{due:day(0),order:6}),T('x','X mañana',{due:day(1),order:0}),T('y','Y mañana',{due:day(1),order:1})]);
   let {ctx,p}=await device(b,gh,DESK);
-  await p.locator('.task',{has:p.locator('.ttext',{hasText:'Revisar mails'})}).locator('.chk').click();await sleep(900);
+  await p.locator('.task',{has:p.locator('.ttext',{hasText:'Revisar mails'})}).locator('.chk').click();await L.until(()=>gh.items.some(x=>x.repeatOf==='r'));
   ok(await order(p,"t.due==='"+day(1)+"'")==='Revisar mails|X mañana|Y mañana','daily task kept first: '+await order(p,"t.due==='"+day(1)+"'"));
   ok(p.errs.length===0,'no errors '+p.errs);
   await ctx.close();

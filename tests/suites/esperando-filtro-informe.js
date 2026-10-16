@@ -50,7 +50,7 @@ await p.fill('#title','Pedir muestras esperando respuesta de Laura');await p.pre
 const pm=gh.items.find(x=>x.title==='Pedir muestras');
 ok(pm&&pm.waiting&&pm.waitingOn==='Laura','spoken "esperando respuesta de Laura"');
 // Terminar desde Esperando con la casilla
-await p.locator('#waitingSec .task',{hasText:'Pedir muestras'}).locator('.chk').click();await sleep(400);
+await p.locator('#waitingSec .task',{hasText:'Pedir muestras'}).locator('.chk').click();await L.until(()=>gh.items.find(x=>x.title==='Pedir muestras')?.done);
 ok(gh.items.find(x=>x.title==='Pedir muestras').done===true,'complete from Esperando');
 
 // ===== 6. Filtrar por persona =====
@@ -70,7 +70,7 @@ await p.click('#filterX');ok(!(await p.isVisible('#filterBar')),'✕ removes the
 
 // ===== 5. Copiar resumen =====
 // completar algunas esta semana
-for(const t of ['Revisar stock de anclajes','Cargar pedidos','Ordenar carpeta de reclamos']){await p.locator('#groups .task',{hasText:t}).locator('.chk').click();await sleep(400);await sleep(300)}
+for(const t of ['Revisar stock de anclajes','Cargar pedidos','Ordenar carpeta de reclamos']){await p.locator('#groups .task',{hasText:t}).locator('.chk').click();await L.until(()=>gh.items.find(x=>x.title===t)?.done)}
 await p.evaluate(()=>{window.__clip=null;navigator.clipboard.writeText=t=>{window.__clip=t;return Promise.resolve()}});
 await p.click('#repBtn');await sleep(200);await p.click('#repCopy');await sleep(200);
 let clip=await p.evaluate(()=>window.__clip);

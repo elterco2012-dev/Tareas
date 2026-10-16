@@ -139,10 +139,10 @@ ok(await p.isVisible('#voiceDock')&&(await p.innerText('#dockMic')).includes('To
 ok(await p.evaluate(()=>location.search)==='','param removed from the URL');
 await p.screenshot({path:L.out('dock-384.png')});
 await p.evaluate(()=>{window.__say=['revisar la caja chica']});
-await p.locator('#dockMic').tap();await sleep(150);
+// "Escuchando" lo pone el toque mismo: se lee enseguida (con una espera, el reconocimiento de mentira ya terminó)
+await p.locator('#dockMic').tap();
 ok((await p.innerText('#dockMic')).includes('Escuchando'),'listening label');
-await sleep(400);
-ok((await p.innerText('#dockMic')).includes('Guardando'),'countdown label');
+ok(await L.until(async()=>(await p.innerText('#dockMic')).includes('Guardando')),'countdown label');
 await sleep(3300);
 ok(gh.items.some(x=>x.title==='Revisar la caja chica')&&await p.isVisible('#voiceDock'),'saved, dock stays for another');
 await p.locator('#dockClose').tap();ok(!(await p.isVisible('#voiceDock')),'Ver lista closes it');

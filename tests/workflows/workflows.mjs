@@ -1,12 +1,13 @@
 // Lógica de los workflows del repo de datos (repo-datos/.github/workflows/*.yml): se extrae el JS de cada
 // workflow y se corre con un reloj fijo (FAKE_NOW, ver fakedate.mjs) contra un Telegram, un GitHub y un
 // servidor de mail falsos en puertos libres.
-import http from 'node:http';import fs from 'node:fs';import {execFile} from 'node:child_process';import path from 'node:path';import os from 'node:os';import {fileURLToPath} from 'node:url';
+import http from 'node:http';import fs from 'node:fs';import {execFile} from 'node:child_process';import path from 'node:path';import os from 'node:os';import {fileURLToPath,pathToFileURL} from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(here,'..','..');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'tareas-wf-'));   // rec.mjs, res.mjs y el repo de prueba
 process.on('exit',()=>{try{fs.rmSync(dir,{recursive:true,force:true})}catch{}});
 const listen=srv=>new Promise(r=>srv.listen(0,'127.0.0.1',()=>r(srv.address().port)));
-const yml=f=>{const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows',f),'utf8');const m=t.match(/<<'JS'\n([\s\S]*?)\n\s*JS\n/);return m[1].split('\n').map(l=>l.replace(/^ {10}/,'')).join('\n')};
+// (En Windows, git puede bajar los .yml con fin de línea CRLF: se normaliza)
+const yml=f=>{const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows',f),'utf8').replace(/\r\n/g,'\n');const m=t.match(/<<'JS'\n([\s\S]*?)\n\s*JS\n/);if(!m)throw new Error('No encontré el bloque <<\'JS\' en '+f);return m[1].split('\n').map(l=>l.replace(/^ {10}/,'')).join('\n')};
 fs.writeFileSync(dir+'/rec.mjs',yml('recordatorios.yml'));fs.writeFileSync(dir+'/res.mjs',yml('resumen.yml'));
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FAIL')+' '+m);if(!c)fails++};
 // Telegram falso
@@ -32,7 +33,7 @@ const SMTP_PORT=await listen(net.createServer(c=>{let buf='',st='cmd',data='',au
 const MAIL={SMTP_HOST:'127.0.0.1',SMTP_PORT:String(SMTP_PORT),SMTP_USER:'yo@x.com',SMTP_PASS:'p'};
 const repo=dir+'/repo';fs.mkdirSync(repo,{recursive:true});
 const run_=(s,n)=>run(s,n);
-const run=(script,now,env={})=>new Promise(res=>execFile(process.execPath,['--import',path.join(here,'fakedate.mjs'),path.join(dir,script)],{cwd:repo,env:{PATH:process.env.PATH,FAKE_NOW:now,TELEGRAM_API:'http://127.0.0.1:'+TG_PORT,GITHUB_API:'http://127.0.0.1:'+GH_PORT,GITHUB_REPOSITORY:'u/datos',GH_TOKEN:'tok',TELEGRAM_TOKEN:'abc',TELEGRAM_CHAT_ID:'99',...env}},(e,out,err)=>res({code:e?e.code:0,out,err})));
+const run=(script,now,env={})=>new Promise(res=>execFile(process.execPath,['--import',pathToFileURL(path.join(here,'fakedate.mjs')).href,path.join(dir,script)],{cwd:repo,env:{PATH:process.env.PATH,FAKE_NOW:now,TELEGRAM_API:'http://127.0.0.1:'+TG_PORT,GITHUB_API:'http://127.0.0.1:'+GH_PORT,GITHUB_REPOSITORY:'u/datos',GH_TOKEN:'tok',TELEGRAM_TOKEN:'abc',TELEGRAM_CHAT_ID:'99',...env}},(e,out,err)=>res({code:e?e.code:0,out,err})));
 const T=(id,title,o)=>({id,title,done:false,priority:'Media',requester:'',due:'2026-10-12',...o});
 const put=items=>fs.writeFileSync(repo+'/tareas.json',JSON.stringify(items));
 const NOW='2026-10-12T17:52:00Z';   // 14:52 en Argentina

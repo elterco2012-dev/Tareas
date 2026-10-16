@@ -16,17 +16,17 @@ await p.evaluate(()=>sync());await sleep(500);
 ok(gh.items.filter(x=>x.time!==undefined).length===3&&ops===0,'migration runs once (outbox empty)');
 // time:null y se repite: la próxima sigue sin hora
 gh.items.push(T('r1','Regar a las 8',{due:day(0),time:null,repeat:'daily'}));gh.sha++;await p.evaluate(()=>sync());await sleep(500);
-await row(p,'Regar a las 8').locator('.chk').click();await sleep(400);await sleep(500);
+await row(p,'Regar a las 8').locator('.chk').click();await L.until(()=>gh.items.some(x=>x.repeatOf==='r1'));
 let n=gh.items.find(x=>x.repeatOf==='r1');ok(n&&n.time===null,'cleared time stays cleared in the next instance: '+JSON.stringify(n&&n.time));
 // 3) La próxima que quedó en la papelera no corta la serie
 gh.items.push(T('d1','Diaria',{due:day(0),repeat:'daily',time:'08:00'}));gh.sha++;await p.evaluate(()=>sync());await sleep(500);
-await row(p,/^Diaria$/).locator('.chk').click();await sleep(400);await sleep(500);
+await row(p,/^Diaria$/).locator('.chk').click();await L.until(()=>gh.items.some(x=>x.repeatOf==='d1'));
 const n1=gh.items.find(x=>x.repeatOf==='d1');
 await row(p,/^Diaria$/).locator('.more').click();await p.click('#menu button:has-text("Borrar")');await sleep(500);
 ok(g(n1.id).deletedAt,'next instance trashed');
-await p.click('#doneToggle');await p.locator('.drow',{hasText:'Diaria'}).locator('.chk').click();await sleep(400);await sleep(500);
+await p.click('#doneToggle');await p.locator('.drow',{hasText:'Diaria'}).locator('.chk').click();await L.until(()=>g('d1').done===false);
 ok(!g('d1').done,'reopened');
-await row(p,/^Diaria$/).locator('.chk').click();await sleep(400);await sleep(500);
+await row(p,/^Diaria$/).locator('.chk').click();await L.until(()=>g('d1').done&&gh.items.some(x=>x.repeatOf==='d1'&&!x.deletedAt));
 const nexts=gh.items.filter(x=>x.repeatOf==='d1'&&!x.deletedAt);
 ok(nexts.length===1&&nexts[0].due===day(1)&&nexts[0].time==='08:00'&&(await p.innerText('#toastMsg')).includes('la próxima'),'re-completing creates a new next instance: '+nexts.length);
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));

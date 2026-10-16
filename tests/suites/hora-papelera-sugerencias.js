@@ -41,7 +41,7 @@ ok(await p.inputValue('#eTime')==='10:00','old task: edit shows time from title'
 await p.click('#editForm button[type=submit]');await sleep(400);
 ok(gh.items.find(x=>x.id==='h3').time==='10:00','old task: saving makes the time a field');
 await row(p,'Temprano').locator('.body').click();await p.click('#eCancel');
-await row(p,'Diaria').locator('.chk').click();await sleep(400);
+await row(p,'Diaria').locator('.chk').click();await L.until(()=>gh.items.some(x=>x.repeatOf==='h5'));
 t=gh.items.find(x=>x.repeatOf==='h5');ok(t&&t.time==='08:00'&&t.due===day(1),'repeat keeps the time');
 // Calendario con la hora del campo
 const [dl]=await Promise.all([p.waitForEvent('download'),(async()=>{await row(p,'Reunión tarde').locator('.more').click();await p.click('#menu button:has-text("Agregar al calendario")')})()]);

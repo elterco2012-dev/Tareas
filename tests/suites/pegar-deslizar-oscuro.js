@@ -104,7 +104,7 @@ for(const vp of [{viewport:{width:375,height:800},isMobile:true,hasTouch:true},{
   await p.locator('.task .more').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast menu: '+JSON.stringify(bad));await p.keyboard.press('Escape');
   await p.locator('.task .body').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast edit: '+JSON.stringify(bad));await p.click('#editX');
   await p.click('#statusBtn');bad=await contrast(p);ok(bad.length===0,'dark contrast sync: '+JSON.stringify(bad));await p.click('#syncX');
-  await p.locator('.task .chk').first().click();await sleep(400);await sleep(200);bad=await contrast(p);ok(bad.length===0,'dark contrast toast: '+JSON.stringify(bad));
+  await p.locator('.task .chk').first().click();await L.until(async()=>(await p.innerText('#toastMsg'))==='Tarea terminada');await sleep(200);bad=await contrast(p);ok(bad.length===0,'dark contrast toast: '+JSON.stringify(bad));
   ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow '+vp.width);
   await p.screenshot({path:L.out('dark-'+vp.width+'.png'),fullPage:true});
   ok(p.errs.length===0,'dark errors');await ctx.close();
