@@ -15,9 +15,11 @@ let tg=[],tgFail=false,tgSinBotones=false,tgRechazos=0;
 const TG_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{if(tgFail){s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: chat not found'}));return}
   const j=JSON.parse(b);if(tgSinBotones&&j.reply_markup){tgRechazos++;s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: BUTTON_URL_INVALID'}));return}
   tg.push({url:q.url,...j});s.writeHead(200,{'Content-Type':'application/json'});s.end('{"ok":true}')})}));
-// GitHub falso (solo recordatorios-enviados.json)
-let file=null,sha=0,conflicts=0,puts=[],auth=[];
+// GitHub falso (recordatorios-enviados.json y, para el respaldo, las corridas disparadas por cron-job.org)
+let file=null,sha=0,conflicts=0,puts=[],auth=[],runs=null,runsUrl=[];
 const GH_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{
+  if(q.url.includes('/actions/workflows/')){runsUrl.push(q.headers.authorization+' '+q.url);if(runs===500){s.writeHead(500);s.end('{}');return}
+    s.writeHead(200,{'Content-Type':'application/json'});s.end(JSON.stringify({workflow_runs:runs||[]}));return}
   auth.push(q.headers.authorization+' '+q.url);
   if(q.method==='GET'){if(!file){s.writeHead(404);s.end('{}');return}s.writeHead(200,{'Content-Type':'application/json'});s.end(JSON.stringify({content:Buffer.from(file).toString('base64'),sha:String(sha)}));return}
   const j=JSON.parse(b);
@@ -134,6 +136,24 @@ ok(tg.length===1&&/funcionan/.test(tg[0].text)&&!('reply_markup' in tg[0]),'test
 file=null;tg=[];tgSinBotones=true;put([T('a','Llamar al banco',{time:'15:00'})]);
 r=log(await run('rec.mjs',NOW,{APP_URL:'yo.github.io app'}));tgSinBotones=false;
 ok(r.code===0&&tgRechazos===1&&tg.length===1&&!('reply_markup' in tg[0])&&tg[0].text==='⏰ 15:00 · Llamar al banco'&&JSON.parse(file||'{}')['a|2026-10-12|15:00']&&/sin botones/.test(r.out),'buttons rejected by Telegram → reminder sent without them and recorded: '+JSON.stringify(r.out+r.err));
+// Respaldo (horario de GitHub, a los :37) con cron-job.org andando: solo lo que ya tendría que haber salido
+{const R37='2026-10-12T17:37:00Z',REF='u/datos/.github/workflows/recordatorios.yml@refs/heads/main';   // 14:37 en Argentina
+ const tareas=[T('r1','Ya tendría que haber salido',{time:'14:55'}),T('r2','La de las 15',{time:'15:00'}),T('r3','15:16',{time:'15:16'}),T('r4','Recién pasada',{time:'14:40'})];
+ file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch'}];
+ r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF}));
+ ok(r.code===0&&tg.length===1&&tg[0].text==='⏰ 14:40 · Recién pasada\n⏰ 14:55 · Ya tendría que haber salido'&&/Respaldo/.test(r.out),'backup with cron-job.org working: only the overdue ones (15:00 still waits for 14:50): '+JSON.stringify(tg[0]&&tg[0].text));
+ ok(runsUrl.length===1&&runsUrl[0]==='Bearer tok /repos/u/datos/actions/workflows/recordatorios.yml/runs?event=workflow_dispatch&per_page=1','backup asks GitHub for the last cron-job.org run: '+runsUrl[0]);
+ file=null;tg=[];put(tareas);runs=[{created_at:'2026-10-12T15:20:31Z',event:'workflow_dispatch'}];
+ r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF}));
+ ok(tg.length===1&&tg[0].text.split('\n').length===4,'backup with cron-job.org stopped (last run 2 h ago): reminds as usual: '+JSON.stringify(tg[0]&&tg[0].text));
+ file=null;tg=[];put(tareas);runs=500;
+ r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW_REF:REF}));runs=null;
+ ok(r.code===0&&tg.length===1&&tg[0].text.split('\n').length===4,'backup, GitHub fails to answer about runs: reminds as usual');
+ file=null;tg=[];runsUrl=[];put(tareas);runs=[{created_at:'2026-10-12T17:20:31Z',event:'workflow_dispatch'}];
+ r=log(await run('rec.mjs',R37,{GITHUB_EVENT_NAME:'workflow_dispatch',AUTOMATICO:'true'}));runs=null;
+ ok(tg.length===1&&tg[0].text.split('\n').length===4&&runsUrl.length===0,'cron-job.org runs never ask and remind as usual');
+ const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows','recordatorios.yml'),'utf8');
+ ok(/^permissions:\n {2}contents: write.*\n {2}actions: read/m.test(t),'rec template: actions: read (to see the cron-job.org runs)')}
 ok(logs&&!['Cerrar caja','Muy de noche','Llamar al banco','Pagar',largo,'Emojis','Tarea 0','Noche'].some(x=>logs.includes(x)),'rec: no task titles in the logs');
 // ===== Resumen diario =====
 put([T('q','Sin hora hoy',{}),T('r','Banco',{time:'15:00'}),T('s','Temprano',{time:'09:00',requester:'Ana'}),T('t','En la papelera',{deletedAt:'2026-10-11T10:00:00Z'}),T('u','Vencida',{due:'2026-10-10',time:'10:00'})]);

@@ -295,7 +295,7 @@ En tu repositorio de datos:
    ```
    Tocá **Commit changes…** → **Commit changes**.
 
-Con el respaldo, si un día cron-job.org falla (o se desactiva), los recordatorios salen igual por el horario de GitHub, un poco más tarde. Si corren los dos, el aviso no se repite: lo que ya salió queda anotado en `recordatorios-enviados.json`. Cuando GitHub corre el respaldo a horario, algunos avisos llegan en esa corrida, un poco antes que con cron-job.org (hasta 40 minutos antes de la hora).
+Con el respaldo, si un día cron-job.org falla (o se desactiva), los recordatorios salen igual por el horario de GitHub (cada hora, entre 40 minutos antes y unos 20 después de la hora). Mientras cron-job.org anda, el respaldo solo manda lo que tendría que haber salido y no salió: no adelanta ningún aviso (el de las 15:00 sigue llegando a las 14:50). Si corren los dos, el aviso no se repite: lo que ya salió queda anotado en `recordatorios-enviados.json`.
 
 Minutos de GitHub (cada corrida cuenta como 1 minuto): cron-job.org dispara 34 recordatorios por día (unos 1050 por mes), el respaldo 17 (unos 530) y los resúmenes unos 25. En total, unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados. No los pongas más seguido (por ejemplo, cada 15 minutos): se pasaría de los 2000 y GitHub dejaría de correrlos hasta el mes siguiente. Si preferís no gastar esos minutos, borrá también las líneas de `schedule:` de `recordatorios.yml`, como en el resumen: sin respaldo usa unos 1080.
 

@@ -1497,8 +1497,9 @@ function missedAvisos(){
     if(!t||t.deletedAt||t.due!==today||!HM_RE.test(t.time||''))continue;
     const k=t.id+'|'+t.due+'|'+t.time,r=remindRun(today,t.time,Math.max(since(Date.parse(t.createdAt)||0),seen[k]?since(seen[k]):0));
     if(r==null||now<r+20)continue;
-    if(t.done&&Date.parse(t.completedAt)<at(r))continue;   // la terminaste antes del aviso
-    if(sent.some(x=>x>=at(r)-120000))continue;
+    if(t.done&&!(Date.parse(t.completedAt)>=at(r)))continue;   // la terminaste antes del aviso (o no se sabe cuándo)
+    // Salió el de esta tarea (aunque sea antes, por el horario de respaldo) o alguno desde esa corrida
+    if(avisos.enviados[k]||sent.some(x=>x>=at(r)-120000))continue;
     out.push({r,t});
   }
   return out.sort((a,b)=>a.r-b.r);

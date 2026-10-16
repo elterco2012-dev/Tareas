@@ -7,8 +7,9 @@ on:
   # Horario de GitHub: a veces se atrasa horas o se saltea. Para que sea puntual, lo puede disparar
   # cron-job.org (ver INSTRUCCIONES.md). En ese caso, la línea de cron de abajo se cambia por esta de respaldo:
   #   - cron: "37 9-23,0-1 * * *"   # respaldo: cada hora a los 37 minutos, de 6:37 a 22:37 en Argentina
-  # Así, si un día cron-job.org falla, los avisos salen igual (algo más tarde). No se repiten: lo enviado
-  # queda anotado en recordatorios-enviados.json. Minutos de Actions por mes: unos 1050 (cron-job.org)
+  # Así, si un día cron-job.org falla, los avisos salen igual. Mientras cron-job.org anda, el respaldo solo manda
+  # lo que tendría que haber salido y no salió (no adelanta ninguno), y nada se repite: lo enviado queda anotado en
+  # recordatorios-enviados.json. Minutos de Actions por mes: unos 1050 (cron-job.org)
   # + 530 (respaldo) + los resúmenes ≈ 1600 de los 2000 gratis. Cada 15 minutos se pasaría.
   schedule:
     - cron: "20,50 9-23,0-1 * * *"   # cada media hora, de 6:20 a 22:50 en Argentina (UTC-3): 9 a 23 y 0 a 1 en UTC
@@ -21,6 +22,7 @@ on:
 
 permissions:
   contents: write   # para anotar en recordatorios-enviados.json qué ya se avisó
+  actions: read     # para que el respaldo sepa si cron-job.org está andando
 
 # Si una ejecución se demora, la siguiente espera a que termine (así no avisa dos veces)
 concurrency:
@@ -65,13 +67,34 @@ jobs:
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para recordar.');process.exit(0)}
           const conHora=tareas.filter(t=>t&&!t.done&&!t.deletedAt&&t.due===hoy&&/^\d{2}:\d{2}$/.test(t.time||''))
             .sort((a,b)=>a.time.localeCompare(b.time));
-          const toca=conHora.filter(t=>min(t.time)<=ahora+ANTES&&min(t.time)>=ahora-TARDE);
           const clave=t=>t.id+'|'+t.due+'|'+t.time;
+          const api=E.GITHUB_API||'https://api.github.com',ruta='recordatorios-enviados.json';
+          const hdr={'Authorization':'Bearer '+E.GH_TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'};
+
+          // Corrida del horario de GitHub con cron-job.org andando (disparó este workflow hace menos de 45 minutos): es el
+          // respaldo, y solo manda las que cron-job.org ya tendría que haber avisado (a las :20 y :50, de 6:20 a 22:50) y no
+          // avisó. Así no se adelanta: la de las 15:00 sigue llegando a las 14:50, no a las 14:37. Si cron-job.org no anda,
+          // avisa como siempre.
+          let soloAtrasadas=false;
+          if(E.GITHUB_EVENT_NAME==='schedule'){
+            try{
+              const wf=(E.GITHUB_WORKFLOW_REF||'').split('@')[0].split('/').pop()||'recordatorios.yml';
+              const r=await fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/actions/workflows/'+encodeURIComponent(wf)+'/runs?event=workflow_dispatch&per_page=1',{headers:hdr});
+              const u=r.ok?((await r.json()).workflow_runs||[])[0]:null;
+              soloAtrasadas=!!u&&Date.now()-Date.parse(u.created_at)<45*60000;
+            }catch{}
+            if(soloAtrasadas)console.log('Respaldo: cron-job.org anda, solo se manda lo atrasado.');
+          }
+          const corrida=T=>{const c=380+Math.ceil((Math.max(T-ANTES,380)-380)/30)*30;return c<=1370?c:null};   // la de cron-job.org que la avisa
+          const toca=conHora.filter(t=>{
+            const T=min(t.time);
+            if(T>ahora+ANTES||T<ahora-TARDE)return false;
+            if(!soloAtrasadas)return true;
+            const c=corrida(T);return c!==null&&c<=ahora-5;   // 5 minutos para que termine la de cron-job.org
+          });
 
           // Qué ya se avisó: recordatorios-enviados.json en este mismo repositorio
-          const api=E.GITHUB_API||'https://api.github.com',ruta='recordatorios-enviados.json';
-          const gh=(opts={})=>fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/contents/'+ruta,{...opts,
-            headers:{'Authorization':'Bearer '+E.GH_TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'}});
+          const gh=(opts={})=>fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/contents/'+ruta,{...opts,headers:hdr});
           async function leer(){
             const r=await gh();
             if(r.status===404)return {enviados:{},sha:null};
