@@ -90,6 +90,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .detected .lbl{color:var(--muted)}
 .detected .heard{flex-basis:100%;font-size:15px;line-height:1.4;color:var(--text);overflow-wrap:anywhere}
 .tag{padding:3px 9px;border-radius:6px;background:var(--accent-soft);color:var(--tag-text);font-weight:600}
+.tag.warn{background:var(--red-soft);color:var(--red)}
 .tip{margin-top:10px;font-size:12.5px;color:var(--faint);line-height:1.45}
 #note{display:block;width:100%;margin-top:10px;font-size:14px;padding:10px 12px;border-radius:10px;resize:vertical}
 
@@ -249,7 +250,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .tokenbar{display:flex;align-items:center;gap:6px;background:var(--red-soft);color:var(--red);border-radius:12px;padding:6px 6px 6px 14px;margin-bottom:14px;font-size:14px;line-height:1.4}
 .tokenbar span{flex:1;min-width:0;padding:4px 0}
 .tokenbar button{flex:none;border:0;background:none;color:inherit;font-weight:700;border-radius:8px;padding:8px 10px}
-.tokenbar #tokenX{width:32px;height:32px;padding:0;border-radius:50%;font-weight:400}
+.tokenbar #tokenX,.tokenbar #avisoX{width:32px;height:32px;padding:0;border-radius:50%;font-weight:400}
 .tokenbar button:hover{background:var(--hover)}
 
 /* Menú ⋯ */
@@ -339,6 +340,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 
 /* Mini diálogo y texto para copiar */
 .modal.small{max-width:400px}
+.postitle{margin:-6px 0 0;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
 #waitName{font-size:16px;padding:11px 12px;border-radius:10px;width:100%}
 #textBox{width:100%;min-height:220px;font-size:14px;padding:10px 12px;border-radius:10px;resize:vertical;font-family:inherit}
 
@@ -412,6 +414,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   </form>
 
   <div id="tokenBar" class="tokenbar hidden" role="status"><span id="tokenMsg"></span><button type="button" id="tokenFix">Renovar</button><button type="button" id="tokenX" class="hidden" aria-label="Ocultar hasta mañana" title="Ocultar hasta mañana">✕</button></div>
+  <div id="avisoBar" class="tokenbar hidden" role="status"><span id="avisoMsg"></span><button type="button" id="avisoAct" class="hidden"></button><button type="button" id="avisoX" aria-label="Ocultar" title="Ocultar">✕</button></div>
   <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
   <div class="cols"><div class="maincol">
   <div id="empty" class="emptycard hidden"></div>
@@ -517,6 +520,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
       <a id="histLink" class="linkbtn hidden" target="_blank" rel="noopener">Ver historial en GitHub</a>
     </div>
     <p class="muted">Cada tarea se guarda al instante en este dispositivo y se sube sola a GitHub. Sin señal, se sube cuando vuelve la conexión, aunque hayas cerrado la app.</p>
+    <p id="avisosLine" class="muted hidden"></p>
     <details id="acct" class="acct">
       <summary>Cuenta de GitHub y token</summary>
       <div class="cfggrid">
@@ -591,6 +595,14 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 </div>
 <datalist id="peopleList"></datalist>
 
+<div id="posOv" class="overlay hidden">
+  <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="posH">
+    <div class="mhead"><h2 id="posH">Posponer</h2><button type="button" class="xbtn" id="posX" aria-label="Cerrar">✕</button></div>
+    <p id="posT" class="postitle"></p>
+    <div id="posBtns" class="procbtns"></div>
+  </div>
+</div>
+
 <div id="waitOv" class="overlay hidden">
   <form id="waitForm" class="modal small" role="dialog" aria-modal="true" aria-labelledby="waitH">
     <div class="mhead"><h2 id="waitH">¿De quién?</h2><button type="button" class="xbtn" id="waitX" aria-label="Cerrar">✕</button></div>
@@ -624,11 +636,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
-<script src="sync-core.js?v=2026.10.16-3"></script>
+<script src="sync-core.js?v=2026.10.16-5"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.16-3';
+const APP_VERSION='2026.10.16-5';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -659,7 +671,7 @@ let dragId=null;   // tarea que se está arrastrando (en la compu)
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
 let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
-const K_DRAFT='borrador',K_TIP='tipVisto';
+const K_DRAFT='borrador',K_TIP='tipVisto',K_AVISOS='avisosTelegram',K_VISTOS='avisosDesde',K_AVISOX='avisoOculto';
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
@@ -924,6 +936,43 @@ function whenFields(p,due){
   const d=p.time.h>=24?ymd(addDaysTo(parseYmd(due||ymd(new Date())),1)):due||null;
   return {due:d,time:timeLabel(p.time)};
 }
+// ---- Avisos por Telegram ----
+// El workflow "Recordatorios a la hora" del repositorio de datos corre a las :20 y :50, de 6 a 22 (lo dispara
+// cron-job.org). Cada corrida avisa las tareas de hoy con hora que vienen en los próximos 39 minutos: así el aviso
+// llega entre 10 y 39 minutos antes. Si una corrida se perdió, la siguiente avisa igual hasta 3 horas después.
+const AV_FIRST=6*60+20,AV_LAST=22*60+50,AV_EVERY=30,AV_ANTES=39,AV_TARDE=180;
+const HM_RE=/^\d{2}:\d{2}$/;
+const hm=s=>Number(s.slice(0,2))*60+Number(s.slice(3,5));
+const hmLabel=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function nowMin(){const d=new Date();return d.getHours()*60+d.getMinutes()}
+// La corrida (en minutos del día) que avisa una tarea con esa fecha y hora, o null si ninguna.
+// from: para hoy, desde qué minuto se cuenta (las corridas anteriores ya pasaron o no la tenían)
+function remindRun(due,time,from){
+  if(!due||!HM_RE.test(time||''))return null;
+  const today=ymd(new Date());
+  if(due<today)return null;
+  const T=hm(time);
+  let r=Math.max(T-AV_ANTES,AV_FIRST,due===today?(from===undefined?nowMin()+1:from):0);
+  r=AV_FIRST+Math.ceil((r-AV_FIRST)/AV_EVERY)*AV_EVERY;
+  return r<=AV_LAST&&r<=T+AV_TARDE?r:null;
+}
+// "Recordame…" sin hora: a las 9, para que llegue el aviso. Si es para hoy y el de las 9 ya no llega, queda sin hora.
+function withRemindTime(p,due){
+  if(!p.remind||p.time||!due)return p;
+  // (si se repite, igual: la serie queda a las 9, aunque el aviso de hoy llegue tarde o no llegue)
+  if(due===ymd(new Date())&&!p.repeat){const r=remindRun(due,'09:00');if(r==null||r>9*60)return p}
+  return {...p,time:{h:9,m:0,text:''}};
+}
+// Cuándo llega el aviso de una tarea con esa fecha y hora: ['Aviso 14:50'] o, si no llega a tiempo, [texto,'warn'].
+// Solo cuando se sabe que los avisos andan (ver avisosOn).
+function avisoTag(due,time){
+  if(!time||!avisosOn())return null;
+  if(!due)return ['Sin aviso (no tiene fecha)','warn'];
+  if(due<ymd(new Date()))return ['Sin aviso (ya pasó)','warn'];
+  const r=remindRun(due,time),T=hm(time);
+  if(r==null)return ['Sin aviso ('+(T<AV_FIRST?'muy temprano':T>AV_LAST+AV_ANTES?'muy tarde':due===ymd(new Date())&&T>nowMin()?'ya no hay más avisos hoy':'ya pasó la hora')+')','warn'];
+  return r>T?['Aviso '+hmLabel(r)+' (tarde)','warn']:['Aviso '+hmLabel(r)];
+}
 // Hora de una tarea ("15:00" o null). Las cargadas antes de que la hora fuera un dato aparte
 // la tienen en el título ("Llamar al banco a las 3"): se toma de ahí.
 const titleTimes=new Map();
@@ -1087,11 +1136,20 @@ function placeMoved(ops){
 function actMany(ops){
   const now=Date.now();
   placeMoved(ops);
-  ops.forEach(o=>{o.opId=crypto.randomUUID();o.ts=now});
+  // Cuándo se le puso la fecha u hora que tiene (o se volvió a abrir): el control de avisos (acá y en el resumen de
+  // la mañana) no reclama un aviso que no podía salir, como el de una vencida de las 8 pasada a hoy a la tarde
+  const iso=new Date(now).toISOString();
+  ops.forEach((o,i)=>{
+    if(o.type==='edit'&&o.patch&&('due' in o.patch||'time' in o.patch))ops[i]=o={...o,patch:{...o.patch,whenAt:iso}};
+    else if(o.type==='done'&&!o.done)ops[i]=o={...o,whenAt:iso};
+    o.opId=crypto.randomUUID();o.ts=now;
+  });
   if(ops.length)setOutbox([...getOutbox(),...ops]);
   recompute();sync();
   // "sin subir" aparece en la fila solo si la subida tarda más de 5 s
   if(ops.length)setTimeout(()=>{if(getOutbox().length)renderList()},5100);
+  // y "todavía no subió" (si tiene hora dentro de poco), a los 15 s
+  if(ops.length)setTimeout(()=>{if(getOutbox().length)renderAvisoBar()},15100);
 }
 // Las borradas quedan en la papelera (deletedAt) hasta que pasan 30 días o se vacía
 function recompute(){
@@ -1164,6 +1222,7 @@ async function sync(){
       // Lo que ya subió el service worker en segundo plano sale de la cola
       let forceGet=await takeBackgroundSent();
       if(forceGet)changed=true;
+      const bgSent=forceGet;   // lo subió el service worker: lo nuevo cuenta desde ahora para el control de avisos
       do{
         syncAgain=false;
         // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
@@ -1173,7 +1232,7 @@ async function sync(){
         else{
           const latest=await getRemote(c);
           if(cfg!==c){syncAgain=configured();continue}
-          lastPull=Date.now();
+          const prevPull=lastPull;lastPull=Date.now();
           if(latest.same)base={items:remote,sha:remoteSha};
           else{
             if(latest.sha!==remoteSha||!remoteSha){
@@ -1181,6 +1240,7 @@ async function sync(){
               // Si desaparecieron terminadas, el otro dispositivo las archivó: la copia del archivo ya no sirve
               if(archiveData){const now=new Set(latest.items.map(t=>t.id));if(remote.some(t=>t.done&&!now.has(t.id)))archiveStale()}
               remote=latest.items;remoteSha=latest.sha;changed=true;
+              noteKeys(remote,bgSent?Date.now():prevPull);
             }
             remoteEtag=latest.etag||null;base=latest;
             saveCache(c);
@@ -1195,6 +1255,7 @@ async function sync(){
           if(++conflicts>=5)throw Error('Otro dispositivo está guardando al mismo tiempo');
           forceGet=true;syncAgain=true;continue;
         }
+        noteKeys(next,lastPull,base.items);
         remote=next;remoteSha=typeof saved==='string'?saved:null;remoteEtag=null;lastPull=Date.now();changed=true;
         const sent=new Set(ops.map(o=>o.opId));
         setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
@@ -1214,10 +1275,10 @@ async function sync(){
     syncing=false;
     // Sin cambios no se redibuja la lista (no se pierde el foco ni la selección), salvo cada minuto
     // por las fechas y horas que se vencen
-    if(changed||Date.now()-lastRender>60000)recompute();else{renderStatus();renderTokenBar()}
+    if(changed||Date.now()-lastRender>60000)recompute();else{renderStatus();renderTokenBar();renderAvisoBar()}
     schedulePoll();
   }
-  if(synced){purgeTrash();migrateTimes();archiveOld();syncTokenDate()}
+  if(synced){purgeTrash();migrateTimes();archiveOld();syncTokenDate();checkAvisos()}
 }
 // ---- Cada cuánto se pregunta a GitHub ----
 // Cada 5 s si estás usando la app, cada 20 s si está abierta pero quieta, cada minuto si no la tocás
@@ -1389,6 +1450,121 @@ async function syncTokenDate(){
   }catch{tokenDateChecked=false}
 }
 
+// ---- Avisos por Telegram: cuáles salieron ----
+// El workflow anota en recordatorios-enviados.json cada aviso que mandó ("id|fecha|hora": cuándo; los de los
+// últimos 7 días). Solo se leen las fechas: los títulos no están ahí.
+let avisos=null,avisosEtag=null,avisosBusy=false;   // avisos: {enviados:{…} o null si no hay archivo, at}
+const avisosRepo=()=>cfg.owner+'/'+cfg.repo;
+// Salió algún aviso en los últimos 30 días (lo recuerda cada dispositivo): recién entonces la app dice cuándo
+// llega cada uno y avisa si alguno no salió
+function avisosOn(){const a=load(K_AVISOS,null);return !!(configured()&&a&&a.repo===avisosRepo()&&Date.now()-Date.parse(a.last)<30*86400000)}
+function lastAviso(){const a=load(K_AVISOS,null);return a&&a.repo===avisosRepo()?Date.parse(a.last):NaN}
+async function checkAvisos(force){
+  if(!configured()||avisosBusy||!force&&avisos&&Date.now()-avisos.at<120000)return;
+  avisosBusy=true;
+  const c=cfg;
+  try{
+    const h=headers(c);if(avisosEtag&&avisos)h['If-None-Match']=avisosEtag;
+    const r=await ghFetch(repoUrl(c)+'/contents/recordatorios-enviados.json',{headers:h,cache:'no-store'});
+    if(cfg!==c)return;
+    if(r.status===304)avisos.at=Date.now();
+    else if(r.status===404){avisos={enviados:null,at:Date.now()};avisosEtag=null}
+    else if(r.ok){
+      const j=await r.json();let d={};try{d=JSON.parse(b64utf8(j.content))}catch{}
+      if(cfg!==c)return;
+      if(!d||typeof d!=='object'||Array.isArray(d))d={};
+      avisos={enviados:d,at:Date.now()};avisosEtag=r.headers.get('ETag');
+      const last=Math.max(...Object.values(d).map(v=>Date.parse(v)).filter(x=>x>0));
+      if(last>0&&!(lastAviso()>=last))store(K_AVISOS,{repo:avisosRepo(),last:new Date(last).toISOString()});
+    }else return;
+    renderAvisoBar();if(settingsOpen)renderStatus();
+  }catch{}
+  finally{avisosBusy=false}
+}
+// Desde cuándo está en GitHub cada fecha y hora de hoy en adelante, según lo que vio este dispositivo: para no
+// reclamar un aviso que no podía salir (por ejemplo, de una tarea que el otro dispositivo pasó a hoy recién).
+// 0: desde que se creó la tarea.
+// before: lo que había en GitHub antes de una subida de este dispositivo (lo nuevo de esa subida cuenta desde ahora,
+// aunque se haya creado antes sin señal)
+function noteKeys(items,prevPull,before){
+  const s=load(K_VISTOS,null)||{},m=s.m||{},P=prevPull||s.at||0,today=ymd(new Date()),now=Date.now(),out={};
+  const prev=before&&new Set(before.map(t=>t&&t.id+'|'+t.due+'|'+t.time));
+  for(const t of items){
+    if(!t||t.deletedAt||!t.due||t.due<today||!HM_RE.test(t.time||''))continue;
+    const k=t.id+'|'+t.due+'|'+t.time;
+    // Nueva para este dispositivo: si la tarea ya existía la última vez que leyó GitHub, la fecha u hora cambió después
+    out[k]=k in m?m[k]:prev&&!prev.has(k)||P&&Date.parse(t.createdAt)<=P?now:0;
+  }
+  store(K_VISTOS,{m:out,at:now});
+}
+// Los avisos de hoy que tendrían que haber salido hace más de 20 minutos, si desde esa corrida no salió ninguno
+function missedAvisos(){
+  if(!avisosOn()||!avisos||!avisos.enviados)return [];
+  const today=ymd(new Date()),now=nowMin(),seen=(load(K_VISTOS,null)||{}).m||{};
+  const sent=Object.values(avisos.enviados).map(v=>Date.parse(v)).filter(x=>x>0);
+  const at=r=>{const d=new Date();d.setHours(Math.floor(r/60),r%60,0,0);return d.getTime()};
+  const since=ms=>{const d=new Date(ms);return ymd(d)===today?d.getHours()*60+d.getMinutes()+1:0};
+  const out=[];
+  for(const t of remote){
+    if(!t||t.deletedAt||t.due!==today||!HM_RE.test(t.time||''))continue;
+    const k=t.id+'|'+t.due+'|'+t.time,r=remindRun(today,t.time,Math.max(since(Date.parse(t.createdAt)||0),since(Date.parse(t.whenAt)||0),seen[k]?since(seen[k]):0));
+    if(r==null||now<r+20)continue;
+    if(!(avisos.at>=at(r)+20*60000))continue;   // lo último leído es de antes: todavía no se sabe (sin señal, recién vuelta a la app)
+    if(t.done&&!(Date.parse(t.completedAt)>=at(r)))continue;   // la terminaste antes del aviso (o no se sabe cuándo)
+    // Salió el de esta tarea (aunque sea antes, por el horario de respaldo) o alguno desde esa corrida
+    if(avisos.enviados[k]||sent.some(x=>x>=at(r)-120000))continue;
+    out.push({r,t,k});
+  }
+  return out.sort((a,b)=>a.r-b.r);
+}
+// Una tarea de hoy con hora dentro de menos de 45 minutos que todavía no subió a GitHub: el aviso no la va a ver
+function unsentSoon(){
+  const ops=getOutbox();
+  if(!ops.length||!avisosOn())return null;
+  const today=ymd(new Date()),now=nowMin(),old=Date.now()-15000;
+  const ids=new Set(ops.filter(o=>(o.ts||0)<old).map(o=>o.id||(o.task&&o.task.id)));
+  return tasks.find(t=>ids.has(t.id)&&!t.done&&t.due===today&&HM_RE.test(t.time||'')&&hm(t.time)>now&&hm(t.time)-now<45&&
+    !remote.some(x=>x.id===t.id&&x.due===t.due&&x.time===t.time&&!x.done&&!x.deletedAt))||null;
+}
+let avisoHidden=new Set();   // las "todavía no subió" que ocultaste (hasta que se recargue la app)
+function renderAvisoBar(){
+  const bar=$('avisoBar'),act=$('avisoAct');
+  let msg=null,btn=null;
+  const u=unsentSoon();
+  if(u&&!avisoHidden.has(u.id)){
+    msg='«'+u.title+'» ('+u.time+') todavía no subió a GitHub: el aviso por Telegram puede no llegar.';
+    btn=['Al calendario',()=>openCalendar(u)];
+    bar.dataset.k='u:'+u.id;
+  }else{
+    // Oculta con ✕ hasta mañana, salvo que falte otro
+    const m=missedAvisos(),x=load(K_AVISOX,null),today=ymd(new Date()),hid=x&&x.d===today&&Array.isArray(x.k)?x.k:[];
+    if(m.some(a=>!hid.includes(a.k))){
+      msg=m.length===1?'No salió el aviso por Telegram de «'+m[0].t.title+'» ('+m[0].t.time+'). Revisá que cron-job.org siga andando.':
+        'No salieron '+m.length+' avisos de hoy por Telegram (el primero, de las '+m[0].t.time+'). Revisá que cron-job.org siga andando.';
+      bar.dataset.k='m:'+m.map(a=>a.k).join('\n');
+    }
+  }
+  bar.classList.toggle('hidden',!msg);
+  if(!msg)return;
+  $('avisoMsg').textContent=msg;
+  act.classList.toggle('hidden',!btn);
+  if(btn){act.textContent=btn[0];act.onclick=btn[1]}
+}
+$('avisoX').onclick=()=>{
+  const k=$('avisoBar').dataset.k||'';
+  if(k.startsWith('u:'))avisoHidden.add(k.slice(2));
+  else if(k.startsWith('m:'))store(K_AVISOX,{d:ymd(new Date()),k:k.slice(2).split('\n')});
+  renderAvisoBar();
+};
+function whenSent(ms){const d=new Date(ms),n=daysUntil(ymd(d));return (n===0?'hoy':n===-1?'ayer':'el '+dm(d))+' a las '+timeNow(d)}
+function renderAvisosLine(){
+  const p=$('avisosLine'),last=lastAviso();
+  const txt=!configured()||!avisos&&!(last>0)?'':
+    last>0?'Avisos por Telegram: el último salió '+whenSent(last)+'.'+(missedAvisos().length?' Hoy falta alguno: revisá cron-job.org.':''):
+    avisos&&!avisos.enviados?'Avisos por Telegram: todavía no salió ninguno.':'';
+  p.textContent=txt;p.classList.toggle('hidden',!txt);
+}
+
 // ---- Estado de sincronización ----
 function cambios(n,guardados){return n===1?'1 cambio'+(guardados?' guardado':''):n+' cambios'+(guardados?' guardados':'')}
 function ago(ts){const s=Math.max(0,Math.round((Date.now()-ts)/1000));return s<60?'hace '+s+' s':s<3600?'hace '+Math.round(s/60)+' min':'a las '+timeNow(new Date(ts))}
@@ -1432,7 +1608,7 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();if(edit)renderEdit();if(repOpen())renderReport();updateBadge();settleArrivals()}
+function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();renderAvisoBar();if(edit)renderEdit();if(repOpen())renderReport();updateBadge();settleArrivals()}
 // Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
 // lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
 const BADGE='setAppBadge' in navigator;
@@ -1486,13 +1662,16 @@ function renderAdd(){
   const tags=[];
   if(p.due)tags.push(shortDue(p.due));
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
-  if(p.time)tags.push(timeLabel(p.time));
+  // Con la hora, cuándo llega el aviso por Telegram (o que no llega). "Recordame…" sin hora: a las 9.
+  const pr=withRemindTime(p,eff);
+  if(pr.time){const w=whenFields(pr,eff);tags.push(timeLabel(pr.time));const a=avisoTag(w.due,w.time);if(a)tags.push(a)}
+  else if(p.remind&&avisosOn())tags.push(['Sin hora: sin aviso','warn']);
   if(p.requester)tags.push('@'+p.requester);
   if(p.repeat)tags.push('↻ '+cap(REPEAT_LABEL[p.repeat]));
   if(p.waiting){const w=p.waitingOn||p.requester;tags.push(w?'Esperando a '+w:'Esperando')}
   // Lo dictado no entra en el campo: se muestra completo el título que se va a guardar
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
-  if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(el('span','tag',x)))}
+  if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(Array.isArray(x)?el('span','tag'+(x[1]?' '+x[1]:''),x[0]):el('span','tag',x)))}
   det.classList.toggle('hidden',!det.childNodes.length);
   // El tip, solo las primeras 5 veces que se abre la app
   const tip=!listening&&document.activeElement===$('title')&&!raw.trim()&&(tipCounted||load(K_TIP,0)<5);
@@ -1755,6 +1934,7 @@ function openMenu(id,byKey){
     item('Volver a mirar el…',()=>askDate(t));
     item('Terminar',()=>toggle(t));
   }else{
+    item('En 1 hora',()=>postponeHour(t));
     if(n!==0)item('Para hoy',()=>reschedule(t,'0'));
     if(n!==1)item('Para mañana',()=>reschedule(t,'1'));
     if(t.due!==nextMonday())item('Para el lunes',()=>reschedule(t,'week'));
@@ -1842,7 +2022,7 @@ function toggle(t){
   // Si la próxima de esta tarea ya existe (se terminó, se reabrió y se terminó otra vez, o se terminó
   // en otro dispositivo), no se crea otra
   if(done&&REPEAT_LABEL[t.repeat]&&!tasks.some(x=>x.repeatOf===t.id)){
-    next={id:crypto.randomUUID(),repeatOf:t.id,...repeatOrder(t),...(t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    next={id:crypto.randomUUID(),repeatOf:t.id,...repeatOrder(t),...(t.repeatTime!=null?{time:t.repeatTime||null}:t.time!==undefined?{time:t.time}:taskTime(t)?{time:taskTime(t)}:{}),title:t.title,requester:t.requester||'',priority:t.priority||'Media',notes:t.notes||'',repeat:t.repeat,due:nextDue(t),done:false,createdAt:new Date().toISOString(),completedAt:null};
     if(t.repeat==='monthly')next.repeatDay=t.repeatDay||parseYmd(t.due||ymd(new Date())).getDate();
     ops.push({type:'add',task:next});
   }
@@ -1873,6 +2053,17 @@ function reschedule(t,v){
   if((t.due||null)===due){if(t.inbox)editWithUndo(t,{inbox:false},'Queda para hoy');return}
   editWithUndo(t,duePatch(t,due),v==='0'?'Pasada a hoy':v==='1'?'Pasada a mañana':v===''?'Pasada a sin fecha':'Pasada al lunes');
 }
+// A otra fecha y hora (posponer desde el aviso, "En 1 hora")
+function moveTo(t,due,time,msg){
+  const patch=duePatch(t,due);patch.time=time;
+  // Si se repite, la serie conserva su hora: la próxima vuelve a la de siempre ('' = sin hora)
+  if(t.repeat&&t.repeatTime==null)patch.repeatTime=taskTime(t)||'';
+  const av=avisoTag(due,time);
+  editWithUndo(t,patch,msg+(av?' · '+av[0].toLowerCase():''));
+}
+// Dentro de una hora, redondeado a los 5 minutos (si pasa la medianoche, mañana)
+function inHour(){const d=new Date(Date.now()+3600e3);d.setMinutes(Math.ceil(d.getMinutes()/5)*5,0,0);return {due:ymd(d),time:timeNow(d)}}
+function postponeHour(t){const w=inHour();moveTo(t,w.due,w.time,'Pasada a las '+w.time+(w.due!==ymd(new Date())?' de mañana':''))}
 // Otra fecha, escrita como en el campo: "jueves", "15/10", "en 2 semanas", "mañana a las 3"
 function parseWhen(v){
   const p=parse(String(v||''),addDays(0));
@@ -2029,6 +2220,57 @@ function askWho(t,then){
 }
 function togglePrio(t){editWithUndo(t,{priority:t.priority==='Alta'?'Media':'Alta'},t.priority==='Alta'?'Prioridad media':'Prioridad alta')}
 
+// ---- Posponer: el botón de cada aviso de Telegram abre la app con ?tarea=<id> ----
+let pos=null;
+function openPos(t){
+  closeMenu();pos=t.id;
+  $('posT').textContent=(t.time&&t.due?(t.due===ymd(new Date())?'':shortDue(t.due)+' · ')+t.time+' · ':'')+t.title;
+  const box=$('posBtns');box.replaceChildren();
+  // Cada botón actúa sobre la tarea como está al tocarlo (pudo cambiar en el otro dispositivo)
+  const add=(label,fn,cls)=>{const b=el('button',cls||null,label);b.type='button';b.onclick=()=>{const cur=tasks.find(x=>x.id===pos);closePos();if(cur)fn(cur)};box.append(b)};
+  if(t.done){
+    $('posH').textContent='Ya está terminada';
+    add('Volver a pendientes',cur=>{if(cur.done)toggle(cur)});
+  }else{
+    $('posH').textContent='Posponer';
+    const w=inHour(),today=ymd(new Date());
+    add('En 1 hora ('+w.time+')',postponeHour,'main');
+    if(nowMin()<17*60+45&&!(t.due===today&&t.time==='18:00'))add('Hoy 18:00',cur=>moveTo(cur,today,'18:00','Pasada a hoy a las 18:00'));
+    add('Mañana 9:00',cur=>moveTo(cur,addDays(1),'09:00','Pasada a mañana a las 9:00'));
+    add('Hecha',cur=>{if(!cur.done)toggle(cur);else toast('Ya estaba terminada')});
+  }
+  add('Abrir',cur=>openEdit(cur));
+  $('posOv').classList.remove('hidden');$('wrap').inert=true;
+  box.querySelector('button').focus();
+}
+function closePos(){pos=null;releaseFocus($('posOv'));$('posOv').classList.add('hidden');if(!edit&&!proc)$('wrap').inert=false}
+// La tarea puede no estar todavía en este dispositivo (recién creada en el otro): se espera a traer lo último
+async function openPosById(id,initial){
+  let t=tasks.find(x=>x.id===id);
+  if(!t&&configured()){
+    if(!initial)sync();
+    const end=Date.now()+10000;
+    while(!(t=tasks.find(x=>x.id===id))&&syncing&&Date.now()<end)await new Promise(r=>setTimeout(r,250));
+  }
+  if(!t){
+    toast(!configured()?'Abrí el aviso en la app instalada, conectada a GitHub (en Telegram, desactivá el navegador integrado)':
+      trash.some(x=>x.id===id)?'Esa tarea está en la papelera':
+      syncing||lastError?'No pude traer lo último de GitHub ('+(lastError||'tarda mucho')+'): tocá el botón del aviso de nuevo en un rato':
+      'No encontré esa tarea: puede que se haya borrado',null,null,8000);
+    return;
+  }
+  if(pos&&pos!==id)closePos();
+  if(overlayOpen()&&pos!==id){posLater(id,'Aviso de «'+t.title+'»');return}
+  openPos(t);
+}
+// Con algo abierto no interrumpe: lo ofrece en el aviso de abajo (y si sigue abierto al tocarlo, lo vuelve a ofrecer)
+function posLater(id,msg){
+  toast(msg,()=>{const x=tasks.find(y=>y.id===id);if(!x)return;if(overlayOpen()&&pos!==id){posLater(id,'Cerrá lo que tenés abierto y tocá Abrir');return}openPos(x)},'Abrir',15000);
+}
+$('posX').onclick=closePos;
+$('posOv').addEventListener('pointerdown',e=>{downOn=e.target});
+$('posOv').addEventListener('click',e=>{if(e.target===$('posOv')&&downOn===e.target)closePos()});
+
 // Reclamar: el mensaje armado para WhatsApp (o lo que elijas al compartir). Queda registrado.
 function nudge(t){
   const who=t.waitingOn||t.requester||'',text=(who?'Hola '+who+', ':'Hola, ')+'¿pudiste ver lo de «'+t.title+'»?';
@@ -2109,7 +2351,7 @@ $('addForm').addEventListener('submit',e=>{
   const raw=$('title').value.trim();if(!raw)return;
   // En el celular el cursor vuelve al campo solo si el teclado ya estaba abierto (se agregó con Enter)
   const refocus=FINE||document.activeElement===$('title');
-  const p=parse(raw,dueFor(chip)),due=p.due!==undefined?p.due:dueFor(chip);
+  const p0=parse(raw,dueFor(chip)),due=p0.due!==undefined?p0.due:dueFor(chip),p=withRemindTime(p0,due);
   const task={id:crypto.randomUUID(),src:SRC,title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
@@ -2121,7 +2363,8 @@ $('addForm').addEventListener('submit',e=>{
   // Con hora o "recordame…", también un toque la pasa al calendario del teléfono para que avise.
   const more=[['Cambiar',()=>{const t=tasks.find(x=>x.id===task.id);if(t)openEdit(t)}]];
   if(p.time||p.remind)more.push(['Al calendario',()=>openCalendar(task)]);
-  toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
+  const av=avisoTag(task.due,task.time);
+  toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:'')+(av?' · '+av[0].toLowerCase():''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
   $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
   if(refocus)$('title').focus();
@@ -2346,8 +2589,8 @@ $('bulkForm').addEventListener('submit',e=>{
   e.preventDefault();
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
-    const p=parse(line,def);
-    const task={id:crypto.randomUUID(),src:SRC,title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,p.due!==undefined?p.due:def),notes:'',done:false,createdAt:now,completedAt:null};
+    const p0=parse(line,def),due=p0.due!==undefined?p0.due:def,p=withRemindTime(p0,due);
+    const task={id:crypto.randomUUID(),src:SRC,title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:'',done:false,createdAt:now,completedAt:null};
     if(p.repeat)task.repeat=p.repeat;
     if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:now});
     return task;
@@ -2739,6 +2982,8 @@ function saveEdit(){
   if(!t0&&!trashed&&!edit.readonly&&Object.keys(patch).length){toast('No se guardó: esta tarea se eliminó en otro dispositivo');return}
   if(t0&&!t0.done&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
   if(t0&&t0.inbox&&Object.keys(patch).length)patch.inbox=false;
+  // La hora elegida en Editar es la de la serie (si se había pospuesto, deja de valer la de antes)
+  if(t0&&t0.repeatTime!=null&&('time' in patch||'repeat' in patch))patch.repeatTime=null;
   // Una vieja con la hora en el título: si se cambia el título, la hora pasa a ser un dato aparte (si no, se perdería)
   if(t0&&t0.time===undefined&&'title' in patch&&!('time' in patch)&&$('eTime').value&&!$('eTime').validity.badInput)patch.time=$('eTime').value;
   const id=edit.id;closeEdit();
@@ -2786,7 +3031,7 @@ function openSettings(){
   $('acct').open=!configured()||errorKind==='hard';
   $('credBtn').classList.toggle('hidden',!window.PasswordCredential);
   $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
-  renderDevice();renderStatus();
+  renderDevice();renderStatus();checkAvisos(true);
 }
 function closeSettings(){settingsOpen=false;confirmClear=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
 function renderSync(st){
@@ -2800,6 +3045,7 @@ function renderSync(st){
   ops.slice(0,8).forEach(o=>{const li=el('li',null,describeOp(o));if(o.ts)li.append(el('span','when',' · '+timeNow(new Date(o.ts))));pl.append(li)});
   if(ops.length>8)pl.append(el('li',null,'y '+(ops.length-8)+' más'));
   pl.classList.toggle('hidden',!ops.length);
+  renderAvisosLine();
   $('clearCfg').textContent=confirmClear?(n?'Hay '+cambios(n)+' sin subir que se van a perder. Tocá de nuevo para borrar.':'Tocá de nuevo para confirmar'):'Borrar conexión y datos de este dispositivo';
 }
 $('statusBtn').onclick=openSettings;
@@ -2813,7 +3059,7 @@ $('saveCfg').onclick=()=>{
   if(exp&&!(next.token!==cfg.token&&exp===(cfg.tokenExp||'')))next.tokenExp=exp;
   if(next.tokenExp!==cfg.tokenExp)try{localStorage.removeItem(K_TOKENX)}catch{}
   const prevToken=cfg.token;
-  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;
+  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;avisos=null;avisosEtag=null;
   closeSettings();recompute();sync();keepStorage();
   // Con fecha, se guarda para el otro dispositivo y el Telegram; sin fecha, se trae la que haya cargado el
   // otro. Un token nuevo sin fecha borra la del anterior, para que el Telegram no siga avisando.
@@ -2854,8 +3100,9 @@ $('badgeSw').addEventListener('change',()=>{
 });
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
-  try{[K_CFG,K_CACHE,K_OUTBOX].forEach(k=>localStorage.removeItem(k))}catch{}
+  try{[K_CFG,K_CACHE,K_OUTBOX,K_AVISOS,K_VISTOS,K_AVISOX].forEach(k=>localStorage.removeItem(k))}catch{}
   cfg={};remote=[];remoteSha=null;remoteEtag=null;outboxMem=[];lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;confirmClear=false;
+  avisos=null;avisosEtag=null;
   // La copia para subir en segundo plano tiene el token: también se borra
   idbDel('pendiente');idbDel('enviadas');bgRegistered=false;
   $('owner').value='';$('repo').value='';$('token').value='';$('tokenExp').value='';
@@ -2870,6 +3117,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(listening)stopVoice(true);
     else if(ask)closeAsk();
+    else if(pos)closePos();
     else if(waitFor)closeWait();
     else if(edit)dismissEdit();
     else if(proc)closeProc();
@@ -2886,6 +3134,8 @@ document.addEventListener('keydown',e=>{
     else if(sel){sel=null;renderList()}
     return;
   }
+  // Con la hoja de posponer abierta, las teclas son para sus botones (no para la lista de atrás)
+  if(pos)return;
   // Procesar tiene sus propias teclas
   // (Espacio/Enter sobre un botón con foco lo activan a él)
   if(proc&&!ask&&!waitFor&&!edit){if(!typing&&!e.metaKey&&!e.ctrlKey&&!((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter')))procKey(e);return}
@@ -2974,7 +3224,7 @@ function splitLong(s){
 // Con una ventana abierta (una tarea, Sincronización, el informe, el menú ⋯, la búsqueda…), Atrás la cierra y
 // vuelve a la lista en lugar de salir de la app. Mientras haya algo abierto queda una sola entrada "guarda" en el
 // historial, encima de la de la app; se reconoce por su estado, así que también sirve después de recargar.
-const BACKABLE=['askOv','waitOv','editOv','textOv','repOv','procOv','bulkOv','syncOv','menu','voiceDock','searchBar','filterBar'];
+const BACKABLE=['askOv','posOv','waitOv','editOv','textOv','repOv','procOv','bulkOv','syncOv','menu','voiceDock','searchBar','filterBar'];
 let navPending=0,navTimer=null,afterPop=false,backTimer=null;
 // Volver en el historial no tiene que mover la pantalla (lo maneja la app)
 try{history.scrollRestoration='manual'}catch{}
@@ -2983,6 +3233,7 @@ function backable(){return BACKABLE.some(id=>{const e=$(id);return e&&!e.classLi
 // Cierra lo que esté más arriba (en el mismo orden que Esc). Una tarea con cambios se guarda.
 function backClose(){
   if(ask)return closeAsk();
+  if(pos)return closePos();
   if(waitFor)return closeWait();
   if(edit)return dismissEdit();
   if(!$('textOv').classList.contains('hidden'))return closeText();
@@ -3027,13 +3278,13 @@ const firstSync=sync();        // y después trae lo último de GitHub
 // Lo que pide la dirección con que se abrió: "Nueva tarea" (?nueva=1), "Dictar" (?voz=1), lo compartido desde
 // otra app (Chrome arma la dirección con title/text/url) o la revisión de la semana del Telegram (?revisar=1)
 const LAUNCH_URL=location.href,params=new URLSearchParams(location.search);
-if(['nueva','share','title','text','url','voz','revisar'].some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
+if(['nueva','share','title','text','url','voz','revisar','tarea'].some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
 WIDE.addEventListener('change',renderList);
 // La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
 // Algo abierto encima de la lista (una tarea, Sincronización, el informe, Procesar…)
-function overlayOpen(){return !!(edit||bulk||waitFor||ask||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))}
+function overlayOpen(){return !!(edit||bulk||waitFor||ask||pos||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))}
 // Lo compartido: en el campo (o, si son varias líneas, la lista para cargarlas). Lo que estaba en el campo queda
 // guardado aparte y vuelve después (como al abrir compartiendo).
 function fillShared(params){
@@ -3056,7 +3307,9 @@ let pendingShare=null;
 // initial: al abrir la app; si no, con la app ya abierta (en la compu, "Nueva tarea" o "Dictar" del ícono;
 // en el celular, si Chrome reusa la ventana abierta al compartir)
 function handleLaunch(params,initial){
-  const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar');
+  const shared=['share','title','text','url'].some(k=>params.has(k)),voz=params.has('voz'),revisar=params.has('revisar'),tarea=params.get('tarea');
+  // Desde el botón de un aviso de Telegram: posponer, terminar o abrir esa tarea
+  if(tarea){if(initial)restoreDraft();openPosById(tarea,initial);return}
   if(!initial){
     closeMenu();
     if(overlayOpen()){
@@ -3107,7 +3360,7 @@ function readyToCapture(){
   closeMenu();
   if(searchOpen&&!$('search').value.trim())closeSearch();
   if(edit&&!Object.keys(editPatch()).length)closeEdit();
-  if(edit||bulk||waitFor||settingsOpen||dock||!$('textOv').classList.contains('hidden')||repOpen())return;
+  if(edit||bulk||waitFor||pos||settingsOpen||dock||!$('textOv').classList.contains('hidden')||repOpen())return;
   window.scrollTo(0,0);
   if(STANDALONE)$('title').focus();
 }
@@ -3121,7 +3374,7 @@ let swReg=null,newVersion=null,storageKept=null,lastSwCheck=0;
 // "2026.10.16-2" es más nueva que "2026.10.16-1" y que "2026.10.9-5"
 function isNewer(a,b){const k=v=>String(v).split(/[.-]/).map(Number);const x=k(a),y=k(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
 // Nada que se pierda al recargar (lo que está en el campo de alta queda en el borrador, con su fecha, y vuelve)
-function readyForReload(){return !edit&&!bulk&&!waitFor&&!ask&&!dock&&!listening&&!autoSave&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')}
+function readyForReload(){return !edit&&!bulk&&!waitFor&&!ask&&!pos&&!dock&&!listening&&!autoSave&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')}
 function reloadApp(){
   if(!readyForReload()){toast('Guardá o cerrá lo que tenés abierto y tocá Actualizar de nuevo');return}
   try{sessionStorage.setItem('actualizada','1')}catch{}

@@ -73,6 +73,11 @@ USO DIARIO
   Tambien entiende "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media" o "en 1 hora y 20"
   (hoy, a esa hora).
   El aviso de Telegram llega entre 10 y 40 minutos antes: para algo de menos de una hora, usa "Al calendario".
+  Si los avisos por Telegram ya andan, el "Detectado" (y el aviso de abajo al agregarla) dice cuando llega:
+  "Aviso 14:50", "Aviso 10:20 (tarde)" si la corrida de antes ya paso, o "Sin aviso (muy tarde)" para las de
+  despues de las 23:29 (las corridas son de 6:20 a 22:50).
+  "Recordame ..." sin hora queda a las 9:00 (para que llegue el aviso); se cambia diciendo la hora o en Editar.
+  Si es para hoy y ya paso el aviso de las 9, queda sin hora y el "Detectado" dice "Sin hora: sin aviso".
 - Sugerencias: mientras escribis aparecen tareas que ya cargaste antes, con quien las pidio. Toca una (o elegila
   con las flechas y Enter) y queda en el campo para agregarla. Despues de "@" sugiere las personas que ya usaste.
 - Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo y deci la tarea. Cuando terminas de
@@ -181,8 +186,17 @@ USO DIARIO
 - Resumen diario por Telegram (7:00, de lunes a viernes): se configura una vez en el repositorio de datos.
   Seguir los pasos de repo-datos/INSTRUCCIONES.md.
 - Recordatorios a la hora por Telegram: las tareas con hora te avisan entre 10 y 40 minutos antes (tareas de 6:30
-  a 21:30). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
+  a 23:29). Usa el mismo bot: se agrega un archivo mas y, si ya tenias el resumen diario, se reemplaza resumen.yml
   por la version nueva. Ver repo-datos/INSTRUCCIONES.md.
+- Posponer desde el aviso: cada aviso de Telegram trae un boton "Posponer o hecha" que abre la app con esa tarea:
+  En 1 hora, Hoy 18:00, Mañana 9:00, Hecha o Abrir. Para que abra la app instalada (y no una pagina adentro de
+  Telegram): en Telegram, Ajustes > Ajustes de chat > desactivar "Navegador integrado" (o "Abrir enlaces en la app").
+  "En 1 hora" tambien esta en el menu "⋯" de cada tarea.
+- Control de los avisos: en Sincronizacion dice cuando salio el ultimo aviso por Telegram. Si hoy tenia que salir
+  uno hace mas de 20 minutos y no salio ninguno desde entonces, arriba aparece un aviso en rojo (revisa que
+  cron-job.org siga andando). Si una tarea con hora en menos de 45 minutos todavia no subio a GitHub (sin señal),
+  tambien avisa, con "Al calendario" para que te avise el telefono. El resumen de la mañana dice si el dia anterior
+  no salio algun aviso.
 - Que lleguen a horario: GitHub a veces atrasa horas el resumen o saltea recordatorios. Con cron-job.org (gratis)
   llegan puntuales: ver repo-datos/INSTRUCCIONES.md, seccion "Que llegue a horario". Si ya tenias el resumen o los
   recordatorios, primero reemplaza resumen.yml y recordatorios.yml por la version nueva (paso 0).

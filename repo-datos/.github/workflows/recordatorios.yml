@@ -2,12 +2,19 @@
 # Va en el repositorio PRIVADO de datos, en .github/workflows/recordatorios.yml.
 # Pasos para configurarlo: ver INSTRUCCIONES.md.
 name: Recordatorios a la hora
+# Las corridas de cron-job.org se ven como "Recordatorios (cron-job.org)": así el respaldo sabe si cron-job.org anda
+run-name: ${{ (inputs.automatico == true || inputs.automatico == 'true') && 'Recordatorios (cron-job.org)' || 'Recordatorios a la hora' }}
 
 on:
   # Horario de GitHub: a veces se atrasa horas o se saltea. Para que sea puntual, lo puede disparar
-  # cron-job.org (ver INSTRUCCIONES.md): en ese caso se borran estas dos líneas de schedule.
+  # cron-job.org (ver INSTRUCCIONES.md). En ese caso, la línea de cron de abajo se cambia por esta de respaldo:
+  #   - cron: "37 9-23,0-1 * * *"   # respaldo: cada hora a los 37 minutos, de 6:37 a 22:37 en Argentina
+  # Así, si un día cron-job.org falla, los avisos salen igual. Mientras cron-job.org anda, el respaldo solo manda
+  # lo que tendría que haber salido y no salió (no adelanta ninguno), y nada se repite: lo enviado queda anotado en
+  # recordatorios-enviados.json. Minutos de Actions por mes: unos 1050 (cron-job.org)
+  # + 530 (respaldo) + los resúmenes ≈ 1600 de los 2000 gratis. Cada 15 minutos se pasaría.
   schedule:
-    - cron: "20,50 9-23 * * *"   # cada media hora, de 6:20 a 20:50 en Argentina (UTC-3)
+    - cron: "20,50 9-23,0-1 * * *"   # cada media hora, de 6:20 a 22:50 en Argentina (UTC-3): 9 a 23 y 0 a 1 en UTC
   workflow_dispatch:              # botón "Run workflow" para probarlo (y lo que usa cron-job.org)
     inputs:
       automatico:
@@ -17,6 +24,7 @@ on:
 
 permissions:
   contents: write   # para anotar en recordatorios-enviados.json qué ya se avisó
+  actions: read     # para que el respaldo sepa si cron-job.org está andando
 
 # Si una ejecución se demora, la siguiente espera a que termine (así no avisa dos veces)
 concurrency:
@@ -39,6 +47,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ZONA_HORARIA: America/Argentina/Buenos_Aires
           AUTOMATICO: ${{ inputs.automatico }}
+          APP_URL: ${{ vars.APP_URL }}
+          HORARIO: ${{ github.event.schedule }}
         run: |
           node --input-type=module <<'JS'
           import {readFileSync} from 'node:fs';
@@ -60,13 +70,38 @@ jobs:
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para recordar.');process.exit(0)}
           const conHora=tareas.filter(t=>t&&!t.done&&!t.deletedAt&&t.due===hoy&&/^\d{2}:\d{2}$/.test(t.time||''))
             .sort((a,b)=>a.time.localeCompare(b.time));
-          const toca=conHora.filter(t=>min(t.time)<=ahora+ANTES&&min(t.time)>=ahora-TARDE);
           const clave=t=>t.id+'|'+t.due+'|'+t.time;
+          const api=E.GITHUB_API||'https://api.github.com',ruta='recordatorios-enviados.json';
+          const hdr={'Authorization':'Bearer '+E.GH_TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'};
+
+          // Corrida del horario de respaldo (el de GitHub que no es el de las :20 y :50) con cron-job.org andando (lo disparó
+          // hace menos de 45 minutos; los "Run workflow" de prueba no cuentan): solo manda las que cron-job.org ya tendría
+          // que haber avisado (a las :20 y :50, de 6:20 a 22:50) y no avisó. Así no se adelanta: la de las 15:00 sigue
+          // llegando a las 14:50, no a las 14:37. Si cron-job.org no anda, avisa como siempre.
+          let soloAtrasadas=false;
+          if(E.GITHUB_EVENT_NAME==='schedule'&&!/^20,50\s/.test(E.HORARIO||'')){
+            try{
+              const wf=(E.GITHUB_WORKFLOW_REF||'').split('@')[0].split('/').pop()||'recordatorios.yml';
+              const r=await fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/actions/workflows/'+encodeURIComponent(wf)+'/runs?event=workflow_dispatch&per_page=10',{headers:hdr});
+              const u=r.ok?((await r.json()).workflow_runs||[]).find(x=>x&&x.display_title==='Recordatorios (cron-job.org)'):null;
+              soloAtrasadas=!!u&&Date.now()-Date.parse(u.created_at)<45*60000;
+            }catch{}
+            if(soloAtrasadas)console.log('Respaldo: cron-job.org anda, solo se manda lo atrasado.');
+          }
+          const corrida=T=>{const c=380+Math.ceil((Math.max(T-ANTES,380)-380)/30)*30;return c<=1370?c:null};   // la de cron-job.org que la avisa
+          // La corrida de cron-job.org (o la del horario de las :20 y :50) puede empezar un par de minutos tarde: cuenta como
+          // la de las :20 o :50, así la de las 15:00 sale a las 14:50 y no en la de las 14:20 (40 minutos antes)
+          const turno=ahora-((ahora-20)%30+30)%30;
+          const base=(E.AUTOMATICO==='true'&&E.GITHUB_EVENT_NAME!=='schedule'||E.GITHUB_EVENT_NAME==='schedule'&&/^20,50\s/.test(E.HORARIO||''))&&ahora-turno<10?turno:ahora;
+          const toca=conHora.filter(t=>{
+            const T=min(t.time);
+            if(T>base+ANTES||T<base-TARDE)return false;
+            if(!soloAtrasadas)return true;
+            const c=corrida(T);return c!==null&&c<=ahora-5;   // 5 minutos para que termine la de cron-job.org
+          });
 
           // Qué ya se avisó: recordatorios-enviados.json en este mismo repositorio
-          const api=E.GITHUB_API||'https://api.github.com',ruta='recordatorios-enviados.json';
-          const gh=(opts={})=>fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/contents/'+ruta,{...opts,
-            headers:{'Authorization':'Bearer '+E.GH_TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'}});
+          const gh=(opts={})=>fetch(api+'/repos/'+E.GITHUB_REPOSITORY+'/contents/'+ruta,{...opts,headers:hdr});
           async function leer(){
             const r=await gh();
             if(r.status===404)return {enviados:{},sha:null};
@@ -89,14 +124,25 @@ jobs:
           if(msg.length>4000)msg=msg.slice(0,3990)+'\n…';
           // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org)
           console.log(nuevas.length?nuevas.length+(nuevas.length===1?' recordatorio para enviar.':' recordatorios para enviar.'):'Mensaje de prueba.');
+          // Debajo del mensaje, un botón por tarea (hasta 8) que la abre en la app para posponerla o marcarla hecha.
+          // El texto de arriba no cambia: MacroDroid hace sonar la alarma por el ⏰. Sin APP_URL, sin botones.
+          const app=(E.APP_URL||'').trim();
+          const corto=(s,n)=>{const c=Array.from(s);return c.length<=n?s:c.slice(0,n-1).join('').trimEnd()+'…'};
+          const botones=nuevas.length&&app?nuevas.slice(0,8).map(t=>[{text:corto('Posponer o hecha · '+t.time+' '+t.title,60),url:app.replace(/\/?$/,'/')+'?tarea='+encodeURIComponent(t.id)}]):null;
 
           // Recién copiado y todavía sin secretos: las corridas programadas no fallan (ni mandan mails de error)
           if(!E.TELEGRAM_TOKEN&&!E.TELEGRAM_CHAT_ID&&automatico){console.log('Todavía no están cargados los secretos de Telegram: no se envía nada. Ver INSTRUCCIONES.md.');process.exit(0)}
           if(!E.TELEGRAM_TOKEN||!E.TELEGRAM_CHAT_ID){console.error('Falta configurar los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID. Ver INSTRUCCIONES.md.');process.exit(1)}
           const tg=E.TELEGRAM_API||'https://api.telegram.org';
-          const r=await fetch(tg+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:msg,disable_web_page_preview:true})});
-          const j=await r.json().catch(()=>({}));
+          const mandar=extra=>fetch(tg+'/bot'+E.TELEGRAM_TOKEN+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({chat_id:E.TELEGRAM_CHAT_ID,text:msg,disable_web_page_preview:true,...extra})});
+          let r=await mandar(botones?{reply_markup:{inline_keyboard:botones}}:{});
+          let j=await r.json().catch(()=>({}));
+          // Si Telegram no acepta los botones (por ejemplo, con APP_URL mal escrita), el aviso sale igual, sin botones
+          if(botones&&r.status===400){
+            console.log('Telegram respondió 400 con los botones ('+(j.description||'')+'): se prueba sin botones. Si se repite, revisá la variable APP_URL.');
+            r=await mandar({});j=await r.json().catch(()=>({}));
+          }
           if(!r.ok||!j.ok){console.error('Telegram respondió '+r.status+': '+(j.description||'')+'. Revisá TELEGRAM_TOKEN y TELEGRAM_CHAT_ID.');process.exit(1)}
           console.log('Enviado por Telegram.');
           if(!nuevas.length)process.exit(0);

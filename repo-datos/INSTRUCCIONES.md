@@ -19,7 +19,7 @@ Esperando respuesta
 
 En "Esperando respuesta" aparece lo que espera hace 3 días o más (desde que lo pusiste en espera o desde el último reclamo), o lo que tiene para hoy la fecha de "Volver a mirar el…".
 
-Si un día no hay nada vencido, nada para hoy y nada esperando respuesta, no te llega nada.
+Si un día no hay nada vencido, nada para hoy y nada esperando respuesta, no te llega nada (salvo que haya un aviso con ⚠, como el de un recordatorio que no salió: ver "Recordatorios a la hora").
 
 Lo hace GitHub solo, con tu repositorio **privado de datos** (el de `tareas.json`). No hace falta tener la compu prendida. Es gratis: usa alrededor de 1 minuto por día de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
 
@@ -102,6 +102,8 @@ En `.github/workflows/resumen.yml`, la línea `cron: "0 10 * * 1-5"` usa la hora
 | 8:30 de lunes a viernes | `"30 11 * * 1-5"` |
 | 7:00 todos los días | `"0 10 * * *"` |
 
+Si llega de lunes a viernes, el de los lunes cuenta los avisos que no salieron desde el viernes; si llega todos los días, cada uno cuenta solo los del día anterior.
+
 ## Opcional: recibirlo también por mail
 
 Además de Telegram (o en lugar de Telegram), puede llegarte por mail. Cargá estos secretos, igual que en el paso 4:
@@ -151,7 +153,10 @@ Si una tarea tiene hora ("llamar al banco mañana a las 3"), ese día te llega u
 
 ```
 ⏰ 15:00 · Llamar al banco · @Laura
+[ Posponer o hecha · 15:00 Llamar al banco ]
 ```
+
+Lo de abajo, entre corchetes, es un botón: ver [El botón "Posponer o hecha"](#el-botón-posponer-o-hecha), más abajo.
 
 Usa el mismo bot y los mismos secretos del resumen diario: si ya hiciste los pasos 1 a 4, solo falta un archivo más.
 
@@ -169,17 +174,45 @@ Usa el mismo bot y los mismos secretos del resumen diario: si ya hiciste los pas
 
 Cómo funciona:
 
-- GitHub lo revisa cada media hora, entre las 6:20 y las 20:50. Avisan las tareas con hora entre las 6:30 y las 21:30; las de más tarde no.
+- GitHub lo revisa cada media hora, entre las 6:20 y las 22:50. Avisan las tareas con hora entre las 6:30 y las 23:29; las de más tarde no.
 - El aviso llega entre 10 y 40 minutos antes de la hora (si es en punto o y media, unos 10 minutos antes). GitHub a veces demora sus tareas programadas: si se atrasa, el aviso llega igual (hasta 3 horas tarde) y no se repite.
 - Las tareas que cargaste antes de esta versión tenían la hora dentro del texto: la app la pasa sola a su lugar la próxima vez que la abrís con conexión, así que también avisan.
-- Para recordar qué ya avisó, guarda el archivo `recordatorios-enviados.json` en tu repositorio de datos. No hace falta tocarlo.
-- Usa unos 900 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (cada revisión cuenta como 1 minuto, aunque tarde segundos). Junto con el resumen diario quedan unos 1000 libres.
+- Para recordar qué ya avisó, guarda el archivo `recordatorios-enviados.json` en tu repositorio de datos. No hace falta tocarlo. Si dejás de usar los recordatorios, el resumen deja de reclamar avisos que no salieron a los 30 días del último (o enseguida, si borrás ese archivo).
+- Usa unos 1050 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (cada revisión cuenta como 1 minuto, aunque tarde segundos). Junto con el resumen diario quedan unos 900 libres.
 - Si una tarea no tiene hora, no hay aviso: aparece en el resumen de la mañana.
+- Si un recordatorio no salió (por ejemplo, porque GitHub o cron-job.org no corrieron), el resumen de las 7 del día siguiente empieza con un aviso, aunque no haya nada más para contarte:
+  ```
+  ⚠ Ayer no salieron 2 avisos por Telegram (revisá cron-job.org y que Actions esté activo).
+  ```
+  Los lunes dice "Desde el viernes" y cuenta viernes, sábado y domingo. Solo dice cuántos, sin los títulos. No cuenta las tareas que cargaste después de la hora en que tenía que salir el aviso, las que terminaste antes ni las que quedan fuera del horario (de 6:20 a 22:50). Necesita la versión nueva de `resumen.yml` y de `recordatorios.yml` (ver [Si ya tenías los recordatorios](#si-ya-tenías-los-recordatorios), más abajo).
 - Para que el aviso suene fuerte como una alarma, aunque estés durmiendo o con el celular en No molestar: ver la sección [Que el recordatorio suene como alarma (Samsung)](#que-el-recordatorio-suene-como-alarma-samsung), más abajo.
+
+## El botón "Posponer o hecha"
+
+Debajo de cada recordatorio aparece un botón **Posponer o hecha** con la hora y el título de la tarea (si en un mismo mensaje hay más de 8 recordatorios, solo los primeros 8 traen botón). Al tocarlo se abre la app directamente en esa tarea: desde ahí la posponés o la marcás hecha, sin buscarla.
+
+El texto del recordatorio no cambia, así que la alarma de MacroDroid suena igual. El mensaje de prueba ("✅ Los recordatorios funcionan") no trae botón.
+
+Para que aparezca:
+
+1. Cargá la dirección de la app en la variable `APP_URL` del repositorio de datos (es la misma de la revisión de los viernes; si ya la cargaste, no hace falta otra vez): **Settings** → **Secrets and variables** → **Actions** → pestaña **Variables** → **New repository variable** → Name: `APP_URL` — Value: la dirección de la app, por ejemplo `https://TU_USUARIO.github.io/organizador-web/`. Tocá **Add variable**. Sin esa variable, el recordatorio llega igual, sin botón.
+2. Para que el botón abra la app instalada en el celular (y no una página dentro de Telegram), desactivá el navegador de Telegram: en Telegram, **Ajustes** → **Ajustes de chat** → **Navegador integrado** (en inglés *In-App Browser*): desactivado. Si no lo encontrás, buscá `navegador` con la lupa de **Ajustes** de Telegram. Si queda activado, el enlace se abre en una ventana de Telegram y no en la app instalada: ahí la app puede no tener tus tareas.
+
+Si la dirección de `APP_URL` está mal escrita, Telegram no acepta el botón: el recordatorio sale igual, sin botón, y en el registro de la corrida aparece "se prueba sin botones".
+
+## Si ya tenías los recordatorios
+
+Para el horario hasta las 22:50, el botón "Posponer o hecha" y el aviso ⚠ del resumen, reemplazá los dos archivos por la versión nueva. En tu repositorio **privado de datos**:
+
+1. Abrí `.github/workflows/recordatorios.yml`, tocá el lápiz (**Edit this file**), borrá todo, pegá el contenido nuevo de [repo-datos/.github/workflows/recordatorios.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/recordatorios.yml) y tocá **Commit changes…** → **Commit changes**.
+2. Lo mismo con `.github/workflows/resumen.yml` y [repo-datos/.github/workflows/resumen.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/resumen.yml).
+3. Si usás cron-job.org: en los dos archivos, volvé a hacer el [paso 4 de cron-job.org](#4-cambiar-el-horario-de-github) (en `recordatorios.yml`, el horario de respaldo) y cambiá el horario del trabajo **Recordatorios** a `20,50 6-22 * * *` (ver [Si ya tenías cron-job.org](#si-ya-tenías-cron-joborg)).
 
 ## Opcional: cambiar el horario de los recordatorios
 
-En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23 * * *"` usa la hora universal (UTC, 3 horas adelante de Argentina). `9-23` son las horas en UTC: de 6 a 20 en Argentina. Por ejemplo, para que también avise a la noche, para tareas hasta las 23:30 de Argentina, poné `"20,50 9-23,0-1 * * *"` (usa unos 120 minutos más por mes).
+En `.github/workflows/recordatorios.yml`, la línea `cron: "20,50 9-23,0-1 * * *"` usa la hora universal (UTC, 3 horas adelante de Argentina). `9-23,0-1` son las horas en UTC (de 9 a 23 y de 0 a 1): de 6 a 22 en Argentina. Por ejemplo, para que no avise a la noche (solo tareas hasta las 21:30), poné `"20,50 9-23 * * *"` (usa unos 120 minutos menos por mes). Si usás cron-job.org, el horario se cambia allá, en la hora de Argentina: `20,50 6-20 * * *`, y también la línea de respaldo de `recordatorios.yml`, para que no avise a la noche: `"37 9-23 * * *"` (de 6:37 a 20:37).
+
+Ojo: el aviso ⚠ del resumen de las 7 y el de la app cuentan el horario completo, hasta las 22:50. Si lo acortás, las tareas con hora de la noche van a aparecer como avisos que no salieron.
 
 ---
 
@@ -194,7 +227,7 @@ Si ya tenías el resumen o los recordatorios, primero reemplazá los dos archivo
 1. Abrí `.github/workflows/resumen.yml`, tocá el lápiz (**Edit this file**), borrá todo, pegá el contenido nuevo de [repo-datos/.github/workflows/resumen.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/resumen.yml) y tocá **Commit changes…** → **Commit changes**.
 2. Lo mismo con `.github/workflows/recordatorios.yml` y [repo-datos/.github/workflows/recordatorios.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/recordatorios.yml).
 
-Si les habías cambiado el horario no importa: en el paso 4 se sacan esas líneas.
+Si les habías cambiado el horario no importa: en el paso 4 se cambian esas líneas.
 
 ## 1. Un token de GitHub solo para esto
 
@@ -229,7 +262,7 @@ Para cada uno de los tres de la tabla:
 
 | Title | Crontab expression | Qué hace |
 |---|---|---|
-| Recordatorios | `20,50 6-20 * * *` | Cada media hora, de 6:20 a 20:50 |
+| Recordatorios | `20,50 6-22 * * *` | Cada media hora, de 6:20 a 22:50 |
 | Resumen de la mañana | `0 7 * * 1-5` | 7:00, de lunes a viernes |
 | Revisión de los viernes | `45 15 * * 5` | Viernes 15:45 |
 
@@ -252,16 +285,36 @@ curl -X POST https://api.github.com/repos/TU_USUARIO/TU_REPO/actions/workflows/r
 
 Si **Import from cURL** no completa todo, cargalo a mano: en **URL**, la dirección que empieza con `https://api.github.com/`; en **Advanced**, **Request method** `POST`, en **Headers** los cuatro encabezados (`Authorization`, `Accept`, `X-GitHub-Api-Version` y `Content-Type`, cada uno con lo que va después de los dos puntos) y en **Request body** lo que está entre las comillas simples.
 
-## 4. Sacar el horario de GitHub
+## 4. Cambiar el horario de GitHub
 
-Si no, el resumen llega dos veces (el de cron-job.org y el atrasado de GitHub). En tu repositorio de datos, en `.github/workflows/resumen.yml` y en `.github/workflows/recordatorios.yml`, borrá las líneas de `schedule:` y sus `- cron:` (dejá `workflow_dispatch:` y lo que sigue). Tocá **Commit changes…** → **Commit changes**.
+En tu repositorio de datos:
+
+1. En `.github/workflows/resumen.yml`, borrá las líneas de `schedule:` y sus dos `- cron:` (dejá `workflow_dispatch:` y lo que sigue). Si no, el resumen llega dos veces (el de cron-job.org y el atrasado de GitHub). Tocá **Commit changes…** → **Commit changes**.
+2. En `.github/workflows/recordatorios.yml`, dejá `schedule:` y cambiá su línea `- cron:` por la de **respaldo** (también está en un comentario, arriba en el mismo archivo). Tiene que quedar así:
+   ```
+     schedule:
+       - cron: "37 9-23,0-1 * * *"   # respaldo: cada hora a los 37 minutos, de 6:37 a 22:37 en Argentina
+   ```
+   Tocá **Commit changes…** → **Commit changes**.
+
+Con el respaldo, si un día cron-job.org falla (o se desactiva), los recordatorios salen igual por el horario de GitHub (cada hora, entre 40 minutos antes y unos 20 después de la hora). Mientras cron-job.org anda, el respaldo solo manda lo que tendría que haber salido y no salió: no adelanta ningún aviso (el de las 15:00 sigue llegando a las 14:50). El último respaldo es a las 22:37: las tareas de las 23:17 a las 23:29 dependen solo de la corrida de cron-job.org de las 22:50. Las corridas de cron-job.org aparecen en **Actions** como "Recordatorios (cron-job.org)"; los "Run workflow" de prueba, como "Recordatorios a la hora". Si corren los dos, el aviso no se repite: lo que ya salió queda anotado en `recordatorios-enviados.json`.
+
+Minutos de GitHub (cada corrida cuenta como 1 minuto): cron-job.org dispara 34 recordatorios por día (unos 1050 por mes), el respaldo 17 (unos 530) y los resúmenes unos 25. En total, unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados. No los pongas más seguido (por ejemplo, cada 15 minutos): se pasaría de los 2000 y GitHub dejaría de correrlos hasta el mes siguiente. Si preferís no gastar esos minutos, borrá también las líneas de `schedule:` de `recordatorios.yml`, como en el resumen: sin respaldo usa unos 1080.
 
 ## Cómo saber si anda
 
-- En el repositorio de datos, pestaña **Actions**: tiene que aparecer una corrida de **Recordatorios a la hora** cada media hora, con tilde verde.
+- En el repositorio de datos, pestaña **Actions**: tiene que aparecer una corrida de **Recordatorios a la hora** cada media hora, con tilde verde (más la del respaldo, cada hora a los 37 minutos o cuando GitHub pueda).
 - En cron-job.org, cada trabajo muestra sus últimas ejecuciones. Si falla 25 veces seguidas (por ejemplo, si borraste el token), lo desactiva y te avisa por mail.
-- Usa unos 930 de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
+- Si un recordatorio no salió, el resumen de las 7 del día siguiente empieza con "⚠ Ayer no salieron 2 avisos por Telegram (revisá cron-job.org y que Actions esté activo)." (los lunes, "Desde el viernes"). Fijate en cron-job.org que el trabajo **Recordatorios** siga activo y en **Actions** que las corridas tengan tilde verde. Si aparece por tareas de la noche (de 21:30 en adelante), el trabajo de cron-job.org sigue con el horario viejo: ver [Si ya tenías cron-job.org](#si-ya-tenías-cron-joborg).
+- Con el respaldo usa unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (unos 1080 sin el respaldo).
 - Los registros de cada corrida ya no muestran los títulos de las tareas, solo cuántas son. Con este token, cron-job.org sí podría ver el mensaje de la última subida de la app (y los registros de corridas anteriores a esta versión, que tenían los títulos). Si eso te preocupa, en **Actions** podés borrar las corridas viejas (en cada una, **⋯** → **Delete workflow run**). Comprobá las políticas de tu empresa antes de usar un servicio externo con información del trabajo.
+
+## Si ya tenías cron-job.org
+
+Los recordatorios ahora llegan hasta las 22:50 (antes, hasta las 20:50). Si ya tenías los trabajos creados:
+
+1. En cron-job.org, **Cronjobs** → tocá **Recordatorios** → **Edit**. En **Crontab expression**, cambiá `20,50 6-20 * * *` por `20,50 6-22 * * *`. En **Advanced**, fijate que **Time zone** siga en `America/Argentina/Buenos_Aires`. Tocá **Save**. El comando de **Import from cURL** no cambia.
+2. Reemplazá `recordatorios.yml` y `resumen.yml` por la versión nueva (como en el paso 0) y volvé a hacer el paso 4: en `resumen.yml`, borrar el horario; en `recordatorios.yml`, poner el de respaldo.
 
 ---
 
@@ -381,7 +434,7 @@ Después, la prueba de verdad, en este orden:
 5. Hacé otra vez **Run workflow**: tiene que llegar "✅ Los recordatorios funcionan" **sin** que suene.
 6. Borrá la tarea de prueba y sacá No molestar.
 
-Prueba larga, para saber que suena aunque el celular esté "dormido": creá una tarea para dentro de 2 o 3 horas (entre las 6:30 y las 21:30) y dejá el celular bloqueado, quieto y desenchufado. El aviso llega entre 10 y 40 minutos antes de esa hora y tiene que sonar igual.
+Prueba larga, para saber que suena aunque el celular esté "dormido": creá una tarea para dentro de 2 o 3 horas (entre las 6:30 y las 23) y dejá el celular bloqueado, quieto y desenchufado. El aviso llega entre 10 y 40 minutos antes de esa hora y tiene que sonar igual.
 
 ## Si no suena
 
