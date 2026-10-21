@@ -45,9 +45,12 @@ const longDate='Hola Juan, necesito que me mandes el informe de ventas de octubr
 ({ctx,p}=await device(b,gh,PHONE,APP+'?text='+encodeURIComponent(longDate)));
 ok((await p.inputValue('#title')).includes('lo presento el lunes')&&!await p.isVisible('#note')&&(await p.innerText('#detected')).includes('Lun'),'long message with a date in the rest: kept whole, date detected');
 await ctx.close();
-// ===== Abrir listo para anotar (app instalada en el celular) =====
+// ===== Abrir listo para anotar (app instalada en el celular, con la opción de Sincronización › Este dispositivo) =====
+const KBD=()=>{localStorage.setItem('abrirConTeclado','true')};
 ({ctx,p}=await device(b,gh,PHONE,APP,STANDALONE));
-ok(await p.evaluate(()=>document.activeElement.id)==='title','standalone phone: field focused on open');
+ok(await p.evaluate(()=>document.activeElement.id)!=='title','standalone phone: opens without the keyboard by default');
+await p.addInitScript(KBD);await p.reload();await sleep(500);
+ok(await p.evaluate(()=>document.activeElement.id)==='title','standalone phone with the option on: field focused on open');
 await ctx.close();
 ({ctx,p}=await device(b,gh,PHONE));
 ok(await p.evaluate(()=>document.activeElement.id)!=='title','browser tab on phone: not focused');
@@ -55,6 +58,7 @@ await ctx.close();
 // Volver después de un rato: arriba, sin menú, lista para anotar
 gh.items=gh.items.concat(Array.from({length:25},(_,i)=>T('x'+i,'Tarea '+i,{due:day(0)})));gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,STANDALONE));
+await p.addInitScript(KBD);await p.reload();await sleep(500);
 await p.evaluate(()=>document.activeElement.blur());
 await row(p,'Tarea 20').locator('.more').tap();await sleep(100);
 ok(await p.isVisible('#menu'),'menu open');

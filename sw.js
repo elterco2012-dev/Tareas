@@ -3,8 +3,8 @@
 // la misma versión. Para publicar cambios se sube VERSION (npm run nueva-version; una prueba lo exige): Chrome ve
 // que sw.js cambió, arma la versión nueva en otra caché y la app avisa "Hay una versión nueva".
 // No toca las llamadas a GitHub ni el manifest (Chrome lo revisa por su cuenta).
-const VERSION='2026.10.21-9';
-// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: edf0bb03a3167f6c
+const VERSION='2026.10.21-10';
+// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: 3b634702c1af251f
 importScripts('sync-core.js?v='+VERSION);
 const CACHE='tareas-'+VERSION;
 const SHELL=['./','./sync-core.js?v='+VERSION,'./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
