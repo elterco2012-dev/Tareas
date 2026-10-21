@@ -38,7 +38,7 @@ await ctx.close();
 const long='Hola Juan, necesito que me mandes el informe de ventas de octubre. Tiene que incluir las sucursales del norte y el detalle por vendedor, porque lo presento en la reunión de gerencia. Gracias!';
 ({ctx,p}=await device(b,gh,PHONE,APP+'?text='+encodeURIComponent(long)));
 ok(await p.inputValue('#title')==='Necesito que me mandes el informe de ventas de octubre.'&&(await p.inputValue('#note')).startsWith('Tiene que incluir')&&await p.isVisible('#note'),'long message: first sentence title, rest in note');
-ok((await p.innerText('#toastMsg')).includes('nota'),'toast mentions the note');
+ok((await p.innerText('#toastMsg')).includes('detalle'),'toast says the rest went to the detail');
 await ctx.close();
 // Si el resto trae la fecha, queda todo en el título para que se detecte
 const longDate='Hola Juan, necesito que me mandes el informe de ventas de octubre. Tiene que incluir las sucursales del norte y el detalle por vendedor, porque lo presento el lunes en la reunión de gerencia. Gracias!';
