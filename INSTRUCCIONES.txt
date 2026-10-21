@@ -156,15 +156,18 @@ USO DIARIO
   un par de minutos: Chrome instala la actualizacion con la app cerrada. Si no aparece, repetilo una vez (no antes
   de un minuto). No hace falta desinstalarla.
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
-- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, donde llega el pulgar. El microfono hace lo
-  mismo que el de arriba (escucha, muestra la cuenta regresiva y, si lo tocas, guarda ya); el "Deshacer" aparece
-  justo arriba. Se ocultan mientras escribis o con algo abierto.
+- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, donde llega el pulgar. El microfono escucha,
+  muestra la cuenta regresiva y, si lo tocas, guarda ya; el "Deshacer" aparece justo arriba. Si en el campo habia
+  algo escrito, no lo mezcla con lo que dictas: lo guarda aparte y lo devuelve al campo despues. Se ocultan mientras
+  escribis o con algo abierto.
   Arriba, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Nota" aparecen al
-  tocar el campo.
+  tocar el campo (se vuelven a guardar al abrir la app o cuando bajas por la lista).
 - Grupos plegables: toca el titulo de un grupo (Vencidas, Hoy, Mañana, Esperando...) para plegarlo; queda solo el
-  titulo con cuantas hay. Cada dispositivo recuerda los que plegaste. Al buscar o filtrar por persona se ven todos.
-- Sin conectar: un dispositivo nuevo, sin tareas, muestra "Conectar" para traer las de la compu (abre la cuenta de
-  GitHub en Sincronizacion).
+  titulo con cuantas hay. Tocalo de nuevo para volver a verlas. Cada dispositivo recuerda los que plegaste. Al buscar
+  o filtrar por persona se ven todos. Si llega algo del otro dispositivo a un grupo plegado, el titulo dice
+  "· 1 nueva" y "Ver" en el aviso lo despliega.
+- Sin conectar: un dispositivo nuevo, sin tareas, muestra "Conectar" para traer las del otro dispositivo (abre la
+  cuenta de GitHub en Sincronizacion).
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
   Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
   cierra de a una. Con todo cerrado, sale de la app. Una lista pegada o compartida que se cierra con Atras se
