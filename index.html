@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
+     su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-6zeUldzm6AI6VcPzDOiFhZbHSEIK7n0f+vBBCDfKTuc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -250,6 +253,8 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .tokenbar{display:flex;align-items:center;gap:6px;background:var(--red-soft);color:var(--red);border-radius:12px;padding:6px 6px 6px 14px;margin-bottom:14px;font-size:14px;line-height:1.4}
 .tokenbar span{flex:1;min-width:0;padding:4px 0}
 .tokenbar button{flex:none;border:0;background:none;color:inherit;font-weight:700;border-radius:8px;padding:8px 10px}
+.guardbox{background:var(--red-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.guardbox p{margin:0;font-size:14px;line-height:1.45}
 .tokenbar #tokenX,.tokenbar #avisoX{width:32px;height:32px;padding:0;border-radius:50%;font-weight:400}
 .tokenbar button:hover{background:var(--hover)}
 
@@ -414,6 +419,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   </form>
 
   <div id="tokenBar" class="tokenbar hidden" role="status"><span id="tokenMsg"></span><button type="button" id="tokenFix">Renovar</button><button type="button" id="tokenX" class="hidden" aria-label="Ocultar hasta mañana" title="Ocultar hasta mañana">✕</button></div>
+  <div id="guardBar" class="tokenbar hidden" role="alert"><span id="guardMsg"></span><button type="button" id="guardFix">Revisar</button></div>
   <div id="avisoBar" class="tokenbar hidden" role="status"><span id="avisoMsg"></span><button type="button" id="avisoAct" class="hidden"></button><button type="button" id="avisoX" aria-label="Ocultar" title="Ocultar">✕</button></div>
   <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
   <div class="cols"><div class="maincol">
@@ -515,12 +521,18 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <div class="mhead"><h2 id="syncH">Sincronización</h2><button type="button" class="xbtn" id="syncX" aria-label="Cerrar">✕</button></div>
     <div class="statusbox"><span class="dot" id="syncDot"></span><span id="statusLong"></span></div>
     <ul id="pendList" class="pendlist hidden"></ul>
+    <div id="guardBox" class="guardbox hidden">
+      <p id="guardTxt"></p>
+      <div class="cfgbtns"><button type="button" id="guardRestore" class="primary">Volver a subir la copia de este dispositivo</button><button type="button" id="guardAccept" class="secbtn">Fue a propósito: dejarlo así</button></div>
+    </div>
     <div class="cfgbtns">
       <button type="button" id="syncNow" class="secbtn hidden">Sincronizar ahora</button>
+      <button type="button" id="exportBtn" class="secbtn">Descargar copia</button>
       <a id="histLink" class="linkbtn hidden" target="_blank" rel="noopener">Ver historial en GitHub</a>
     </div>
     <p class="muted">Cada tarea se guarda al instante en este dispositivo y se sube sola a GitHub. Sin señal, se sube cuando vuelve la conexión, aunque hayas cerrado la app.</p>
     <p id="avisosLine" class="muted hidden"></p>
+    <p id="archLine" class="muted hidden"></p>
     <details id="acct" class="acct">
       <summary>Cuenta de GitHub y token</summary>
       <div class="cfggrid">
@@ -636,11 +648,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
-<script src="sync-core.js?v=2026.10.16-5"></script>
+<script src="sync-core.js?v=2026.10.21-9"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.16-5';
+const APP_VERSION='2026.10.21-9';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -671,7 +683,7 @@ let dragId=null;   // tarea que se está arrastrando (en la compu)
 let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toastTimer=null;
 let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
-const K_DRAFT='borrador',K_TIP='tipVisto',K_AVISOS='avisosTelegram',K_VISTOS='avisosDesde',K_AVISOX='avisoOculto';
+const K_DRAFT='borrador',K_TIP='tipVisto',K_AVISOS='avisosTelegram',K_VISTOS='avisosDesde',K_AVISOX='avisoOculto',K_GUARD='archivoProblema';
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
@@ -1114,7 +1126,7 @@ function parse(text,defaultDue,strict){
 }
 
 // applyOp y applyAll están en sync-core.js (los usa también el service worker); acá, con el orden de la lista
-const applyHere=(base,ops)=>applyAll(base,ops,cmpPending);
+const applyHere=(base,ops,lost)=>applyAll(base,ops,cmpPending,lost);
 // Guarda el cambio en el dispositivo al instante y después intenta subirlo
 function act(op){actMany([op])}
 // Una tarea que pasa a otro día, hora o prioridad (o vuelve de "esperando") queda al final de su nuevo grupo,
@@ -1138,9 +1150,20 @@ function actMany(ops){
   placeMoved(ops);
   // Cuándo se le puso la fecha u hora que tiene (o se volvió a abrir): el control de avisos (acá y en el resumen de
   // la mañana) no reclama un aviso que no podía salir, como el de una vencida de las 8 pasada a hoy a la tarde
+  // Cada edición lleva también lo que había antes en esos campos y cuándo se hizo: si al subir resulta que en el
+  // otro dispositivo se cambió lo mismo después, gana el cambio más nuevo (ver CONFLICT_KEYS en sync-core.js)
   const iso=new Date(now).toISOString();
   ops.forEach((o,i)=>{
-    if(o.type==='edit'&&o.patch&&('due' in o.patch||'time' in o.patch))ops[i]=o={...o,patch:{...o.patch,whenAt:iso}};
+    if(o.type==='edit'&&o.patch){
+      const t=tasks.find(x=>x.id===o.id)||trash.find(x=>x.id===o.id),keys=CONFLICT_KEYS.filter(k=>k in o.patch),patch={...o.patch};
+      if('due' in patch||'time' in patch)patch.whenAt=iso;
+      if(keys.length){
+        const prev={},edited={};
+        for(const k of keys){edited[k]=iso;if(t)prev[k]=t[k]===undefined?null:t[k]}
+        patch.edited=edited;
+        ops[i]=o={...o,patch,prev:t?prev:undefined,at:iso};
+      }else ops[i]=o={...o,patch};
+    }
     else if(o.type==='done'&&!o.done)ops[i]=o={...o,whenAt:iso};
     o.opId=crypto.randomUUID();o.ts=now;
   });
@@ -1163,21 +1186,67 @@ function recompute(){
 function repoUrl(c){return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`}
 function headers(c){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28'}}
 // Si GitHub no responde en 20 s se corta, para no trabar las siguientes subidas
-function ghFetch(url,opts){return fetch(url,AbortSignal.timeout?{...opts,signal:AbortSignal.timeout(20000)}:opts)}
+// Sin red, fetch falla con un TypeError: se marca, para no confundirlo con un error de la app
+function ghFetch(url,opts){
+  return fetch(url,AbortSignal.timeout?{...opts,signal:AbortSignal.timeout(20000)}:opts).catch(e=>{
+    if(e&&(e.name==='TimeoutError'||e.name==='AbortError'))throw e;
+    throw Object.assign(Error('Sin conexión'),{offline:true});
+  });
+}
 function configured(){return !!(cfg.owner&&cfg.repo&&cfg.token)}
 function httpError(r,what){
   if(r.status===401)return Object.assign(Error('El token no es válido o venció'),{auth:true,hard:true});
+  // Límite de consultas de GitHub (no es un problema de permisos): se reintenta solo
+  if(r.status===429||r.status===403&&r.headers.get('x-ratelimit-remaining')==='0')return Error('GitHub limitó las consultas por un rato');
   if(r.status===403||r.status===404)return Object.assign(Error('Sin acceso al repositorio. Revisá usuario, repositorio y permisos del token'),{hard:true});
   return Error(what+' ('+r.status+')');
 }
-// Cualquier archivo JSON del repositorio (tareas.json o archivo/AAAA.json)
+// ---- Lo que llega de GitHub ----
+// tareas.json se puede haber editado a mano: lo que no es una tarea se descarta y los campos con un valor que la
+// app no entiende se arreglan (así se guardan en la próxima subida), para que un dato mal escrito no la deje sin andar
+const YMD_RE=/^\d{4}-\d{2}-\d{2}$/;
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function cleanItems(data){
+  let fixed=0;const seen=new Set(),out=[];
+  data.forEach((t,i)=>{
+    if(!t||typeof t!=='object'||Array.isArray(t)){fixed++;return}
+    let x=t;const set=(k,v)=>{if(x===t)x={...t};x[k]=v};
+    if(!(typeof t.id==='string'&&t.id||typeof t.id==='number'&&isFinite(t.id)))set('id','reparada-'+hashStr(JSON.stringify(t)));
+    if(seen.has(x.id))set('id',x.id+'-'+i);
+    seen.add(x.id);
+    if(typeof x.title!=='string')set('title',x.title==null?'':String(x.title));
+    if(x.due!=null&&!(typeof x.due==='string'&&YMD_RE.test(x.due)))set('due',null);
+    if(x.time!=null&&!(typeof x.time==='string'&&HM_RE.test(x.time)))set('time',null);
+    if(x.priority!=null&&!(x.priority in PRIO))set('priority','Media');
+    if(x.done!=null&&typeof x.done!=='boolean')set('done',!!x.done);
+    // Una fecha de borrado ilegible haría que se borre del todo: queda en la papelera desde hoy
+    if(x.deletedAt!=null&&!(typeof x.deletedAt==='string'&&!isNaN(Date.parse(x.deletedAt))))set('deletedAt',x.deletedAt?new Date().toISOString():null);
+    for(const k of ['requester','notes','waitingOn'])if(x[k]!=null&&typeof x[k]!=='string')set(k,String(x[k]));
+    if(x.repeat!=null&&!REPEAT_LABEL[x.repeat])set('repeat',null);
+    if(x.edited!=null&&(typeof x.edited!=='object'||Array.isArray(x.edited)))set('edited',undefined);
+    if(x!==t)fixed++;
+    out.push(x);
+  });
+  return {items:out,fixed};
+}
+// El texto de un archivo de la respuesta de GitHub. Si pasa de 1 MB, GitHub no lo manda ahí: se pide crudo
+// (sirve hasta 100 MB, así el archivo de terminadas no se traba al crecer)
+async function fileText(c,path,j,ref){
+  if(typeof j.content==='string'&&j.content&&j.encoding!=='none')return b64utf8(j.content);
+  if(!(j.size>0))return '';
+  const r=await ghFetch(repoUrl(c)+'/contents/'+path+'?'+(ref?'ref='+encodeURIComponent(ref)+'&':'')+'t='+Date.now(),{headers:{...headers(c),Accept:'application/vnd.github.raw'},cache:'no-store'});
+  if(!r.ok)throw httpError(r,'GitHub respondió');
+  return await r.text();
+}
+// Cualquier archivo JSON del repositorio (tareas.json o archivo/AAAA.json); raw: tal como está (para la copia)
 async function getFile(c,path){
   const r=await ghFetch(repoUrl(c)+'/contents/'+path+'?t='+Date.now(),{headers:headers(c),cache:'no-store'});
-  if(r.status===404)return {items:[],sha:null};
+  if(r.status===404)return {items:[],raw:[],sha:null};
   if(!r.ok)throw httpError(r,'GitHub respondió');
-  const j=await r.json(),data=JSON.parse(b64utf8(j.content));
+  const j=await r.json(),txt=await fileText(c,path,j);let data=null;
+  try{data=JSON.parse(txt)}catch{}
   if(!Array.isArray(data))throw Error(path+' no contiene una lista válida');
-  return {items:data,sha:j.sha};
+  return {items:cleanItems(data).items,raw:data,sha:j.sha};
 }
 // Devuelve el sha nuevo del archivo, o false si otro dispositivo guardó en el medio
 async function putFile(c,path,items,sha,message){
@@ -1193,19 +1262,136 @@ async function getRemote(c){
   const r=await ghFetch(repoUrl(c)+'/contents/'+file,{headers:h,cache:'no-store'});
   if(r.status===304)return {same:true};
   if(r.status===404){
-    // El archivo todavía no existe, salvo que el repositorio tampoco sea accesible
+    // El archivo no existe (todavía, o lo borraron), salvo que el repositorio tampoco sea accesible
     const repo=await ghFetch(repoUrl(c),{headers:headers(c),cache:'no-store'});
     if(!repo.ok)throw httpError(repo,'GitHub respondió');
-    return {items:[],sha:null};
+    return {items:[],sha:null,missing:true};
   }
   if(!r.ok)throw httpError(r,'GitHub respondió');
-  const j=await r.json();
-  const data=JSON.parse(b64utf8(j.content));
-  if(!Array.isArray(data))throw Object.assign(Error('El archivo tareas.json no contiene una lista válida'),{hard:true});
-  return {items:data,sha:j.sha,etag:r.headers.get('ETag')};
+  const j=await r.json(),txt=await fileText(c,file,j);let data=null;
+  try{data=JSON.parse(txt)}catch{}
+  // Dañado (no es una lista): no se pisa ni se toma como vacío. Se ofrece volver a subir la copia de este dispositivo
+  if(!Array.isArray(data))return {items:[],sha:j.sha,broken:true};
+  const cl=cleanItems(data);
+  return {items:cl.items,sha:j.sha,etag:r.headers.get('ETag'),fixed:cl.fixed};
 }
 const SRC=COARSE?'cel':'pc';
 function putRemote(c,items,sha,ops,base){return putFile(c,file,items,sha,commitMessage(ops,base,items,SRC))}
+// ---- Si tareas.json desaparece, queda vacío o se daña ----
+// No se toma como "no hay tareas" (pisaría la copia de los dos dispositivos): este dispositivo deja de sincronizar,
+// guarda lo que tiene y ofrece volver a subir su copia o, si fue a propósito, aceptarlo. Si el otro dispositivo lo
+// arregla, sigue solo.
+let fileGuard=null;   // {kind:'missing'|'emptied'|'broken', sha}
+const GUARD_MSG={missing:'tareas.json desapareció de GitHub',emptied:'tareas.json quedó vacío en GitHub',broken:'tareas.json está dañado en GitHub (no es una lista de tareas)'};
+// Las que tendrían que seguir en el archivo (las terminadas hace más de 25 días las puede haber archivado el otro)
+// (ni las de la papelera)
+function liveCount(items){const old=Date.now()-25*86400000;return items.filter(t=>t&&!t.deletedAt&&!(t.done&&Date.parse(t.completedAt)<old)).length}
+// Se compara con lo que este dispositivo espera encontrar (lo último que trajo, con sus cambios pendientes)
+function guardFor(latest){
+  if(latest.broken)return 'broken';
+  if(latest.missing)return remoteSha||remote.length?'missing':null;
+  return !latest.items.length&&liveCount(applyHere(remote,getOutbox()))>=3?'emptied':null;
+}
+function setGuard(g){fileGuard=g;store(K_GUARD,g?{...g,repo:cfg.owner+'/'+cfg.repo}:null);renderGuard()}
+function guardError(){return Object.assign(Error(GUARD_MSG[fileGuard.kind]+'. Este dispositivo dejó de sincronizar para no perder nada'),{hard:true,guard:true})}
+// La última versión buena de tareas.json (una lista con tareas) en los últimos 10 cambios de GitHub: puede ser más
+// nueva que la copia de este dispositivo, si el otro subió cosas después de la última vez que este sincronizó
+async function lastGoodVersion(c){
+  const r=await ghFetch(repoUrl(c)+'/commits?path='+file+'&per_page=10',{headers:headers(c),cache:'no-store'});
+  if(!r.ok)throw httpError(r,'GitHub respondió');
+  const commits=await r.json().catch(()=>[]);
+  for(const cm of Array.isArray(commits)?commits:[]){
+    if(!cm||!cm.sha)continue;
+    const f=await ghFetch(repoUrl(c)+'/contents/'+file+'?ref='+encodeURIComponent(cm.sha),{headers:headers(c),cache:'no-store'});
+    if(f.status===404)continue;   // el cambio que lo borró
+    if(!f.ok)throw httpError(f,'GitHub respondió');
+    const j=await f.json();let data=null;
+    try{data=JSON.parse(await fileText(c,file,j,cm.sha))}catch(e){if(e.offline)throw e}
+    if(Array.isArray(data)){const items=cleanItems(data).items;if(items.length)return {items,sha:j.sha,date:cm.commit&&cm.commit.committer&&cm.commit.committer.date}}
+  }
+  return null;
+}
+// Volver a subir: la última versión buena de GitHub si es más nueva que la copia de este dispositivo (si no, la copia),
+// con lo que falte subir de acá. Nunca sube una lista vacía.
+let restoring=false;
+async function restoreFile(){
+  if(!fileGuard||!configured()||restoring)return;
+  restoring=true;confirmAccept=false;renderGuard();
+  const c=cfg;
+  try{
+    await withSyncLock(async()=>{
+      if(!fileGuard)return;   // se resolvió mientras tanto
+      repoOk=null;await checkPrivate(c);   // siempre: sube todo
+      if(cfg!==c)return;
+      const good=await lastGoodVersion(c).catch(e=>{if(e.offline)throw e;return null});
+      if(cfg!==c||!fileGuard)return;
+      const fromHistory=!!good&&good.sha!==remoteSha,ops=getOutbox(),next=applyHere(fromHistory?good.items:remote,ops);
+      if(!next.length){toast('No encontré una versión buena de tareas.json en GitHub ni hay una copia en este dispositivo. Arreglalo en GitHub (Ver historial) o abrí la app en el otro dispositivo',null,null,12000);return}
+      const saved=await putFile(c,file,next,fileGuard.sha,fromHistory?'Restaurar tareas.json (última versión buena)':'Restaurar tareas.json con la copia de '+(SRC==='cel'?'el celular':'la compu'));
+      if(cfg!==c)return;
+      // Cambió en GitHub mientras tanto: se vuelve a mirar cómo está
+      if(!saved){setGuard(null);toast('tareas.json cambió en GitHub mientras tanto: se volvió a revisar',null,null,8000);return}
+      remote=next;remoteSha=typeof saved==='string'?saved:null;remoteEtag=null;lastPull=Date.now();
+      const sent=new Set(ops.map(o=>o.opId));setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
+      saveCache(c);setGuard(null);lastError=null;errorKind=null;authError=false;
+      const d=fromHistory&&good.date?new Date(good.date):null;
+      toast(fromHistory?'Listo: volvió la última versión buena de tareas.json'+(d&&!isNaN(d)?' (del '+dm(d)+' a las '+timeNow(d)+')':'')+(ops.length?', con lo que faltaba subir de acá':''):'Listo: tareas.json quedó como la copia de este dispositivo',null,null,8000);
+    });
+  }catch(e){toast('No se pudo restaurar: '+(e.offline?'sin conexión':e.message),null,null,8000)}
+  finally{restoring=false;renderGuard();recompute();sync()}
+}
+// Fue a propósito: se acepta como está (vacío o sin archivo)
+function acceptFile(){
+  if(!fileGuard)return;
+  const g=fileGuard;
+  remote=[];remoteSha=g.kind==='emptied'?g.sha:null;remoteEtag=null;
+  if(configured())saveCache(cfg);
+  setGuard(null);lastError=null;errorKind=null;recompute();sync();
+}
+// ---- El repositorio de datos tiene que ser privado ----
+// Se mira una vez por sesión (y al cambiar la conexión): si es público, no se sube nada
+let repoOk=null,repoPublic=null;   // repoPublic: para que tampoco suba el service worker
+async function checkPrivate(c){
+  const r=await ghFetch(repoUrl(c),{headers:headers(c),cache:'no-store'});
+  if(r.status===401)throw httpError(r,'GitHub respondió');
+  // Sin acceso: lo avisa la lectura de tareas.json, como siempre. GitHub con problemas: se vuelve a mirar después
+  if(r.status>=500)throw Error('GitHub no responde');   // no se sube nada sin comprobarlo; se reintenta solo
+  if(!r.ok){if(cfg===c)repoOk=c;return}
+  const j=await r.json().catch(()=>({}));
+  if(j.private===false&&cfg===c)repoPublic=c;
+  if(j.private===false)throw Object.assign(Error('El repositorio '+c.owner+'/'+c.repo+' es público: cualquiera podría ver tus tareas. No se sube nada hasta que lo hagas privado (en GitHub: Settings → General → Danger Zone → Change visibility) o conectes otro'),{hard:true});
+  if(cfg===c){repoOk=c;repoPublic=null}
+}
+// ---- Cambios que no se aplicaron porque en el otro dispositivo se cambió lo mismo después ----
+const FIELD_ES={title:'el título',notes:'la nota',due:'la fecha',time:'la hora',priority:'la prioridad',requester:'quién la pidió',repeat:'la repetición',waiting:'la espera',waitingOn:'de quién espera',followUp:'cuándo volver a mirarla'};
+const joinY=a=>a.length>1?a.slice(0,-1).join(', ')+' y '+a[a.length-1]:a[0]||'';
+let lostLater=null;
+function reportLost(lost,items){
+  const ids=[...new Set(lost.map(x=>x.id))];let msg;
+  if(ids.length===1){
+    const t=items.find(x=>x&&x.id===ids[0]),keys=[...new Set(lost.flatMap(x=>x.keys))].map(k=>FIELD_ES[k]||k);
+    msg='No se aplicó tu cambio en '+joinY(keys)+' de «'+(t?t.title:'una tarea')+'»: en el otro dispositivo la cambiaron después';
+  }else msg='No se aplicaron cambios en '+ids.length+' tareas: en el otro dispositivo las cambiaron después';
+  // No tapa un Deshacer: sale cuando ese aviso se va
+  if(toastAction&&!$('toast').classList.contains('hidden')){lostLater=msg;return}
+  toast(msg,null,null,10000,null,'perdido');
+}
+let confirmAccept=false;
+function renderGuard(){
+  const g=fileGuard;
+  $('guardBar').classList.toggle('hidden',!g);$('guardBox').classList.toggle('hidden',!g);
+  if(!g){confirmAccept=false;return}
+  $('guardMsg').textContent=GUARD_MSG[g.kind]+'. Este dispositivo dejó de sincronizar para no perder nada.';
+  const n=applyHere(remote,getOutbox()).filter(t=>t&&!t.deletedAt).length,p=getOutbox().length;
+  $('guardTxt').textContent=GUARD_MSG[g.kind]+'. En este dispositivo hay una copia con '+(n===1?'1 tarea':n+' tareas')+
+    (p?' (con '+cambios(p)+' sin subir)':'')+'. Si no lo hiciste vos a propósito, volvé a subirla.'+(g.kind==='broken'?'':' Si fue a propósito (por ejemplo, empezaste de cero), dejalo así.');
+  $('guardRestore').disabled=restoring;$('guardRestore').textContent=restoring?'Subiendo…':'Volver a subir la copia de este dispositivo';
+  $('guardAccept').classList.toggle('hidden',g.kind==='broken');$('guardAccept').disabled=restoring;
+  $('guardAccept').textContent=confirmAccept?'Tocá de nuevo: este dispositivo también queda sin esas tareas':'Fue a propósito: dejarlo así';
+}
+$('guardFix').onclick=()=>openSettings();
+$('guardRestore').onclick=()=>restoreFile();
+$('guardAccept').onclick=()=>{if(!confirmAccept){confirmAccept=true;renderGuard();return}confirmAccept=false;acceptFile()};
 // Trae la última versión y sube los cambios pendientes. Si ya tiene la última versión, sube directo
 // (un solo viaje); si otro dispositivo guardó en el medio, vuelve a leer y reaplica los cambios. Si falla,
 // quedan guardados acá y se reintentan solos (y, si cerrás la app sin señal, los sube Chrome al volver la
@@ -1219,6 +1405,10 @@ async function sync(){
   const c0=cfg;
   try{
     await withSyncLock(async()=>{
+      // Que el repositorio sea privado se mira en paralelo con la lectura (no demora la primera sincronización); antes
+      // de subir algo se espera la respuesta
+      const priv=repoOk===c0?null:checkPrivate(c0);
+      if(priv)priv.catch(()=>{});
       // Lo que ya subió el service worker en segundo plano sale de la cola
       let forceGet=await takeBackgroundSent();
       if(forceGet)changed=true;
@@ -1228,13 +1418,18 @@ async function sync(){
         // Si mientras tanto se cambió o borró la conexión, se descarta esta respuesta
         const c=cfg;
         let ops=getOutbox(),base;
-        if(ops.length&&remoteSha&&!forceGet)base={items:remote,sha:remoteSha};
+        if(ops.length&&remoteSha&&!forceGet&&!fileGuard)base={items:remote,sha:remoteSha};
         else{
           const latest=await getRemote(c);
           if(cfg!==c){syncAgain=configured();continue}
           const prevPull=lastPull;lastPull=Date.now();
-          if(latest.same)base={items:remote,sha:remoteSha};
+          // Es igual a la última versión buena que tenemos: si había un problema con el archivo, ya está resuelto
+          if(latest.same){if(fileGuard)setGuard(null);base={items:remote,sha:remoteSha}}
           else{
+            const g=guardFor(latest);
+            if(g){setGuard({kind:g,sha:latest.sha||null});throw guardError()}
+            if(fileGuard)setGuard(null);
+            if(latest.fixed&&latest.sha!==remoteSha)toast(latest.fixed===1?'tareas.json tenía un dato inválido: se arregló':'tareas.json tenía '+latest.fixed+' datos inválidos: se arreglaron',null,null,8000);
             if(latest.sha!==remoteSha||!remoteSha){
               noteArrivals(remote,latest.items,!!remoteSha);
               // Si desaparecieron terminadas, el otro dispositivo las archivó: la copia del archivo ya no sirve
@@ -1248,7 +1443,8 @@ async function sync(){
           forceGet=false;ops=getOutbox();
         }
         if(!ops.length)continue;
-        const next=applyHere(base.items,ops);
+        if(priv)await priv;
+        const lost=[],next=applyHere(base.items,ops,lost);
         const saved=await putRemote(c,next,base.sha,ops,base.items);
         if(cfg!==c){syncAgain=configured();continue}
         if(!saved){
@@ -1260,16 +1456,20 @@ async function sync(){
         const sent=new Set(ops.map(o=>o.opId));
         setOutbox(getOutbox().filter(o=>!sent.has(o.opId)));
         saveCache(c);
+        if(lost.length)reportLost(lost,next);
         await updateBackground();
         if(getOutbox().length)syncAgain=true;
       }while(syncAgain);
+      if(priv)await priv;
     });
     if(cfg===c0){lastSync=new Date();lastError=null;authError=false;errorKind=null;synced=true}
   }catch(e){
     // offline: sin señal · soft: GitHub lento o con problemas (se reintenta solo) · hard: hay que hacer algo
-    errorKind=e instanceof TypeError?'offline':e.hard?'hard':'soft';
-    lastError=errorKind==='offline'?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':e.message;
+    errorKind=e.offline?'offline':e.hard?'hard':'soft';
+    lastError=e.offline?'Sin conexión':e.name==='TimeoutError'||e.name==='AbortError'?'GitHub no responde':
+      e instanceof TypeError||e instanceof ReferenceError||e instanceof RangeError?'Error interno de la app ('+e.message+')':e.message;
     authError=!!e.auth;
+    if(e.hard&&!e.guard)repoOk=null;   // (por ejemplo, lo volvieron a crear: se vuelve a mirar si es privado)
     if(errorKind!=='hard')registerBackground();
   }finally{
     syncing=false;
@@ -1301,23 +1501,29 @@ function schedulePoll(){
 let bgRegistered=true;   // al abrir no se sabe si quedó una copia de antes: después de la primera subida se borra
 async function registerBackground(){
   try{
-    if(!configured()||!getOutbox().length||!('serviceWorker' in navigator)||location.protocol==='file:')return;
+    if(!configured()||fileGuard||repoPublic===cfg||!getOutbox().length||!('serviceWorker' in navigator)||location.protocol==='file:')return;
     const reg=await navigator.serviceWorker.ready;
     if(!reg.sync)return;
-    await idbSet('pendiente',{cfg:{owner:cfg.owner,repo:cfg.repo,token:cfg.token},ops:getOutbox(),src:SRC});
+    await idbSet('pendiente',{cfg:{owner:cfg.owner,repo:cfg.repo,token:cfg.token},ops:getOutbox(),src:SRC,...bgCounts()});
     await reg.sync.register('subir');bgRegistered=true;
   }catch{}
 }
+// Para que el service worker no suba si tareas.json desapareció (had: tareas en la copia) o quedó vacío (live: las que
+// tendrían que estar)
+function bgCounts(){return {had:remote.length,live:liveCount(applyHere(remote,getOutbox()))}}
 // Después de una subida de la página: la copia para segundo plano queda igual a la cola (o se borra)
 async function updateBackground(){
   if(!bgRegistered)return;
-  try{const ops=getOutbox();if(ops.length)await idbSet('pendiente',{cfg:{owner:cfg.owner,repo:cfg.repo,token:cfg.token},ops,src:SRC});else{await idbDel('pendiente');bgRegistered=false}}catch{}
+  try{const ops=getOutbox();if(ops.length&&!fileGuard&&repoPublic!==cfg)await idbSet('pendiente',{cfg:{owner:cfg.owner,repo:cfg.repo,token:cfg.token},ops,src:SRC,...bgCounts()});else{await idbDel('pendiente');bgRegistered=false}}catch{}
 }
 // Los cambios que ya subió el service worker salen de la cola. Devuelve true si había alguno.
 let bgCheck=true;   // al abrir y cuando avisa el service worker
 async function takeBackgroundSent(){
   if(!('indexedDB' in window)||!(bgCheck||bgRegistered))return false;
   bgCheck=false;
+  // Cambios que el service worker no pudo aplicar porque en el otro dispositivo se cambió lo mismo después
+  const perdidos=await idbGet('perdidos');
+  if(perdidos&&perdidos.length){idbDel('perdidos');reportLost(perdidos,perdidos.map(x=>({id:x.id,title:x.title})))}
   const sent=await idbGet('enviadas');
   if(!sent||!sent.length)return false;
   // Quedan aplicados en la copia de GitHub que tenemos: sin señal se siguen viendo, y al traer la
@@ -1366,7 +1572,7 @@ async function archiveOld(){
   archiveTried=Date.now();
   const cutoff=Date.now()-ARCHIVE_DAYS*86400000;
   const old=remote.filter(t=>t.done&&!t.deletedAt&&t.completedAt&&new Date(t.completedAt).getTime()<cutoff);
-  if(!old.length){store(K_ARCHIVE,today);return}
+  if(!old.length){store(K_ARCHIVE,today);archiveError=null;return}
   archiving=true;
   try{
     const byYear={};
@@ -1383,12 +1589,13 @@ async function archiveOld(){
       }
     }
     if(cfg!==c)return;
-    store(K_ARCHIVE,today);
+    store(K_ARCHIVE,today);archiveError=null;
     actMany(old.map(t=>({type:'delete',id:t.id,onlyDone:true})));
     archiveStale();
-  }catch{}   // se reintenta en la próxima sincronización
+  }catch(e){if(!e.offline)archiveError=e.message||String(e);if(settingsOpen)renderStatus()}   // se reintenta en una hora
   finally{archiving=false}
 }
+let archiveError=null;   // se muestra en Sincronización (antes fallaba sin avisar)
 
 // Las que están en la papelera hace más de 30 días se borran del todo
 function purgeTrash(){
@@ -1608,7 +1815,7 @@ function renderStatus(){
 }
 
 // ---- Render ----
-function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();renderAvisoBar();if(edit)renderEdit();if(repOpen())renderReport();updateBadge();settleArrivals()}
+function render(){lastRender=Date.now();renderHeader();renderAdd();renderList();renderTrash();renderStatus();renderTokenBar();renderAvisoBar();renderGuard();if(edit)renderEdit();if(repOpen())renderReport();updateBadge();settleArrivals()}
 // Número en el ícono: vencidas + para hoy (sin las que están esperando). En Android, Chrome no
 // lo muestra; en la compu sí, y en iPhone pide permiso de notificaciones.
 const BADGE='setAppBadge' in navigator;
@@ -1720,11 +1927,7 @@ async function loadArchive(){
   const c=cfg;if(!configured()||archiveState==='loading')return;
   archiveState='loading';renderList();if(repOpen())renderReport();
   try{
-    const r=await ghFetch(repoUrl(c)+'/contents/archivo',{headers:headers(c),cache:'no-store'});
-    let files=[];
-    if(r.ok)files=(await r.json()).filter(f=>f&&f.type==='file'&&/^\d{4}\.json$/.test(f.name)).map(f=>f.name).sort().reverse();
-    else if(r.status!==404)throw httpError(r,'GitHub respondió');
-    const items=[];
+    const files=await archiveFiles(c),items=[];
     for(const f of files){const y=await getFile(c,'archivo/'+f);items.push(...y.items.map(t=>({...t,archivo:f})))}
     if(cfg!==c){archiveState='idle';return}
     archiveData={owner:c.owner,repo:c.repo,items};archiveState='ok';
@@ -1732,6 +1935,31 @@ async function loadArchive(){
   renderList();
   if(repOpen())renderReport();
 }
+// Los archivos del archivo (archivo/AAAA.json), del más nuevo al más viejo
+async function archiveFiles(c){
+  const r=await ghFetch(repoUrl(c)+'/contents/archivo',{headers:headers(c),cache:'no-store'});
+  if(r.status===404)return [];
+  if(!r.ok)throw httpError(r,'GitHub respondió');
+  return (await r.json()).filter(f=>f&&f.type==='file'&&/^\d{4}\.json$/.test(f.name)).map(f=>f.name).sort().reverse();
+}
+// ---- Copia para guardar ----
+// Todo en un archivo: las tareas (con la papelera y lo que falte subir) y el archivo de terminadas, tal como están
+async function exportCopy(){
+  const b=$('exportBtn');if(b.disabled)return;
+  b.disabled=true;b.textContent='Preparando…';
+  const data={app:'Mis tareas',version:APP_VERSION,fecha:new Date().toISOString(),repositorio:configured()?cfg.owner+'/'+cfg.repo:null,
+    sinSubir:getOutbox().length,tareas:applyHere(remote,getOutbox()),archivo:{}};
+  let falta='';
+  if(configured()){
+    const c=cfg;
+    try{for(const f of await archiveFiles(c))data.archivo[f]=(await getFile(c,'archivo/'+f)).raw}
+    catch(e){data.archivo=null;falta=' (sin el archivo de terminadas: '+(e.offline?'no hay señal':'no se pudo leer')+')'}
+  }
+  downloadFile('mis-tareas-'+ymd(new Date())+'.json',JSON.stringify(data,null,1),'application/json');
+  b.disabled=false;b.textContent='Descargar copia';
+  toast('Copia descargada'+falta,null,null,falta?8000:4500);
+}
+$('exportBtn').onclick=exportCopy;
 function renderArchive(match){
   const sec=$('archSec'),list=$('archList');
   if(!match||!configured()){sec.classList.add('hidden');return}
@@ -1983,7 +2211,10 @@ function toast(msg,action,label,ms,more,kind){
   $('toast').classList.remove('hidden');
   clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||4500);
 }
-function hideToast(){$('toast').classList.add('hidden');toastAction=null;toastMore=[];toastKind=null}
+function hideToast(){
+  $('toast').classList.add('hidden');toastAction=null;toastMore=[];toastKind=null;
+  if(lostLater){const m=lostLater;lostLater=null;setTimeout(()=>toast(m,null,null,10000,null,'perdido'),250)}
+}
 // Próxima vez de una tarea que se repite, contada desde su fecha (o desde hoy si no tenía).
 // Si esa fecha ya pasó, la primera de hoy en adelante. Mensual: mismo día, o el último del mes.
 function addDaysTo(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -2327,12 +2558,13 @@ function icsText(t){
   L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+esc(t.title),'TRIGGER:-PT0M','END:VALARM','END:VEVENT','END:VCALENDAR');
   return L.map(fold).join('\r\n')+'\r\n';
 }
-function openCalendar(t){
-  const blob=new Blob([icsText(t)],{type:'text/calendar;charset=utf-8'});
-  const a=el('a');a.href=URL.createObjectURL(blob);
-  a.download=(t.title.replace(/[\\/:*?"<>|\r\n]+/g,' ').trim().slice(0,40)||'tarea')+'.ics';
+function downloadFile(name,text,type){
+  const a=el('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+}
+function openCalendar(t){
+  downloadFile((t.title.replace(/[\\/:*?"<>|\r\n]+/g,' ').trim().slice(0,40)||'tarea')+'.ics',icsText(t),'text/calendar;charset=utf-8');
   toast('Abrí el archivo descargado para agregarlo al calendario',null,null,6000);
 }
 function addedMsg(due){
@@ -3024,16 +3256,18 @@ $('eDel').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);if(t)del(t);e
 
 // ---- Sincronización ----
 function openSettings(){
-  closeMenu();settingsOpen=true;confirmClear=false;
-  $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value=cfg.token||'';$('tokenExp').value=cfg.tokenExp||'';
+  closeMenu();settingsOpen=true;confirmClear=false;confirmAccept=false;
+  // El token guardado no se muestra (con la compu desbloqueada se copiaría en segundos): solo sus últimas letras
+  $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value='';$('tokenExp').value=cfg.tokenExp||'';
+  $('token').placeholder=cfg.token?'Guardado (…'+cfg.token.slice(-4)+') · pegá uno nuevo para cambiarlo':'Fine-grained · Contents: Read and write';
   $('cfgMsg').classList.add('hidden');$('syncOv').classList.remove('hidden');$('wrap').inert=true;
   // La cuenta queda plegada, salvo que falte configurarla o haya que cambiar el token
   $('acct').open=!configured()||errorKind==='hard';
   $('credBtn').classList.toggle('hidden',!window.PasswordCredential);
   $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
-  renderDevice();renderStatus();checkAvisos(true);
+  renderDevice();renderStatus();renderGuard();checkAvisos(true);
 }
-function closeSettings(){settingsOpen=false;confirmClear=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
+function closeSettings(){settingsOpen=false;confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
 function renderSync(st){
   const n=getOutbox().length;
   $('syncDot').style.background=st.dot;$('statusLong').textContent=st.long;
@@ -3046,20 +3280,24 @@ function renderSync(st){
   if(ops.length>8)pl.append(el('li',null,'y '+(ops.length-8)+' más'));
   pl.classList.toggle('hidden',!ops.length);
   renderAvisosLine();
+  $('archLine').textContent=archiveError?'No se pudieron archivar las terminadas de hace más de un mes ('+archiveError+'). Se reintenta solo.':'';
+  $('archLine').classList.toggle('hidden',!archiveError);
   $('clearCfg').textContent=confirmClear?(n?'Hay '+cambios(n)+' sin subir que se van a perder. Tocá de nuevo para borrar.':'Tocá de nuevo para confirmar'):'Borrar conexión y datos de este dispositivo';
 }
 $('statusBtn').onclick=openSettings;
 $('syncX').onclick=closeSettings;
 $('syncOv').addEventListener('click',e=>{if(e.target===$('syncOv')&&downOn===e.target)closeSettings()});
 $('saveCfg').onclick=()=>{
-  const next={owner:$('owner').value.trim(),repo:$('repo').value.trim(),token:$('token').value.trim()};
+  // Con el campo del token vacío, sigue el que estaba guardado
+  const next={owner:$('owner').value.trim(),repo:$('repo').value.trim(),token:$('token').value.trim()||cfg.token||''};
   if(!next.owner||!next.repo||!next.token){$('cfgMsg').textContent='Completá los tres campos.';$('cfgMsg').classList.remove('hidden');return}
   // Un token nuevo con la fecha del anterior: esa fecha ya no sirve
   const exp=$('tokenExp').value;
   if(exp&&!(next.token!==cfg.token&&exp===(cfg.tokenExp||'')))next.tokenExp=exp;
   if(next.tokenExp!==cfg.tokenExp)try{localStorage.removeItem(K_TOKENX)}catch{}
   const prevToken=cfg.token;
-  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;avisos=null;avisosEtag=null;
+  cfg=next;store(K_CFG,cfg);loadCache();lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;avisos=null;avisosEtag=null;repoOk=null;repoPublic=null;archiveError=null;
+  {const g=load(K_GUARD,null);fileGuard=g&&g.repo===cfg.owner+'/'+cfg.repo?{kind:g.kind,sha:g.sha||null}:null}
   closeSettings();recompute();sync();keepStorage();
   // Con fecha, se guarda para el otro dispositivo y el Telegram; sin fecha, se trae la que haya cargado el
   // otro. Un token nuevo sin fecha borra la del anterior, para que el Telegram no siga avisando.
@@ -3081,7 +3319,8 @@ $('credBtn').onclick=()=>{
 };
 // Al pegar un token nuevo, la fecha del anterior ya no sirve: se borra y se pide la del nuevo
 $('token').addEventListener('input',()=>{
-  if(!cfg.tokenExp||$('token').value.trim()===(cfg.token||'')||$('tokenExp').value!==cfg.tokenExp)return;
+  const v=$('token').value.trim();
+  if(!cfg.tokenExp||!v||v===(cfg.token||'')||$('tokenExp').value!==cfg.tokenExp)return;
   $('tokenExp').value='';
   $('cfgMsg').textContent='Token nuevo: cargá también su fecha de vencimiento, así te avisamos una semana antes.';$('cfgMsg').classList.remove('hidden');
 });
@@ -3100,12 +3339,12 @@ $('badgeSw').addEventListener('change',()=>{
 });
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
-  try{[K_CFG,K_CACHE,K_OUTBOX,K_AVISOS,K_VISTOS,K_AVISOX].forEach(k=>localStorage.removeItem(k))}catch{}
+  try{[K_CFG,K_CACHE,K_OUTBOX,K_AVISOS,K_VISTOS,K_AVISOX,K_GUARD].forEach(k=>localStorage.removeItem(k))}catch{}
   cfg={};remote=[];remoteSha=null;remoteEtag=null;outboxMem=[];lastSync=null;lastError=null;authError=false;errorKind=null;lastPull=0;confirmClear=false;
-  avisos=null;avisosEtag=null;
+  avisos=null;avisosEtag=null;repoOk=null;repoPublic=null;fileGuard=null;archiveError=null;
   // La copia para subir en segundo plano tiene el token: también se borra
   idbDel('pendiente');idbDel('enviadas');bgRegistered=false;
-  $('owner').value='';$('repo').value='';$('token').value='';$('tokenExp').value='';
+  $('owner').value='';$('repo').value='';$('token').value='';$('tokenExp').value='';$('token').placeholder='Fine-grained · Contents: Read and write';
   try{localStorage.removeItem(K_TOKENX)}catch{}
   recompute();
 };
@@ -3272,6 +3511,7 @@ scheduleBack();
 
 // ---- Inicio ----
 cfg=load(K_CFG,{})||{};
+{const g=load(K_GUARD,null);fileGuard=g&&g.repo===cfg.owner+'/'+cfg.repo?{kind:g.kind,sha:g.sha||null}:null}
 loadCache();
 recompute();   // muestra al instante lo guardado en el dispositivo
 const firstSync=sync();        // y después trae lo último de GitHub

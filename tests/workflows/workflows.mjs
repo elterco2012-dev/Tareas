@@ -1,23 +1,29 @@
 // Lógica de los workflows del repo de datos (repo-datos/.github/workflows/*.yml): se extrae el JS de cada
 // workflow y se corre con un reloj fijo (FAKE_NOW, ver fakedate.mjs) contra un Telegram, un GitHub y un
-// servidor de mail falsos en puertos libres.
-import http from 'node:http';import fs from 'node:fs';import {execFile} from 'node:child_process';import path from 'node:path';import os from 'node:os';import {fileURLToPath,pathToFileURL} from 'node:url';
+// servidor de mail falsos en puertos libres. La copia de seguridad (respaldo.yml) escribe con git en un repositorio
+// "bare" local (RESPALDO_GIT_URL).
+import http from 'node:http';import fs from 'node:fs';import {execFile,execFileSync} from 'node:child_process';import path from 'node:path';import os from 'node:os';import {fileURLToPath,pathToFileURL} from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(here,'..','..');
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'tareas-wf-'));   // rec.mjs, res.mjs y el repo de prueba
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'tareas-wf-'));   // rec.mjs, res.mjs, resp.mjs y los repos de prueba
 process.on('exit',()=>{try{fs.rmSync(dir,{recursive:true,force:true})}catch{}});
 const listen=srv=>new Promise(r=>srv.listen(0,'127.0.0.1',()=>r(srv.address().port)));
 // (En Windows, git puede bajar los .yml con fin de línea CRLF: se normaliza)
 const yml=f=>{const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows',f),'utf8').replace(/\r\n/g,'\n');const m=t.match(/<<'JS'\n([\s\S]*?)\n\s*JS\n/);if(!m)throw new Error('No encontré el bloque <<\'JS\' en '+f);return m[1].split('\n').map(l=>l.replace(/^ {10}/,'')).join('\n')};
-fs.writeFileSync(dir+'/rec.mjs',yml('recordatorios.yml'));fs.writeFileSync(dir+'/res.mjs',yml('resumen.yml'));
+fs.writeFileSync(dir+'/rec.mjs',yml('recordatorios.yml'));fs.writeFileSync(dir+'/res.mjs',yml('resumen.yml'));fs.writeFileSync(dir+'/resp.mjs',yml('respaldo.yml'));
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FAIL')+' '+m);if(!c)fails++};
 // Telegram falso (con tgSinBotones rechaza los mensajes con botones, como con una APP_URL mal escrita)
 let tg=[],tgFail=false,tgSinBotones=false,tgRechazos=0;
 const TG_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{if(tgFail){s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: chat not found'}));return}
   const j=JSON.parse(b);if(tgSinBotones&&j.reply_markup){tgRechazos++;s.writeHead(400);s.end(JSON.stringify({ok:false,description:'Bad Request: BUTTON_URL_INVALID'}));return}
   tg.push({url:q.url,...j});s.writeHead(200,{'Content-Type':'application/json'});s.end('{"ok":true}')})}));
-// GitHub falso (recordatorios-enviados.json y, para el respaldo, las corridas disparadas por cron-job.org)
-let file=null,sha=0,conflicts=0,puts=[],auth=[],runs=null,runsUrl=[];
+// GitHub falso (recordatorios-enviados.json y, para el respaldo, las corridas disparadas por cron-job.org; para la
+// copia de seguridad, los datos de un repositorio: GET /repos/usuario/nombre → {id, full_name, private}, de ghRepos)
+let file=null,sha=0,conflicts=0,puts=[],auth=[],runs=null,runsUrl=[],ghRepos={},ghRepoToken=null,ghRepoReqs=[];
 const GH_PORT=await listen(http.createServer((q,s)=>{let b='';q.on('data',d=>b+=d);q.on('end',()=>{
+  if(/^\/repos\/[^/]+\/[^/]+$/.test(q.url)){ghRepoReqs.push(q.method+' '+q.headers.authorization+' '+q.url);const x=ghRepos[q.url.slice(7).toLowerCase()];
+    if(ghRepoToken&&q.headers.authorization!=='Bearer '+ghRepoToken){s.writeHead(401);s.end('{"message":"Bad credentials"}');return}
+    if(!x){s.writeHead(404);s.end('{"message":"Not Found"}');return}
+    s.writeHead(200,{'Content-Type':'application/json'});s.end(JSON.stringify(x));return}
   if(q.url.includes('/actions/workflows/')){runsUrl.push(q.headers.authorization+' '+q.url);if(runs===500){s.writeHead(500);s.end('{}');return}
     s.writeHead(200,{'Content-Type':'application/json'});s.end(JSON.stringify({workflow_runs:runs||[]}));return}
   auth.push(q.headers.authorization+' '+q.url);
@@ -37,7 +43,7 @@ const SMTP_PORT=await listen(net.createServer(c=>{let buf='',st='cmd',data='',au
 const MAIL={SMTP_HOST:'127.0.0.1',SMTP_PORT:String(SMTP_PORT),SMTP_USER:'yo@x.com',SMTP_PASS:'p'};
 const repo=dir+'/repo';fs.mkdirSync(repo,{recursive:true});
 const run_=(s,n)=>run(s,n);
-const run=(script,now,env={})=>new Promise(res=>execFile(process.execPath,['--import',pathToFileURL(path.join(here,'fakedate.mjs')).href,path.join(dir,script)],{cwd:repo,env:{PATH:process.env.PATH,FAKE_NOW:now,TELEGRAM_API:'http://127.0.0.1:'+TG_PORT,GITHUB_API:'http://127.0.0.1:'+GH_PORT,GITHUB_REPOSITORY:'u/datos',GH_TOKEN:'tok',TELEGRAM_TOKEN:'abc',TELEGRAM_CHAT_ID:'99',...env}},(e,out,err)=>res({code:e?e.code:0,out,err})));
+const run=(script,now,env={},cwd=repo)=>new Promise(res=>execFile(process.execPath,['--import',pathToFileURL(path.join(here,'fakedate.mjs')).href,path.join(dir,script)],{cwd,env:{PATH:process.env.PATH,FAKE_NOW:now,TELEGRAM_API:'http://127.0.0.1:'+TG_PORT,GITHUB_API:'http://127.0.0.1:'+GH_PORT,GITHUB_REPOSITORY:'u/datos',GH_TOKEN:'tok',TELEGRAM_TOKEN:'abc',TELEGRAM_CHAT_ID:'99',...env}},(e,out,err)=>res({code:e?e.code:0,out,err})));
 const T=(id,title,o)=>({id,title,done:false,priority:'Media',requester:'',due:'2026-10-12',...o});
 const put=items=>fs.writeFileSync(repo+'/tareas.json',JSON.stringify(items));
 const NOW='2026-10-12T17:52:00Z';   // 14:52 en Argentina
@@ -290,4 +296,107 @@ put([T('f0','Del jueves',{due:'2026-10-15',time:'15:00'}),T('sf','Sin fecha',{du
 ok(tg.length===1&&tg[0].text.startsWith('Revisión de la semana: 1 sin fecha.')&&!tg[0].text.includes('⚠'),'weekly review: no missed-reminders line');
 ok(logs&&![...ayer,...finde].some(t=>logs.includes(t.title))&&!logs.includes('Sin fecha'),'res: no task titles in the logs');
 fs.rmSync(ENV);
+// ===== Copia de seguridad diaria (respaldo.yml): copia los datos a otro repositorio privado, con git =====
+// El "repositorio de respaldo" es un repositorio bare local (RESPALDO_GIT_URL); sus datos (privado o no) los da el GitHub falso.
+{const datos=dir+'/datos',bare=dir+'/respaldo.git',TOKEN='github_pat_SECRETO123',BASIC=Buffer.from('x-access-token:'+TOKEN).toString('base64');
+ const gitEnv={PATH:process.env.PATH,GIT_AUTHOR_NAME:'Yo',GIT_AUTHOR_EMAIL:'yo@x.invalid',GIT_COMMITTER_NAME:'Yo',GIT_COMMITTER_EMAIL:'yo@x.invalid'};
+ const G=(b,args,input)=>{try{return execFileSync('git',['--git-dir='+b,...args],{encoding:'utf8',input,stdio:['pipe','pipe','ignore'],env:gitEnv})}catch{return null}};
+ const nuevoBare=(b,readme)=>{execFileSync('git',['init','-q','--bare','-b','main',b],{env:gitEnv});if(!readme)return;   // como lo crea GitHub (con o sin README)
+   const blob=G(b,['hash-object','-w','--stdin'],'# Respaldo\n').trim(),tree=G(b,['mktree'],'100644 blob '+blob+'\tREADME.md\n').trim();
+   G(b,['update-ref','refs/heads/main',G(b,['commit-tree',tree,'-m','Initial commit']).trim()])};
+ const commits=(b=bare)=>Number(G(b,['rev-list','--count','main'])||0);
+ const ultimo=(b=bare)=>(G(b,['log','-1','--format=%s|%an <%ae>','main'])||'').trim();
+ const archivosEn=(b=bare)=>(G(b,['ls-tree','-r','--name-only','main'])||'').split('\n').filter(Boolean).join(' ');
+ const enCopia=(f,ref='main')=>G(bare,['show',ref+':'+f]);
+ const escribir=(f,x)=>{fs.mkdirSync(path.dirname(datos+'/'+f),{recursive:true});fs.writeFileSync(datos+'/'+f,typeof x==='string'?x:JSON.stringify(x))};
+ nuevoBare(bare);fs.mkdirSync(datos,{recursive:true});
+ ghRepos={'u/respaldo':{id:2,full_name:'u/respaldo',private:true},'u/publico':{id:3,full_name:'u/publico',private:false},
+   'u/viejo-nombre':{id:77,full_name:'U/Datos',private:true},'u/mismo-id':{id:1,full_name:'u/otra-cosa',private:true}};
+ ghRepoToken=TOKEN;ghRepoReqs=[];
+ const E0={RESPALDO_TOKEN:TOKEN,RESPALDO_REPO:'u/respaldo',RESPALDO_GIT_URL:pathToFileURL(bare).href,GITHUB_EVENT_NAME:'schedule',GITHUB_REPOSITORY_ID:'1'};
+ let rlogs='';const R=async(now,env={})=>{const x=await run('resp.mjs',now,{...E0,...env},datos);rlogs+=x.out+x.err;return x};
+ const D1='2026-10-21T06:17:00Z',D2='2026-10-22T06:17:00Z';   // 3:17 en Argentina
+ const titulos=['Llamar al banco','Pagar expensas','Mandar remitos','Revisar stock','Cerrar caja','Turno médico'],seis=titulos.map((t,i)=>T('r'+i,t,{}));
+ escribir('tareas.json',seis);escribir('archivo/2025.json',[T('v1','Vieja terminada 2025',{done:true})]);escribir('archivo/2026.json',[T('v2','Terminada en 2026',{done:true})]);
+ escribir('ajustes.json',{tokens:{abc123:'2027-10-01'}});escribir('recordatorios-enviados.json',{'r1|2026-10-20|15:00':'2026-10-20T17:50:00Z'});
+ // Lo que no se copia: otros archivos, los workflows, los que empiezan con punto en archivo/ y los enlaces (a un archivo de afuera)
+ escribir('notas.txt','no va');escribir('.github/workflows/respaldo.yml','name: x');escribir('archivo/.gitignore','*');
+ fs.writeFileSync(dir+'/secreto.txt','SECRETO-DE-AFUERA');let enlaces=true;try{fs.symlinkSync(dir+'/secreto.txt',datos+'/archivo/enlace.json')}catch{enlaces=false}
+ // Plantilla
+ {const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows','respaldo.yml'),'utf8').replace(/\r\n/g,'\n');
+  ok(/^ {4}- cron: "17 6 \* \* \*"/m.test(t)&&/^ {2}workflow_dispatch:/m.test(t)&&/^permissions:\n {2}contents: read\b[^\n]*\n\n/m.test(t)&&/^concurrency:\n {2}group: respaldo\n {2}cancel-in-progress: false$/m.test(t),'resp template: daily at 3:17 in Argentina + Run workflow, only contents: read, one run at a time');
+  ok(/^ {10}RESPALDO_TOKEN: \$\{\{ secrets\.RESPALDO_TOKEN \}\}$/m.test(t)&&/^ {10}RESPALDO_REPO: \$\{\{ vars\.RESPALDO_REPO \}\}$/m.test(t)&&/^ {10}persist-credentials: false\b/m.test(t),'resp template: RESPALDO_TOKEN secret, RESPALDO_REPO variable, checkout without stored credentials')}
+ // Sin configurar
+ let x=await R(D1,{RESPALDO_TOKEN:'',RESPALDO_REPO:''});
+ ok(x.code===0&&/Todavía no están cargados RESPALDO_TOKEN ni RESPALDO_REPO/.test(x.out)&&/INSTRUCCIONES\.md/.test(x.out)&&commits()===0&&!ghRepoReqs.length,'resp: scheduled, not configured yet → quiet exit 0, nothing copied: '+JSON.stringify(x.out+x.err));
+ x=await R(D1,{RESPALDO_TOKEN:'',RESPALDO_REPO:'',GITHUB_EVENT_NAME:'workflow_dispatch'});
+ ok(x.code===1&&/Falta configurar el secreto RESPALDO_TOKEN y la variable RESPALDO_REPO/.test(x.err)&&/INSTRUCCIONES\.md/.test(x.err),'resp: Run workflow, not configured → exit 1 with the hint: '+JSON.stringify(x.err));
+ x=await R(D1,{RESPALDO_REPO:''});
+ ok(x.code===1&&/Falta configurar la variable RESPALDO_REPO/.test(x.err)&&!/RESPALDO_TOKEN/.test(x.err),'resp: scheduled but half configured (no RESPALDO_REPO) → exit 1, so days without a copy do not go unnoticed');
+ x=await R(D1,{RESPALDO_TOKEN:'',GITHUB_EVENT_NAME:'workflow_dispatch'});
+ ok(x.code===1&&/Falta configurar el secreto RESPALDO_TOKEN en/.test(x.err),'resp: Run workflow without RESPALDO_TOKEN → exit 1');
+ x=await R(D1,{RESPALDO_REPO:'mis-tareas-respaldo'});
+ ok(x.code===1&&/usuario\/mis-tareas-respaldo/.test(x.err)&&!ghRepoReqs.length&&commits()===0,'resp: RESPALDO_REPO without the user → exit 1, explains the format');
+ // Controles antes de escribir: privado, otro repositorio, token aceptado
+ x=await R(D1,{RESPALDO_REPO:'u/publico'});
+ ok(x.code===1&&/^El repositorio de respaldo es público: no se copia nada/.test(x.err)&&commits()===0,'resp: public backup repo → exit 1, nothing pushed: '+JSON.stringify(x.err));
+ ghRepoReqs=[];x=await R(D1,{RESPALDO_REPO:'U/Datos'});
+ ok(x.code===1&&/este mismo repositorio de datos/.test(x.err)&&commits()===0&&!ghRepoReqs.length,'resp: RESPALDO_REPO = the data repo (other case) → exit 1, nothing pushed');
+ x=await R(D1,{RESPALDO_REPO:'u/viejo-nombre'});
+ ok(x.code===1&&/este mismo repositorio de datos/.test(x.err)&&commits()===0,'resp: GitHub answers with the data repo full_name (old name, other case) → exit 1');
+ x=await R(D1,{RESPALDO_REPO:'u/mismo-id'});
+ ok(x.code===1&&/este mismo repositorio de datos/.test(x.err)&&commits()===0,'resp: same repository id as the data repo → exit 1');
+ x=await R(D1,{RESPALDO_TOKEN:'otro-token'});
+ ok(x.code===1&&/GitHub no acepta el token RESPALDO_TOKEN/.test(x.err)&&commits()===0,'resp: token rejected (401) → exit 1');
+ x=await R(D1,{RESPALDO_REPO:'u/no-existe'});
+ ok(x.code===1&&/No encuentro el repositorio u\/no-existe/.test(x.err)&&commits()===0,'resp: repo not found or token without access (404) → exit 1');
+ // Primera copia, en un repositorio vacío
+ ghRepoReqs=[];x=await R(D1);
+ ok(x.code===0&&commits()===1&&ultimo()==='Copia del 2026-10-21|Respaldo Mis tareas <respaldo@mis-tareas.invalid>','resp: first copy into an empty repo → one commit "Copia del 2026-10-21" with the neutral identity: '+JSON.stringify(x.out+x.err)+' '+ultimo());
+ ok(archivosEn()==='ajustes.json archivo/2025.json archivo/2026.json recordatorios-enviados.json tareas.json','resp: copies tareas.json, archivo/, ajustes.json and recordatorios-enviados.json; not other files, workflows, dotfiles or symlinks'+(enlaces?'':' (no symlinks here)')+': '+archivosEn());
+ ok(['tareas.json','archivo/2025.json','archivo/2026.json','ajustes.json','recordatorios-enviados.json'].every(f=>enCopia(f)===fs.readFileSync(datos+'/'+f,'utf8'))&&!(G(bare,['log','--all','-p'])||'').includes('SECRETO-DE-AFUERA'),'resp: copied byte for byte, nothing from outside');
+ ok(x.out.trim()==='Copia del 2026-10-21 guardada en u/respaldo: 5 archivos (tareas.json con 6 tareas, archivo/2025.json, archivo/2026.json, ajustes.json, recordatorios-enviados.json).'&&!x.err,'resp: the log has only counts and file names: '+JSON.stringify(x.out+x.err));
+ ok(ghRepoReqs.length===1&&ghRepoReqs[0]==='GET Bearer '+TOKEN+' /repos/u/respaldo','resp: asks GitHub about the backup repo with its own token: '+JSON.stringify(ghRepoReqs.map(r=>r.split(TOKEN).join('***'))));
+ x=await R(D1);
+ ok(x.code===0&&commits()===1&&/^Sin cambios desde la última copia: 5 archivos/.test(x.out),'resp: second run without changes → no new commit: '+JSON.stringify(x.out+x.err));
+ // Al otro día cambió tareas.json y ya no está recordatorios-enviados.json
+ const siete=[...seis,T('r6','Comprar cartuchos',{})];escribir('tareas.json',siete);fs.rmSync(datos+'/recordatorios-enviados.json');
+ x=await R(D2,{GITHUB_EVENT_NAME:'workflow_dispatch'});
+ ok(x.code===0&&commits()===2&&ultimo().startsWith('Copia del 2026-10-22|')&&enCopia('tareas.json')===JSON.stringify(siete)&&/tareas\.json con 7 tareas/.test(x.out),'resp: changed tareas.json → new commit with the new copy: '+JSON.stringify(x.out+x.err));
+ ok(enCopia('recordatorios-enviados.json')===null&&enCopia('recordatorios-enviados.json','main~1')!==null&&enCopia('tareas.json','main~1')===JSON.stringify(seis),'resp: a file deleted in the data repo leaves the latest copy too; the day before keeps it (history)');
+ // Lo que la copia protege: tareas.json borrado, roto o vaciado de golpe → no se toca y la corrida falla (GitHub avisa por mail)
+ const n=commits(),ultima=enCopia('tareas.json');
+ fs.renameSync(datos+'/tareas.json',dir+'/tareas-afuera.json');
+ x=await R(D2);ok(x.code===1&&/No está tareas\.json/.test(x.err)&&commits()===n&&enCopia('tareas.json')===ultima,'resp: tareas.json missing → exit 1, the backup keeps its last tareas.json');
+ if(enlaces){fs.symlinkSync(dir+'/tareas-afuera.json',datos+'/tareas.json');x=await R(D2);fs.rmSync(datos+'/tareas.json');
+   ok(x.code===1&&/No está tareas\.json/.test(x.err)&&commits()===n,'resp: tareas.json as a symlink is not followed → exit 1')}
+ fs.renameSync(dir+'/tareas-afuera.json',datos+'/tareas.json');
+ for(const roto of ['{roto','{"tareas":[]}','null','']){escribir('tareas.json',roto);x=await R(D2);
+   ok(x.code===1&&/tareas\.json no tiene una lista de tareas válida/.test(x.err)&&commits()===n&&enCopia('tareas.json')===ultima,'resp: tareas.json not a list ('+JSON.stringify(roto)+') → exit 1, the backup keeps its last tareas.json')}
+ escribir('tareas.json',[]);x=await R(D2);
+ ok(x.code===1&&/tareas\.json quedó vacío \(en la última copia tenía 7 tareas\)/.test(x.err)&&commits()===n&&enCopia('tareas.json')===ultima,'resp: tareas.json emptied ([]) when the backup had 7 → exit 1, nothing pushed: '+JSON.stringify(x.err));
+ // Si en la última copia solo había terminadas viejas (que la app archiva) y de la papelera, no es un vaciado
+ const soloViejas=[1,2,3,4,5].map(i=>T('z'+i,'Vieja '+i,{done:true,completedAt:'2026-08-01T12:00:00Z'})).concat([T('p1','En la papelera',{deletedAt:'2026-10-20T12:00:00Z'})]);
+ {const bareV=dir+'/respaldoV.git';nuevoBare(bareV);const URLV=pathToFileURL(bareV).href;
+  escribir('tareas.json',soloViejas);x=await R(D2,{RESPALDO_GIT_URL:URLV});
+  escribir('tareas.json',[]);x=await R(D2,{RESPALDO_GIT_URL:URLV});
+  ok(x.code===0&&commits(bareV)===2,'resp: previous copy with only old done (archived by the app) and trashed tasks → emptying is not suspicious: '+JSON.stringify(x.err))}
+ escribir('tareas.json',seis.slice(0,4));x=await R(D2);
+ ok(x.code===0&&commits()===n+1&&/tareas\.json con 4 tareas/.test(x.out),'resp: 4 tasks → copied');
+ escribir('tareas.json',[]);x=await R('2026-10-23T02:30:00Z');   // 22/10 a las 23:30 en Argentina
+ ok(x.code===0&&commits()===n+2&&enCopia('tareas.json')==='[]'&&ultimo().startsWith('Copia del 2026-10-22|')&&/tareas\.json con 0 tareas/.test(x.out),'resp: emptied when the backup had fewer than 5 → allowed; the date is the one in Argentina: '+JSON.stringify(x.out+x.err)+' '+ultimo());
+ // Fallas de git
+ escribir('tareas.json',siete);fs.writeFileSync(bare+'/hooks/pre-receive','#!/bin/sh\necho rechazado >&2\nexit 1\n',{mode:0o755});
+ x=await R(D2);fs.rmSync(bare+'/hooks/pre-receive');
+ ok(x.code===1&&/No se pudo guardar la copia en u\/respaldo/.test(x.err)&&/rechazado/.test(x.err)&&commits()===n+2,'resp: push rejected → exit 1 with git\'s reason: '+JSON.stringify(x.err));
+ x=await R(D2,{RESPALDO_GIT_URL:pathToFileURL(dir+'/no-existe.git').href});
+ ok(x.code===1&&/No se pudo bajar el repositorio de respaldo u\/respaldo/.test(x.err),'resp: backup repo cannot be cloned → exit 1');
+ // Repositorio de respaldo creado con README: queda, y la copia va encima. RESPALDO_REPO como dirección completa también sirve.
+ const bare2=dir+'/respaldo2.git';nuevoBare(bare2,true);
+ x=await R(D2,{RESPALDO_REPO:' https://github.com/u/respaldo.git ',RESPALDO_GIT_URL:pathToFileURL(bare2).href});
+ ok(x.code===0&&commits(bare2)===2&&archivosEn(bare2)==='README.md ajustes.json archivo/2025.json archivo/2026.json tareas.json'&&ultimo(bare2).startsWith('Copia del 2026-10-22|'),'resp: backup repo created with a README → README kept, copy on top; RESPALDO_REPO as a full address: '+JSON.stringify(x.out+x.err)+' '+archivosEn(bare2));
+ // Registros: sin títulos de tareas y sin el token
+ ok(rlogs&&![...titulos,'Comprar cartuchos','Vieja terminada 2025','Terminada en 2026'].some(t=>rlogs.includes(t)),'resp: no task titles in the logs');
+ ok(!rlogs.includes(TOKEN)&&!rlogs.includes(BASIC)&&!rlogs.includes('SECRETO123'),'resp: the token never appears in stdout/stderr');
+ ok(!fs.readFileSync(bare+'/config','utf8').includes(TOKEN)&&!(G(bare,['log','--all','--format=%B'])||'').includes(TOKEN),'resp: the token is not stored in the backup repo')}
 console.log('fails',fails);process.exit(fails?1:0);

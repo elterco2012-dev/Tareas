@@ -22,7 +22,7 @@ Las capturas quedan en `tests/artifacts/` (git las ignora).
 
 - `suites/`: una por tema. Cada una es un script que imprime `OK …` o `FAIL …` por cada cosa que revisa.
 - `workflows/`: saca el JS de `repo-datos/.github/workflows/*.yml` y lo corre contra un Telegram, un GitHub
-  y un servidor de mail de mentira.
+  y un servidor de mail de mentira (la copia de seguridad, `respaldo.yml`, escribe en un repositorio git local).
 - `data/parse-casos.js`: más de cien frases con lo que tiene que entender el intérprete (fecha, hora,
   "recordame"...). Las corre `suites/parse-casos.js`. Para un caso nuevo, agregá una línea ahí.
 - `lib/`: el servidor de la app, el lanzador de Chromium, el reloj fijo (`harness.js`) y el GitHub falso (`gh.js`).

@@ -299,14 +299,14 @@ En tu repositorio de datos:
 
 Con el respaldo, si un día cron-job.org falla (o se desactiva), los recordatorios salen igual por el horario de GitHub (cada hora, entre 40 minutos antes y unos 20 después de la hora). Mientras cron-job.org anda, el respaldo solo manda lo que tendría que haber salido y no salió: no adelanta ningún aviso (el de las 15:00 sigue llegando a las 14:50). El último respaldo es a las 22:37: las tareas de las 23:17 a las 23:29 dependen solo de la corrida de cron-job.org de las 22:50. Las corridas de cron-job.org aparecen en **Actions** como "Recordatorios (cron-job.org)"; los "Run workflow" de prueba, como "Recordatorios a la hora". Si corren los dos, el aviso no se repite: lo que ya salió queda anotado en `recordatorios-enviados.json`.
 
-Minutos de GitHub (cada corrida cuenta como 1 minuto): cron-job.org dispara 34 recordatorios por día (unos 1050 por mes), el respaldo 17 (unos 530) y los resúmenes unos 25. En total, unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados. No los pongas más seguido (por ejemplo, cada 15 minutos): se pasaría de los 2000 y GitHub dejaría de correrlos hasta el mes siguiente. Si preferís no gastar esos minutos, borrá también las líneas de `schedule:` de `recordatorios.yml`, como en el resumen: sin respaldo usa unos 1080.
+Minutos de GitHub (cada corrida cuenta como 1 minuto): cron-job.org dispara 34 recordatorios por día (unos 1050 por mes), el respaldo 17 (unos 530) y los resúmenes unos 25. En total, unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados; con la [copia de seguridad diaria](#copia-de-seguridad-diaria), unos 31 más (unos 1630). No los pongas más seguido (por ejemplo, cada 15 minutos): se pasaría de los 2000 y GitHub dejaría de correrlos hasta el mes siguiente. Si preferís no gastar esos minutos, borrá también las líneas de `schedule:` de `recordatorios.yml`, como en el resumen: sin respaldo usa unos 1080.
 
 ## Cómo saber si anda
 
 - En el repositorio de datos, pestaña **Actions**: tiene que aparecer una corrida de **Recordatorios a la hora** cada media hora, con tilde verde (más la del respaldo, cada hora a los 37 minutos o cuando GitHub pueda).
 - En cron-job.org, cada trabajo muestra sus últimas ejecuciones. Si falla 25 veces seguidas (por ejemplo, si borraste el token), lo desactiva y te avisa por mail.
 - Si un recordatorio no salió, el resumen de las 7 del día siguiente empieza con "⚠ Ayer no salieron 2 avisos por Telegram (revisá cron-job.org y que Actions esté activo)." (los lunes, "Desde el viernes"). Fijate en cron-job.org que el trabajo **Recordatorios** siga activo y en **Actions** que las corridas tengan tilde verde. Si aparece por tareas de la noche (de 21:30 en adelante), el trabajo de cron-job.org sigue con el horario viejo: ver [Si ya tenías cron-job.org](#si-ya-tenías-cron-joborg).
-- Con el respaldo usa unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (unos 1080 sin el respaldo).
+- Con el respaldo usa unos 1600 de los 2000 minutos por mes que GitHub da gratis para repositorios privados (unos 1080 sin el respaldo). La copia de seguridad diaria suma unos 31.
 - Los registros de cada corrida ya no muestran los títulos de las tareas, solo cuántas son. Con este token, cron-job.org sí podría ver el mensaje de la última subida de la app (y los registros de corridas anteriores a esta versión, que tenían los títulos). Si eso te preocupa, en **Actions** podés borrar las corridas viejas (en cada una, **⋯** → **Delete workflow run**). Comprobá las políticas de tu empresa antes de usar un servicio externo con información del trabajo.
 
 ## Si ya tenías cron-job.org
@@ -455,3 +455,111 @@ Prueba larga, para saber que suena aunque el celular esté "dormido": creá una 
 ## Para una alarma suelta
 
 Si solo querés una alarma para algo puntual, no hace falta nada de esto: decí **"Ok Google, poné una alarma a las 15"** o **"Hola Bixby, poné una alarma a las 15"**, o ponela en la app **Reloj**.
+
+---
+
+# Copia de seguridad diaria
+
+Todas tus tareas están en `tareas.json`, en el repositorio privado de datos. Si un día ese archivo se borra o se vacía (por un error, por una falla de la app o porque alguien consiguió el token de la app), con esto queda una copia por día en **otro** repositorio privado, que la app no puede tocar.
+
+Todas las noches, a las 3:17, GitHub copia al repositorio de respaldo `tareas.json`, la carpeta `archivo/` (las terminadas hace más de un mes), `ajustes.json` y `recordatorios-enviados.json`. Cada copia queda guardada con su fecha ("Copia del 2026-10-21"), así que podés volver a cómo estaban tus tareas cualquier día. Si nada cambió desde la copia anterior, ese día no se guarda otra.
+
+La copia se escribe con un token propio, que solo tiene acceso al repositorio de respaldo. El token de la app no puede abrir ese repositorio, ni cambiarlo, ni borrarlo.
+
+Si `tareas.json` no está o está roto, o si quedó vacío de golpe (cuando la última copia tenía 5 tareas o más), no se copia nada: queda la última copia buena, la corrida termina con una cruz roja y GitHub te manda un mail avisando que falló.
+
+Usa 1 minuto por día (unos 31 por mes) de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
+
+Se configura una sola vez y lleva unos 10 minutos. Conviene hacerlo en la compu.
+
+## 1. Crear el repositorio de respaldo
+
+1. En GitHub, arriba a la derecha, tocá **+** → **New repository**.
+2. En **Repository name** escribí `mis-tareas-respaldo`.
+3. Elegí **Private**. Es importante: si queda público, la copia no se hace.
+4. No marques nada más (ni README, ni .gitignore, ni licencia) y tocá **Create repository**.
+
+## 2. Un token solo para la copia
+
+Es otro token, distinto del de la app (y del de cron-job.org, si lo usás): solo puede escribir en el repositorio de respaldo.
+
+1. En GitHub, tocá tu foto (arriba a la derecha) → **Settings** → abajo de todo en el menú de la izquierda, **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
+2. **Token name**: `Respaldo de tareas`.
+3. **Expiration**: un año (si no aparece en la lista, elegí **Custom** y una fecha de acá a un año). Anotá esa fecha: ver [Cuando vence el token de la copia](#cuando-vence-el-token-de-la-copia), más abajo.
+4. **Repository access**: elegí **Only select repositories** y marcá solo `mis-tareas-respaldo` (el de datos no).
+5. **Permissions** → **Repository permissions** → **Contents**: **Read and write**. Nada más (**Metadata: Read-only** lo agrega GitHub solo).
+6. Tocá **Generate token** y copiá el token. GitHub lo muestra **una sola vez**: dejá esa pestaña abierta hasta terminar el paso 3.
+
+## 3. Cargar el token y el nombre del repositorio
+
+En tu repositorio **privado de datos** (no en el de respaldo):
+
+1. Entrá a **Settings** → **Secrets and variables** → **Actions**.
+2. Tocá **New repository secret** y cargá:
+   - Name: `RESPALDO_TOKEN` — Secret: el token del paso 2. Tocá **Add secret**.
+3. Pestaña **Variables** → **New repository variable**:
+   - Name: `RESPALDO_REPO` — Value: tu usuario, una barra y el nombre del repositorio de respaldo, por ejemplo `elterco2012-dev/mis-tareas-respaldo`. Tocá **Add variable**.
+
+Los nombres tienen que ser exactamente esos, en mayúsculas.
+
+Mientras no cargues ninguno de los dos, la corrida de cada noche no copia nada ni falla. Si cargás uno solo, falla: así no pasan días sin copia sin que te enteres.
+
+## 4. Copiar el archivo a tu repositorio de datos
+
+Igual que con los otros archivos:
+
+1. Abrí este archivo y copiá todo su contenido (en esa página, el botón "Copy raw file" lo copia entero):
+   [repo-datos/.github/workflows/respaldo.yml](https://github.com/elterco2012-dev/Tareas/blob/main/repo-datos/.github/workflows/respaldo.yml)
+2. En tu repositorio **privado de datos**, tocá **Add file → Create new file**.
+3. En el nombre del archivo escribí exactamente:
+   `.github/workflows/respaldo.yml`
+4. Pegá el contenido y tocá **Commit changes…** y después **Commit changes**.
+
+## 5. Probarlo
+
+1. En el repositorio de datos, entrá a la pestaña **Actions**.
+2. A la izquierda, tocá **Copia de seguridad diaria**.
+3. Tocá **Run workflow** y después el botón verde **Run workflow**.
+4. En unos segundos aparece una ejecución. Tiene que terminar con un tilde verde.
+5. Abrí el repositorio de respaldo: tienen que estar `tareas.json` y los demás archivos, con el mensaje "Copia del" y la fecha de hoy.
+
+Si termina con una cruz roja, tocala y abrí el paso **Copiar al repositorio de respaldo**: el error explica qué falta. Lo más común:
+
+- **"Falta configurar…"**: revisá el paso 3 (nombres exactos, cargados en el repositorio de datos).
+- **"GitHub no acepta el token RESPALDO_TOKEN"**: el token está mal copiado o venció. Hacé uno nuevo (paso 2) y cargalo otra vez (ver [Cuando vence el token de la copia](#cuando-vence-el-token-de-la-copia)).
+- **"No encuentro el repositorio…"**: `RESPALDO_REPO` está mal escrito, o el token no tiene elegido el repositorio de respaldo (paso 2, punto 4).
+- **"El repositorio de respaldo es público"**: hacelo privado. En el repositorio de respaldo: **Settings** → abajo de todo, en **Danger Zone**, **Change visibility** → **Make private**.
+- **"RESPALDO_REPO es este mismo repositorio de datos"**: en `RESPALDO_REPO` va el repositorio de respaldo, no el de datos.
+- **"No se pudo guardar la copia…"**: al token le falta **Contents: Read and write** (paso 2, punto 5).
+
+Desde ese momento se copia sola todas las noches. GitHub a veces la demora un rato.
+
+## Cómo recuperar las tareas
+
+**Primero, desde la app.** Si `tareas.json` desapareció, quedó vacío o se dañó, la app lo avisa arriba en rojo y deja de sincronizar en ese dispositivo para no perder nada. Abrí la app en el dispositivo que tenga las tareas más al día y, en **Sincronización**, tocá **Volver a subir la copia de este dispositivo**: usa la última versión buena de GitHub (si el otro dispositivo subió algo después) o la copia del dispositivo, con lo que falte subir. Así no se pierde nada de lo que hiciste después de la última copia de la noche.
+
+**Si no se puede desde la app** (por ejemplo, ningún dispositivo tiene las tareas), usá la copia de la noche. Ojo: vuelve a como estaba a las 3:17 de ese día; lo que cargaste o cambiaste después se pierde.
+
+1. Abrí el repositorio de respaldo y tocá `tareas.json`.
+2. Arriba a la derecha, tocá **History**: aparece una copia por día ("Copia del 2026-10-20", "Copia del 2026-10-19"…).
+3. En la del día que querés, tocá el botón `<>` (*Browse repository at this point in the history*) y después `tareas.json`: es el archivo como estaba ese día.
+4. Si solo querés guardarlo, tocá **Download raw file** (la flecha hacia abajo) y queda en la compu.
+5. Para volver a ponerlo en la app, tocá **Copy raw file** (los dos cuadraditos). Después, en tu repositorio **privado de datos**, abrí `tareas.json` y tocá el lápiz (**Edit this file**); si ya no está, tocá **Add file → Create new file** y escribí `tareas.json` como nombre.
+6. Borrá todo, pegá lo que copiaste y tocá **Commit changes…** y después **Commit changes**.
+
+La app trae la lista recuperada sola la próxima vez que se sincroniza (si está abierta, en unos segundos). Si también falta algo del archivo (las terminadas hace más de un mes), hacé lo mismo con `archivo/2026.json` (o el año que corresponda).
+
+## Que el token de la app no pueda tocar la copia
+
+La copia sirve si quien tenga el token de la app (por ejemplo, si te lo roban) no puede borrarla. Para eso, revisá el token de la app: en GitHub, tu foto → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → tocá el de la app.
+
+- En **Repository access** tiene que tener elegido **solo** el repositorio de datos: ni el de respaldo, ni **All repositories**.
+- En **Permissions** tiene que tener solo **Contents: Read and write** (y Metadata, que va solo). **No** le des el permiso **Workflows**: con ese permiso, quien tenga el token podría cambiar o borrar `respaldo.yml` (y los otros archivos de `.github/workflows`).
+
+El token de la copia (`RESPALDO_TOKEN`) queda guardado como secreto: nadie puede verlo, tampoco con el token de la app.
+
+## Cuando vence el token de la copia
+
+- Vence al año. Anotá la fecha en tu calendario, con un aviso una semana antes. La app y el Telegram de la mañana avisan solo del token de la app, no de este.
+- Si vence, la corrida de cada noche falla y GitHub te manda un mail. Las copias que ya estaban no se pierden.
+- Para renovarlo: en la lista de tokens (como en el paso 2), tocá **Respaldo de tareas** → **Regenerate token**, elegí otra vez un año y copiá el token nuevo (o hacé uno nuevo con el paso 2). Después, en el repositorio de datos: **Settings** → **Secrets and variables** → **Actions** → al lado de `RESPALDO_TOKEN`, el lápiz → pegá el token nuevo → **Update secret**. Para probarlo, hacé el paso 5.

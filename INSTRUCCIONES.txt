@@ -7,7 +7,7 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 4) Crea OTRO repositorio, PRIVADO, por ejemplo "mis-tareas-datos". No necesitas subir archivos.
 5) En GitHub: Settings de tu cuenta > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token.
    - Repository access: Only select repositories > mis-tareas-datos.
-   - Repository permissions > Contents: Read and write.
+   - Repository permissions > Contents: Read and write. Nada mas (sin el permiso Workflows).
    - Define una caducidad razonable; deberas renovarlo cuando venza.
    - NO compartas el token, ni lo subas al repositorio publico, ni lo pegues en conversaciones.
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
@@ -202,11 +202,33 @@ USO DIARIO
   recordatorios, primero reemplaza resumen.yml y recordatorios.yml por la version nueva (paso 0).
 - Que el recordatorio suene como alarma (fuerte, aunque estes durmiendo o en No molestar): en el Samsung, con la app
   gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
+- Copia de seguridad diaria: todas las noches GitHub copia tareas.json (y archivo/) a otro repositorio PRIVADO,
+  con un token propio que el de la app no puede tocar. Si tareas.json se borra o se vacia, ahi queda una copia
+  por dia para recuperarlo (si la app lo detecta, primero usa "Volver a subir la copia de este dispositivo", que no
+  pierde lo de despues de la copia). Se configura una vez: ver repo-datos/INSTRUCCIONES.md, seccion "Copia de seguridad
+  diaria". El token de la app tiene que tener solo el repositorio de datos y nunca el permiso Workflows.
 
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
 - El token se guarda en localStorage en CADA navegador para evitar volver a ingresarlo. No es adecuado para dispositivos compartidos ni informacion confidencial empresarial. Un script malicioso, extension comprometida o persona con acceso al navegador podria extraerlo.
 - NO pongas el token en index.html ni en commits de GitHub.
+- En Sincronizacion el token guardado no se muestra (solo sus ultimas 4 letras). Para cambiarlo, pega uno nuevo;
+  si dejas el campo vacio, sigue el de antes.
+- La app comprueba que el repositorio de datos sea privado: si es publico, no sube nada y lo avisa en rojo.
+- La pagina tiene una politica de seguridad (CSP): solo corren los scripts de la propia app y solo habla con GitHub.
+  Al publicar una version nueva, "npm run nueva-version" recalcula lo que esa politica permite (una prueba lo exige).
+- Si tareas.json desaparece de GitHub, queda vacio o se daña, la app NO lo toma como "no hay tareas": deja de
+  sincronizar en ese dispositivo, avisa arriba en rojo y en Sincronizacion ofrece "Volver a subir la copia de este
+  dispositivo" (o "Fue a proposito: dejarlo asi", con un segundo toque). Volver a subir usa la ultima version buena
+  que haya en el historial de GitHub si es mas nueva que la copia del dispositivo (por si el otro subio cosas despues),
+  mas lo que falte subir; nunca sube una lista vacia. Si lo arregla el otro dispositivo, sigue sola.
+- Si tareas.json tiene datos que no son tareas o campos invalidos (por ejemplo, editado a mano), la app los arregla
+  al leerlo, avisa, y se guarda arreglado en la proxima subida.
+- "Descargar copia" (en Sincronizacion) baja un archivo .json con todas las tareas (papelera y cambios sin subir
+  incluidos) y el archivo de terminadas. Sirve para guardar una copia donde quieras.
+- Si un cambio hecho sin señal en un dispositivo choca con otro mas nuevo del otro dispositivo en el mismo campo
+  (por ejemplo, el titulo), gana el mas nuevo y la app avisa "No se aplico tu cambio en ...". Los cambios en campos
+  distintos se aplican los dos.
 - Si el token se filtra, revocalo inmediatamente en GitHub.
 - Si el token vence o GitHub lo rechaza, arriba aparece un aviso en rojo con "Renovar": genera uno nuevo en GitHub
   (mismos permisos), pegalo en Sincronizacion y carga su nueva fecha de vencimiento (asi la proxima vez tambien te
