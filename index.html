@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-6zeUldzm6AI6VcPzDOiFhZbHSEIK7n0f+vBBCDfKTuc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-sbVPnVjjKHXMMHOadvM2pusImbAJV2I2lOPYWDKMLG4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -373,6 +373,41 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .dockmic svg{width:56px;height:56px}
 .dockmic.listening{background:var(--red);animation:pulse 1.4s ease-out infinite}
 .dockclose{background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;padding:10px 16px}
+/* Celular a una mano: "+" y micrófono abajo, donde llega el pulgar (el aviso con Deshacer queda justo arriba) */
+.fabs{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:25;display:flex;align-items:center;gap:12px}
+.fab{width:56px;height:56px;border-radius:50%;border:0;padding:0;display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--on-accent);box-shadow:0 6px 18px var(--shadow)}
+.fab.mic{width:52px;height:52px;background:var(--card);color:var(--accent);border:1px solid var(--border);font-size:18px;font-weight:700}
+.fab.mic.listening{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 1.4s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.fab.mic.listening{animation:none}}
+body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+/* En reposo, el alta ocupa una línea: las fechas y la nota aparecen al tocar el campo */
+.addcard.rest .chiprow{display:none}
+/* Grupos que se pliegan (cada dispositivo recuerda cuáles) */
+.ghead .gfold{flex:1;min-width:0;display:flex;align-items:center;gap:6px;background:none;border:0;padding:0;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;text-align:left;cursor:pointer}
+.ghead .gfold svg{flex:none;transition:transform .15s}
+.ghead .gfold[aria-expanded="true"] svg{transform:rotate(90deg)}
+@media (pointer:coarse){.ghead .gfold{min-height:28px}}
+/* Pista de los gestos y del punto azul, la primera vez */
+.hintcard{display:flex;align-items:flex-start;gap:8px;background:var(--accent-soft);color:var(--text);border-radius:12px;padding:10px 8px 10px 14px;margin-bottom:14px;font-size:14px;line-height:1.45}
+.hintcard p{margin:0;flex:1;min-width:0;padding-top:4px}
+.hintcard .linkbtn{margin:0;flex:none}
+.welcome{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--text)}
+.welcome p{margin:0;line-height:1.45}
+.welcome .primary{border-radius:10px;padding:10px 22px;font-size:15px}
+/* Menú ⋯ en el celular: una hoja que sube desde abajo */
+.backdrop.dim{background:var(--overlay)}
+.menu.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;max-height:80vh;overflow:auto;border-radius:18px 18px 0 0;border-bottom:0;padding:6px 8px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px var(--shadow)}
+.menu.sheet button{min-height:48px;font-size:15.5px;padding:12px 14px}
+.menu .mtitle{padding:10px 14px;font-size:14px;color:var(--muted);border-bottom:1px solid var(--divider);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Encabezado en una línea en el celular: la fecha corta y el resumen al lado */
+.dshort{display:none}
+@media (max-width:520px){
+  .top{align-items:center;gap:8px;padding:0 2px 12px}
+  .top h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .sub{margin-top:0;font-size:14px;gap:2px 7px}
+  .dlong{display:none}
+  .dshort{display:inline;color:var(--text);font-weight:700}
+}
 </style>
 </head>
 <body>
@@ -423,7 +458,13 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
   <div id="avisoBar" class="tokenbar hidden" role="status"><span id="avisoMsg"></span><button type="button" id="avisoAct" class="hidden"></button><button type="button" id="avisoX" aria-label="Ocultar" title="Ocultar">✕</button></div>
   <div id="filterBar" class="filterbar hidden"><span>Pedidas por <b id="filterName"></b></span><button type="button" id="filterX" aria-label="Quitar filtro" title="Quitar filtro (Esc)">✕</button></div>
   <div class="cols"><div class="maincol">
+  <div id="hint" class="hintcard hidden" role="note"><p id="hintTxt"></p><button type="button" id="hintOk" class="linkbtn">Entendido</button></div>
   <div id="empty" class="emptycard hidden"></div>
+  <div id="welcome" class="emptycard welcome hidden">
+    <p><b>¿Ya anotás tus tareas en la compu?</b><br>Conectá tu repositorio para verlas acá también.</p>
+    <button type="button" id="welcomeGo" class="primary">Conectar</button>
+    <p class="fine">O empezá a anotar arriba: se guarda en este dispositivo.</p>
+  </div>
   <div id="groups"></div>
   <div id="waitingSec"></div>
 
@@ -555,6 +596,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
         <button type="button" data-t="auto">Automática</button><button type="button" data-t="light">Clara</button><button type="button" data-t="dark">Oscura</button>
       </div></div>
       <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
+      <label id="kbdRow" class="switchrow hidden">Abrir la app con el teclado listo para anotar<input type="checkbox" id="kbdSw" role="switch"></label>
       <div id="appInfo" class="appinfo"><span id="appVer"></span><button type="button" id="appUpdate" class="linkbtn hidden">Actualizar</button></div>
       <button type="button" id="clearCfg" class="clearbtn"></button>
     </div>
@@ -647,6 +689,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
+<div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
 <script src="sync-core.js?v=2026.10.21-9"></script>
 <script>
@@ -684,6 +727,7 @@ let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toa
 let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
 const K_DRAFT='borrador',K_TIP='tipVisto',K_AVISOS='avisosTelegram',K_VISTOS='avisosDesde',K_AVISOX='avisoOculto',K_GUARD='archivoProblema';
+const K_KBD='abrirConTeclado',K_FOLD='gruposPlegados',K_HINT='pistasVistas';
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
@@ -1848,7 +1892,9 @@ function updateBadge(){
 }
 function renderHeader(){
   const today=ymd(new Date()),pend=tasks.filter(t=>!t.done&&!t.waiting);
-  $('todayLabel').textContent=cap(new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}));
+  // Completa en la compu ("Miércoles, 14 de octubre"); corta en el celular ("Mié 14/10"), en la misma línea que el resumen
+  const now=new Date();
+  $('todayLabel').replaceChildren(el('span','dlong',cap(now.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}))),el('span','dshort',WD[now.getDay()]+' '+now.getDate()+'/'+(now.getMonth()+1)));
   const over=pend.filter(t=>groupOf(t)==='over').length,tod=pend.filter(t=>groupOf(t)==='today').length;
   const doneToday=tasks.filter(t=>t.done&&t.completedAt&&ymd(new Date(t.completedAt))===today).length;
   const s=$('summary');s.replaceChildren();
@@ -1885,10 +1931,16 @@ function renderAdd(){
   if(tip&&!tipCounted){tipCounted=true;store(K_TIP,load(K_TIP,0)+1)}
   $('tip').classList.toggle('hidden',!tip);
   $('saveHint').classList.toggle('hidden',!autoSave||dock);
+  // En el celular, las fechas y la nota aparecen al tocar el campo o al escribir; en reposo, el alta ocupa una línea
+  const rest=COARSE&&!raw.trim()&&$('note').classList.contains('hidden')&&!listening&&!autoSave&&!dock&&!(downInAdd||$('addForm').contains(document.activeElement));
+  $('addForm').classList.toggle('rest',rest);
   renderWho(p);
   updateAddBtn();
   placeMenu();
 }
+// El último toque fue en el alta (por ejemplo en una fecha): las fechas no se ocultan mientras tanto
+let downInAdd=false;
+document.addEventListener('pointerdown',e=>{downInAdd=!!(e.target&&e.target.closest&&e.target.closest('#addForm'))},true);
 const samePerson=(a,b)=>!!a&&!!b&&norm(a)===norm(b);
 // La pidió esa persona, o se está esperando su respuesta
 function byPerson(t){return !personFilter||samePerson(t.requester,personFilter)||(t.waiting&&!t.done&&samePerson(t.waitingOn,personFilter))}
@@ -1988,26 +2040,36 @@ function renderList(){
   // En pantallas anchas, Sin fecha y Esperando van a la columna de la derecha, siempre a la vista
   // (con las flechas se recorren en el orden de la pantalla: la columna principal, Esperando y Sin fecha)
   const wide=WIDE.matches,noneIds=[];$('sideNone').replaceChildren();$('sideWait').replaceChildren();
+  // Los grupos plegados muestran solo el título y cuántas hay (buscando o filtrando por persona se ven todos)
+  const folded=q||personFilter?new Set():foldedGroups();
   for(const g of GROUPS){
     const items=pending.filter(t=>groupOf(t)===g.id);
     if(!items.length)continue;
-    const grp=el('div','grp');
+    const grp=el('div','grp'),shut=folded.has(g.id);
     const head=el('div','ghead'+(g.id==='over'?' over':g.id==='today'?' today':''));
-    head.append(el('span',null,g.title),el('span','n',String(items.length)));
+    head.append(foldBtn(g.id,g.title,items.length,shut));
     // Vencidas: pasarlas todas a hoy de un toque
     if(g.id==='over'&&items.length>1&&items.some(t=>(t.postponed||0)<3)){const b=el('button','gbtn','Todas a hoy');b.type='button';b.onclick=()=>allToToday(items);head.append(b)}
-    const card=el('div','card');
-    items.forEach(t=>{(wide&&g.id==='none'?noneIds:visibleIds).push(t.id);card.append(COARSE?swipeRow(taskRow(t,g.id,unsynced),t):taskRow(t,g.id,unsynced))});
-    grp.append(head,card);(wide&&g.id==='none'?$('sideNone'):box).append(grp);
+    grp.append(head);
+    if(!shut){
+      const card=el('div','card');
+      items.forEach(t=>{(wide&&g.id==='none'?noneIds:visibleIds).push(t.id);card.append(COARSE?swipeRow(taskRow(t,g.id,unsynced),t):taskRow(t,g.id,unsynced))});
+      grp.append(card);
+    }
+    (wide&&g.id==='none'?$('sideNone'):box).append(grp);
   }
   // Esperando: debajo de los pendientes, las más viejas primero
   const waiting=tasks.filter(t=>!t.done&&t.waiting&&match(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''));
   $('waitingSec').replaceChildren();const ws=wide?$('sideWait'):$('waitingSec');
   if(waiting.length){
-    const grp=el('div','grp'),head=el('div','ghead'),card=el('div','card');
-    head.append(el('span',null,'Esperando'),el('span','n',String(waiting.length)));
-    waiting.forEach(t=>{visibleIds.push(t.id);card.append(taskRow(t,'waiting',unsynced))});
-    grp.append(head,card);ws.append(grp);
+    const grp=el('div','grp'),head=el('div','ghead'),shut=folded.has('waiting');
+    head.append(foldBtn('waiting','Esperando',waiting.length,shut));grp.append(head);
+    if(!shut){
+      const card=el('div','card');
+      waiting.forEach(t=>{visibleIds.push(t.id);card.append(taskRow(t,'waiting',unsynced))});
+      grp.append(card);
+    }
+    ws.append(grp);
   }
   visibleIds.push(...noneIds);
   fitSide();
@@ -2036,8 +2098,40 @@ function renderList(){
   $('doneAll').textContent=showAllDone?'Ver solo últimos '+DONE_DAYS+' días':'Ver todas ('+doneMatch.length+')';
   $('archiveNote').classList.toggle('hidden',!configured()||searching);
   renderArchive(searching?match:null);
+  renderWelcome(searching);renderHint();
   placeMenu();
 }
+// ---- Grupos plegables ----
+function foldedGroups(){const v=load(K_FOLD,[]);return new Set(Array.isArray(v)?v:[])}
+function foldBtn(id,title,n,shut){
+  const b=el('button','gfold');b.type='button';b.setAttribute('aria-expanded',String(!shut));
+  b.title=shut?'Mostrar':'Plegar';
+  b.innerHTML='<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>';
+  b.append(el('span',null,title),el('span','n',String(n)));
+  b.onclick=()=>{const f=foldedGroups();if(f.has(id))f.delete(id);else f.add(id);store(K_FOLD,[...f]);renderList()};
+  return b;
+}
+// ---- Primera vez ----
+// Un dispositivo sin conectar y sin tareas: en vez de "Nada pendiente", cómo traer las de la compu
+function renderWelcome(searching){
+  const show=!configured()&&!tasks.length&&!trash.length&&!searching&&!personFilter;
+  $('welcome').classList.toggle('hidden',!show);
+  if(show)$('empty').classList.add('hidden');
+}
+$('welcomeGo').onclick=()=>{openSettings();$('acct').open=true;$('owner').focus()};
+// Cómo se usan los gestos (celular) y qué es el punto azul, hasta que tocás Entendido. En el celular, deslizar
+// una tarea ya cuenta como visto.
+function hintsSeen(){const v=load(K_HINT,{});return v&&typeof v==='object'?v:{}}
+function seeHint(k){const v=hintsSeen();if(!v[k]){v[k]=1;store(K_HINT,v);renderHint()}}
+let hintKeys=[];
+function renderHint(){
+  const seen=hintsSeen(),parts=[];hintKeys=[];
+  if(COARSE&&!seen.gestos&&visibleIds.length){hintKeys.push('gestos');parts.push('Deslizá una tarea a la derecha para terminarla o a la izquierda para pasarla a mañana.')}
+  if(!seen.punto&&tasks.some(t=>t.inbox&&!t.done&&visibleIds.includes(t.id))){hintKeys.push('punto');parts.push('El punto azul marca lo anotado al pasar sin elegir fecha: queda para hoy hasta que lo ordenes'+(FINE?' (con Procesar).':'.'))}
+  $('hint').classList.toggle('hidden',!parts.length);
+  $('hintTxt').textContent=parts.join(' ');
+}
+$('hintOk').onclick=()=>{const v=hintsSeen();hintKeys.forEach(k=>{v[k]=1});store(K_HINT,v);renderHint()};
 // Tocar "@Laura" filtra por esa persona (sin abrir la edición)
 function personBtn(name,label){
   const b=el('button','person',label);b.type='button';b.title='Ver solo las de '+name;
@@ -2068,7 +2162,9 @@ function taskRow(t,gid,unsynced){
   const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Marcar terminada');
   chk.append(el('span'));chk.onclick=()=>doneAnimated(row,t);
   const body=el('div','body');body.onclick=()=>openEdit(t);
-  const tx=el('div','ttext');if(t.inbox)tx.append(el('span','inboxdot'));tx.append(t.title);body.append(tx);
+  const tx=el('div','ttext');
+  if(t.inbox){const d=el('span','inboxdot');d.title='Anotada al pasar, sin elegir fecha';d.setAttribute('role','img');d.setAttribute('aria-label',d.title);tx.append(d)}
+  tx.append(t.title);body.append(tx);
   // En la compu, al pasar el mouse: cuándo y dónde se anotó, y cuántas veces se pateó
   if(FINE&&t.createdAt){const a=-daysUntil(ymd(new Date(t.createdAt)));body.title='Anotada '+(a===0?'hoy '+timeNow(new Date(t.createdAt)):a===1?'ayer '+timeNow(new Date(t.createdAt)):'hace '+a+' días')+(t.src==='cel'?' en el celu':t.src==='pc'?' en la compu':'')+(t.postponed?' · pateada '+t.postponed+(t.postponed===1?' vez':' veces'):'')}
   // La fecha solo donde aporta: en Hoy y Mañana sería redundante
@@ -2139,7 +2235,7 @@ function swipeRow(row,t){
     const goRight=dx>80,goLeft=dx<-80&&t.due!==dueFor('1');
     if(e.type==='pointerup'&&(goRight||goLeft)){
       row.classList.add('anim');row.style.transform='translateX('+(goRight?'':'-')+'110%)';
-      setTimeout(()=>{finish();goRight?toggle(t):reschedule(t,'1')},150);
+      setTimeout(()=>{finish();goRight?toggle(t):reschedule(t,'1');seeHint('gestos')},150);
     }else{reset();finish()}
   };
   row.addEventListener('pointerup',end);
@@ -2154,6 +2250,8 @@ function openMenu(id,byKey){
   const t=tasks.find(x=>x.id===id);if(!t)return;
   menuId=id;
   const m=$('menu');m.replaceChildren();
+  // En el celular, la hoja de abajo dice de qué tarea es (puede tapar la fila)
+  if(COARSE)m.append(el('div','mtitle',t.title));
   const n=t.due?daysUntil(t.due):null;
   const item=(label,fn,cls)=>{const b=el('button',cls,label);b.type='button';b.setAttribute('role','menuitem');b.onclick=()=>{closeMenu();fn()};m.append(b)};
   if(t.waiting){
@@ -2191,11 +2289,13 @@ function placeMenu(){
   if(!menuId)return;
   const row=[...document.querySelectorAll('#groups .task,#waitingSec .task,#side .task')].find(r=>r.dataset.id===menuId);
   if(!row){closeMenu();return}
+  if(COARSE)return;   // la hoja de abajo (CSS)
   const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
   let top=r.bottom+2;if(top+mh>innerHeight-8)top=Math.max(8,r.top-mh-2);
   m.style.top=(top+scrollY)+'px';m.style.left=(Math.max(8,Math.min(r.right-mw,document.documentElement.clientWidth-mw-8))+scrollX)+'px';
 }
 function closeMenu(){menuId=null;$('menu').classList.add('hidden');$('menuBackdrop').classList.add('hidden')}
+if(COARSE){$('menu').classList.add('sheet');$('menuBackdrop').classList.add('dim')}
 
 // ---- Acciones ----
 // Aviso abajo; la acción por defecto es "Deshacer"
@@ -2646,7 +2746,8 @@ let pointerIsDown=false;
 document.addEventListener('pointerdown',()=>{pointerIsDown=true},true);
 document.addEventListener('pointerup',()=>{pointerIsDown=false},true);
 document.addEventListener('pointercancel',()=>{pointerIsDown=false},true);
-$('title').addEventListener('blur',()=>{
+// (lo mismo con las fechas del celular, que se ocultan al salir del alta)
+$('addForm').addEventListener('focusout',()=>{
   if(!pointerIsDown){setTimeout(renderAdd,300);return}
   const after=()=>{document.removeEventListener('pointerup',after,true);document.removeEventListener('pointercancel',after,true);setTimeout(renderAdd,0)};
   document.addEventListener('pointerup',after,true);document.addEventListener('pointercancel',after,true);
@@ -2849,7 +2950,7 @@ const MIC_SVG='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" strok
 const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
 function updateAddBtn(force){
   const b=$('addBtn'),v=$('title').value,mode=listening?'listening':autoSave?'saving':SR&&(!v.trim()||voiceFilled&&parse(v,dueFor(chip)).bare)?'mic':'add';
-  renderDock();
+  renderDock();scheduleFabs();
   if(b.dataset.mode===mode&&!force)return;
   if(mode==='saving'){b.dataset.mode=mode;b.type='button';b.classList.remove('listening');b.textContent='Guardar · '+autoSave.n;b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora';return}
   b.dataset.mode=mode;b.type=mode==='add'?'submit':'button';
@@ -2940,6 +3041,27 @@ function renderDock(){
 }
 $('dockMic').onclick=()=>{if(listening)stopVoice();else if(autoSave)saveNow();else startVoice()};
 $('dockClose').onclick=closeDock;
+
+// ---- "+" y micrófono abajo (celular) ----
+// A la vista mientras no haya nada abierto encima ni el teclado (un campo con el foco). El micrófono hace lo mismo
+// que el de arriba: escucha, muestra la cuenta regresiva y se toca para guardar ya; el aviso con Deshacer queda arriba.
+let fabTimer=null;
+function scheduleFabs(){if(!COARSE||fabTimer)return;fabTimer=setTimeout(()=>{fabTimer=null;renderFabs()},0)}
+function renderFabs(){
+  const a=document.activeElement,typing=!!a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)&&!listening&&!autoSave;
+  const show=!menuId&&!overlayOpen()&&!typing;
+  $('fabs').classList.toggle('hidden',!show);document.body.classList.toggle('fabbed',show);
+  const b=$('fabMic');b.classList.toggle('hidden',!SR);
+  const st=listening?'listening':autoSave?'saving':'idle';
+  b.classList.toggle('listening',st==='listening');
+  const key=st+(autoSave?autoSave.n:'');if(b.dataset.k===key)return;b.dataset.k=key;
+  if(st==='listening'){b.innerHTML=STOP_SVG;b.setAttribute('aria-label','Dejar de escuchar');b.title='Dejar de escuchar'}
+  else if(st==='saving'){b.textContent=String(autoSave.n);b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora'}
+  else{b.innerHTML=MIC_SVG;b.setAttribute('aria-label','Dictar tarea');b.title='Dictar tarea'}
+}
+$('fabAdd').onclick=()=>{closeMenu();if(searchOpen&&!$('search').value.trim())closeSearch();window.scrollTo(0,0);$('title').focus()};
+$('fabMic').onclick=()=>{if(listening)stopVoice();else if(autoSave)saveNow();else{closeMenu();window.scrollTo(0,0);startVoice()}};
+document.addEventListener('focusin',scheduleFabs);document.addEventListener('focusout',scheduleFabs);
 
 // ---- Buscar ----
 function openSearch(){searchOpen=true;$('searchBar').classList.remove('hidden');$('search').focus()}
@@ -3265,6 +3387,7 @@ function openSettings(){
   $('acct').open=!configured()||errorKind==='hard';
   $('credBtn').classList.toggle('hidden',!window.PasswordCredential);
   $('badgeRow').classList.toggle('hidden',!BADGE);$('badgeSw').checked=badgeOn();
+  $('kbdRow').classList.toggle('hidden',!COARSE);$('kbdSw').checked=kbdOnOpen();
   renderDevice();renderStatus();renderGuard();checkAvisos(true);
 }
 function closeSettings(){settingsOpen=false;confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
@@ -3337,6 +3460,7 @@ $('badgeSw').addEventListener('change',()=>{
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   if(on&&ios&&window.Notification&&Notification.permission==='default')Notification.requestPermission().then(()=>{lastBadge=null;updateBadge()}).catch(()=>{});
 });
+$('kbdSw').addEventListener('change',()=>store(K_KBD,$('kbdSw').checked));
 $('clearCfg').onclick=()=>{
   if(!confirmClear){confirmClear=true;renderStatus();return}
   try{[K_CFG,K_CACHE,K_OUTBOX,K_AVISOS,K_VISTOS,K_AVISOX,K_GUARD].forEach(k=>localStorage.removeItem(k))}catch{}
@@ -3506,7 +3630,7 @@ window.addEventListener('popstate',()=>{
   if(!onGuard()){backClose();afterPop=true}
   scheduleBack();
 });
-new MutationObserver(scheduleBack).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+new MutationObserver(()=>{scheduleBack();scheduleFabs()}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
 scheduleBack();
 
 // ---- Inicio ----
@@ -3567,9 +3691,10 @@ function handleLaunch(params,initial){
     heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,at:Date.now()};
     $('title').value='';$('note').value='';setNote(false);sharedFill=false;voiceFilled=false;renderAdd();
   }
-  // En el celular, la app instalada abre lista para anotar (con el atajo "Dictar", lista para hablar)
+  // En el celular, la app instalada abre mostrando la lista, sin el teclado (salvo que en Sincronización › Este
+  // dispositivo se elija abrirla lista para anotar); con "Nueva tarea" o compartiendo, sí. Con "Dictar", lista para hablar.
   if(voz)openDock();
-  else if(initial?FINE||params.has('nueva')||shared||COARSE&&STANDALONE:params.has('nueva')||shared)$('title').focus();
+  else if(initial?FINE||params.has('nueva')||shared||COARSE&&STANDALONE&&kbdOnOpen():params.has('nueva')||shared)$('title').focus();
   // Compartido desde otra app (WhatsApp, mail…): se precarga para revisarlo y tocar Agregar.
   // Si el texto tiene varias líneas, se ofrece cargar una tarea por línea.
   if(shared)fillShared(params);
@@ -3602,8 +3727,9 @@ function readyToCapture(){
   if(edit&&!Object.keys(editPatch()).length)closeEdit();
   if(edit||bulk||waitFor||pos||settingsOpen||dock||!$('textOv').classList.contains('hidden')||repOpen())return;
   window.scrollTo(0,0);
-  if(STANDALONE)$('title').focus();
+  if(STANDALONE&&kbdOnOpen())$('title').focus();
 }
+function kbdOnOpen(){return load(K_KBD,false)===true}
 window.addEventListener('online',sync);
 window.addEventListener('storage',e=>{if(e.key===K_OUTBOX||e.key===K_CACHE){loadCache();recompute()}});
 
