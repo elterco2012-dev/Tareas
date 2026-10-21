@@ -9,7 +9,9 @@ const FILES=['index.html','sw.js','sync-core.js','manifest.webmanifest',...V.FIL
 const v1=V.versions().sw,v2='2099.1.1-1',v3='2099.1.1-2';
 // Una copia de la app en una carpeta aparte, para poder "publicar" versiones nuevas durante la prueba
 function copyApp(){const d=fs.mkdtempSync(path.join(os.tmpdir(),'tareas-upd-'));fs.mkdirSync(path.join(d,'icons'));for(const f of FILES)fs.copyFileSync(path.join(H.ROOT,f),path.join(d,f));return d}
-function publish(d,from,to){for(const f of ['index.html','sw.js','sync-core.js']){const p=path.join(d,f);fs.writeFileSync(p,fs.readFileSync(p,'utf8').split(from).join(to))}}
+// (en index.html también se recalculan los hashes de la CSP, como hace npm run nueva-version: si no, no corre)
+function rewrite(p,from,to){let s=fs.readFileSync(p,'utf8').split(from).join(to);if(p.endsWith('index.html'))s=s.replace(/(script-src 'self')((?: 'sha256-[A-Za-z0-9+\/=]+')*)/,(m,a)=>a+' '+V.cspNeeded(s).join(' '));fs.writeFileSync(p,s)}
+function publish(d,from,to){for(const f of ['index.html','sw.js','sync-core.js'])rewrite(path.join(d,f),from,to)}
 const setVis=(p,v)=>p.evaluate(v=>{window.__vis=v;Object.defineProperty(document,'visibilityState',{get:()=>window.__vis,configurable:true});document.dispatchEvent(new Event('visibilitychange'))},v);
 (async()=>{
 const b=await H.launch();
@@ -129,7 +131,7 @@ await ctx.close();
   await q.evaluate(()=>checkForUpdate(true));await sleep(2000);
   const st=await q.evaluate(async()=>({keys:await caches.keys(),nv:newVersion,v:APP_VERSION}));
   ok(JSON.stringify(st.keys)===JSON.stringify(['tareas-2099.2.1-3'])&&!st.nv,'sw.js new but page old: not installed '+JSON.stringify(st));
-  for(const f of ['index.html','sync-core.js']){const fp=path.join(d,f);fs.writeFileSync(fp,fs.readFileSync(fp,'utf8').split('2099.2.1-3').join('2099.2.1-4'))}ver='2099.2.1-4';
+  for(const f of ['index.html','sync-core.js'])rewrite(path.join(d,f),'2099.2.1-3','2099.2.1-4');ver='2099.2.1-4';
   await q.evaluate(()=>{lastSwCheck=0;checkForUpdate(true)});
   ok(await until(()=>q.evaluate(()=>newVersion==='2099.2.1-4'),{timeout:8000}),'once the page is new too, it installs');
   // Si otro sitio de github.io borra las cachés, la app se vuelve a guardar sola (página y núcleo juntos)

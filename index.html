@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-PthTmkArHibsGSpZ6vOe5xfGWYQ1+9GqeCBQId4Qexc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-Un5A2a25iAHuCcQL30iLZR7cZZ3z+6IQBhzBx3Qs0Bo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -648,11 +648,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 <div id="toast" class="toast hidden" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><span class="tbtns"><button type="button" id="toastUndo" class="hidden">Deshacer</button><button type="button" id="toastB2" class="hidden"></button><button type="button" id="toastB3" class="hidden"></button></span></div>
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 
-<script src="sync-core.js?v=2026.10.21-5"></script>
+<script src="sync-core.js?v=2026.10.21-6"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.21-5';
+const APP_VERSION='2026.10.21-6';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1294,6 +1294,7 @@ async function restoreFile(){
   const c=cfg,ops=getOutbox(),next=applyHere(remote,ops);
   try{
     await withSyncLock(async()=>{
+      if(repoOk!==c)await checkPrivate(c);
       const saved=await putFile(c,file,next,fileGuard.sha,'Restaurar tareas.json con la copia de '+(SRC==='cel'?'el celular':'la compu'));
       if(cfg!==c)return;
       // Cambió en GitHub mientras tanto: se vuelve a mirar cómo está
@@ -1365,7 +1366,10 @@ async function sync(){
   const c0=cfg;
   try{
     await withSyncLock(async()=>{
-      if(repoOk!==c0)await checkPrivate(c0);
+      // Que el repositorio sea privado se mira en paralelo con la lectura (no demora la primera sincronización); antes
+      // de subir algo se espera la respuesta
+      const priv=repoOk===c0?null:checkPrivate(c0);
+      if(priv)priv.catch(()=>{});
       // Lo que ya subió el service worker en segundo plano sale de la cola
       let forceGet=await takeBackgroundSent();
       if(forceGet)changed=true;
@@ -1400,6 +1404,7 @@ async function sync(){
           forceGet=false;ops=getOutbox();
         }
         if(!ops.length)continue;
+        if(priv)await priv;
         const lost=[],next=applyHere(base.items,ops,lost);
         const saved=await putRemote(c,next,base.sha,ops,base.items);
         if(cfg!==c){syncAgain=configured();continue}
@@ -1416,6 +1421,7 @@ async function sync(){
         await updateBackground();
         if(getOutbox().length)syncAgain=true;
       }while(syncAgain);
+      if(priv)await priv;
     });
     if(cfg===c0){lastSync=new Date();lastError=null;authError=false;errorKind=null;synced=true}
   }catch(e){
