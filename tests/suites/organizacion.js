@@ -62,8 +62,12 @@ ok(await row(p,'Comprar cartuchos').locator('.inboxdot').count()===1,'blue dot o
 await ctx.close();
 ({ctx,p}=await device(b,gh,DESK));
 await p.fill('#title','Desde la compu');await p.press('#title','Enter');await sleep(400);
-ok(!ib('Desde la compu').inbox,'desktop add → not inbox');
-ok(await p.isVisible('#procBtn')&&(await p.innerText('#procCount'))==='1','"Procesar (1)" on desktop');
+// En la compu también: sin fecha en el texto ni en los chips, queda marcada para procesar
+ok(ib('Desde la compu').inbox===true&&ib('Desde la compu').due===day(0),'desktop add without a date → inbox too, still today');
+ok(await p.isVisible('#procBtn')&&(await p.innerText('#procCount'))==='2','"Procesar (2)" on desktop: the phone one and this one');
+// (se deshace, así lo que sigue cuenta como antes)
+await p.click('#toastUndo');await sleep(400);
+ok(!ib('Desde la compu')&&(await p.innerText('#procCount'))==='1','undo removes it: "Procesar (1)"');
 // ===== Procesar =====
 gh.items.push(T('ov','Vencida vieja',{due:day(-4),postponed:2}),T('ov2','Vencida nueva',{due:day(-1)}),T('wt','Respuesta de Juan',{waiting:true,waitingOn:'Juan',waitingSince:iso(5)}),T('wt2','Respuesta reciente',{waiting:true,waitingOn:'Ana',waitingSince:iso(1)}));gh.sha++;
 await p.evaluate(()=>sync());await sleep(600);

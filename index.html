@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-6zeUldzm6AI6VcPzDOiFhZbHSEIK7n0f+vBBCDfKTuc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-MsuPaqsFnDT3p3h42F4ZhayK2ClrDYOwgR1pAbjCHKo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -179,10 +179,13 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .swbg.right .l,.swbg.left .r{display:none}
 .swbg span{transition:transform .12s}
 .swbg.armed span{transform:scale(1.2)}
-.task.sel{background:var(--sel)}
+/* La seleccionada (con las flechas): fondo y una barra a la izquierda, que se vea bien en los dos temas */
+.task.sel{background:var(--sel);box-shadow:inset 3px 0 0 var(--accent)}
 .task.dragging{opacity:.45}
 .task.dropbefore{box-shadow:inset 0 3px 0 var(--accent)}
 .task.dropafter{box-shadow:inset 0 -3px 0 var(--accent)}
+.task.sel.dropbefore{box-shadow:inset 3px 0 0 var(--accent),inset 0 3px 0 var(--accent)}
+.task.sel.dropafter{box-shadow:inset 3px 0 0 var(--accent),inset 0 -3px 0 var(--accent)}
 .chk{flex:none;width:44px;height:46px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0}
 .chk span{width:22px;height:22px;border-radius:50%;border:2px solid var(--circle);background:var(--card)}
 .chk:hover span{border-color:var(--accent);background:var(--accent-soft)}
@@ -455,7 +458,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
     <div class="donehead">
       <button type="button" id="trashToggle" class="donebtn" aria-expanded="false">
         <svg id="trashChev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,1.5 7,5 3.5,8.5"/></svg>
-        <span>Papelera</span><span class="n" id="trashSub"></span>
+        <span id="trashTitle">Papelera</span><span class="n" id="trashSub"></span>
       </button>
     </div>
     <div id="trashWrap" class="hidden">
@@ -1892,9 +1895,11 @@ function renderAdd(){
 const samePerson=(a,b)=>!!a&&!!b&&norm(a)===norm(b);
 // La pidió esa persona, o se está esperando su respuesta
 function byPerson(t){return !personFilter||samePerson(t.requester,personFilter)||(t.waiting&&!t.done&&samePerson(t.waitingOn,personFilter))}
+// Sin importar tildes ni mayúsculas, y con todas las palabras, en cualquier orden y en cualquier campo
+// ("banco llamar" encuentra "Llamar al banco"; "@" adelante de un nombre se ignora)
 function matcher(){
-  const q=$('search').value.trim().toLowerCase().replace(/^@/,'');
-  return t=>byPerson(t)&&(!q||(t.title+' '+(t.requester||'')+' '+(t.waitingOn||'')+' '+(t.notes||'')).toLowerCase().includes(q));
+  const words=norm($('search').value).split(' ').map(w=>w.replace(/^@/,'')).filter(Boolean);
+  return t=>byPerson(t)&&(!words.length||(s=>words.every(w=>s.includes(w)))(norm(t.title+' '+(t.requester||'')+' '+(t.waitingOn||'')+' '+(t.notes||''))));
 }
 // Una terminada: tocándola se ve entera (las notas, con sus links) sin volver a pendientes
 function doneRow(t,archived){
@@ -2012,7 +2017,8 @@ function renderList(){
   visibleIds.push(...noneIds);
   fitSide();
   $('filterBar').classList.toggle('hidden',!personFilter);$('filterName').textContent=personFilter||'';
-  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.':personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
+  const inTrash=q?trash.filter(match).length:0;
+  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.'+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':''):personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
   $('empty').classList.toggle('hidden',pending.length+waiting.length>0);
   if(sel&&!visibleIds.includes(sel))sel=null;
   if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done))closeMenu();
@@ -2036,6 +2042,7 @@ function renderList(){
   $('doneAll').textContent=showAllDone?'Ver solo últimos '+DONE_DAYS+' días':'Ver todas ('+doneMatch.length+')';
   $('archiveNote').classList.toggle('hidden',!configured()||searching);
   renderArchive(searching?match:null);
+  renderTrash();   // buscando, la papelera muestra lo que coincide
   placeMenu();
 }
 // Tocar "@Laura" filtra por esa persona (sin abrir la edición)
@@ -2587,8 +2594,9 @@ $('addForm').addEventListener('submit',e=>{
   const task={id:crypto.randomUUID(),src:SRC,title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
-  // Anotada al pasar (en el celular, compartida o dictada, sin elegir fecha): queda para hoy, marcada para procesar
-  if(p.due===undefined&&!p.time&&!chipTouched&&!p.waiting&&(COARSE||sharedFill||voiceFilled))task.inbox=true;
+  // Anotada al pasar, sin elegir fecha (ni en el texto ni en los chips), en el celular o en la compu: queda para hoy,
+  // marcada para procesar
+  if(p.due===undefined&&!p.time&&!chipTouched&&!p.waiting)task.inbox=true;
   act({type:'add',task});
   if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
   // "Agregada para mañana · 15:00 · @Laura", con Deshacer y Cambiar (por si se entendió mal).
@@ -3111,16 +3119,23 @@ $('textOv').addEventListener('click',e=>{if(e.target===$('textOv')&&downOn===e.t
 $('doneToggle').onclick=()=>{if($('search').value.trim())doneSearchClosed=!doneSearchClosed;else showDone=!showDone;renderList()};
 
 // ---- Papelera ----
+// Buscando: "En la papelera", abierta y solo con las que coinciden (para encontrar algo borrado), sin Vaciar.
+// Sin nada que coincida no se muestra; al borrar la búsqueda vuelve a ser la de siempre
+let trashSearchClosed=false;
 function renderTrash(){
-  $('trashSec').classList.toggle('hidden',!trash.length);
+  const q=$('search').value.trim(),items=q?trash.filter(matcher()):trash,open=q?!trashSearchClosed:showTrash;
+  if(!q)trashSearchClosed=false;else confirmEmpty=false;
+  $('trashSec').classList.toggle('hidden',!items.length);
   if(!trash.length){showTrash=false;confirmEmpty=false}
-  $('trashSub').textContent=String(trash.length);
-  $('trashChev').style.transform=showTrash?'rotate(90deg)':'rotate(0deg)';
-  $('trashToggle').setAttribute('aria-expanded',String(showTrash));
-  $('trashWrap').classList.toggle('hidden',!showTrash);
+  $('trashTitle').textContent=q?'En la papelera':'Papelera';
+  $('trashSub').textContent=String(items.length);
+  $('trashChev').style.transform=open?'rotate(90deg)':'rotate(0deg)';
+  $('trashToggle').setAttribute('aria-expanded',String(open));
+  $('trashWrap').classList.toggle('hidden',!open);
+  $('trashEmpty').classList.toggle('hidden',!!q);
   const list=$('trashList');list.replaceChildren();
-  if(!showTrash)return;
-  trash.forEach(t=>{
+  if(!open)return;
+  items.forEach(t=>{
     const ago=Math.max(0,-daysUntil(ymd(new Date(t.deletedAt)))),left=Math.max(0,TRASH_DAYS-ago);
     const row=el('div','trow'),tt=el('div','tt');
     tt.append(el('div',null,t.title),el('div',null,(ago===0?'Borrada hoy':ago===1?'Borrada ayer':'Borrada hace '+ago+' días')+' · '+(left<=1?'se elimina mañana':'se elimina en '+left+' días')));
@@ -3129,7 +3144,7 @@ function renderTrash(){
   });
   $('trashEmpty').textContent=confirmEmpty?'Tocá de nuevo para eliminarlas para siempre':'Vaciar papelera';
 }
-$('trashToggle').onclick=()=>{showTrash=!showTrash;confirmEmpty=false;renderTrash()};
+$('trashToggle').onclick=()=>{if($('search').value.trim())trashSearchClosed=!trashSearchClosed;else showTrash=!showTrash;confirmEmpty=false;renderTrash()};
 let confirmAt=0;
 $('trashEmpty').onclick=()=>{
   if(!confirmEmpty){confirmEmpty=true;confirmAt=Date.now();renderTrash();return}

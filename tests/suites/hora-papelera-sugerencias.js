@@ -76,7 +76,7 @@ await p.click('#toastUndo');await sleep(400);
 ok(gh.items.find(x=>x.id==='d1').deletedAt,'undo Recuperar puts it back in the trash');
 ok(!Object.keys(gh.files).length&&gh.items.find(x=>x.id==='dd'),'deleted done task not archived');
 await p.evaluate(()=>document.activeElement.blur());await p.keyboard.press('/');await p.keyboard.type('Borrar');await sleep(100);
-ok(!(await p.innerText('#groups')).includes('Borrar esta'),'search ignores the trash');
+ok(!(await p.innerText('#groups')).includes('Borrar esta'),'search: trash items stay out of the pending list (they show under "En la papelera")');
 await p.click('#searchClose');
 await p.click('#trashEmpty');ok((await p.innerText('#trashEmpty')).includes('Tocá de nuevo'),'empty asks to confirm');
 await sleep(700);await p.click('#trashEmpty');await sleep(500);   // el segundo toque, a propósito (un doble clic no la vacía)
