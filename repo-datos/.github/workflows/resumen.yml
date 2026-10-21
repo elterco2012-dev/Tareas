@@ -55,14 +55,15 @@ jobs:
 
           let tareas;
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para avisar.');process.exit(0)}
-          const pend=tareas.filter(t=>t&&!t.done&&!t.deletedAt);   // sin las de la papelera
+          // Las notas (kind 'nota') no son tareas: no se cuentan en nada (tampoco como hechas, si una versión vieja de la app las marcó)
+          const pend=tareas.filter(t=>t&&!t.done&&!t.deletedAt&&t.kind!=='nota');   // sin las de la papelera
           // Viernes 15:45: la revisión de la semana (lo que no tiene fecha, lo que espera respuesta, lo pateado)
           // Automática: la del horario de GitHub o la que dispara cron-job.org (diario o semanal)
           const automatico=E.GITHUB_EVENT_NAME==='schedule'||E.PROGRAMA==='diario'||E.PROGRAMA==='semanal';
           if(E.PROGRAMA==='45 18 * * 5'||E.PROGRAMA==='semanal'){
             const lunes=new Date(Date.parse(hoy+'T12:00:00Z'));lunes.setUTCDate(lunes.getUTCDate()-(lunes.getUTCDay()+6)%7);
             const desde=lunes.toISOString().slice(0,10);
-            const hechas=tareas.filter(t=>t&&t.done&&!t.deletedAt&&t.completedAt&&fecha(new Date(t.completedAt))>=desde).length;
+            const hechas=tareas.filter(t=>t&&t.done&&!t.deletedAt&&t.kind!=='nota'&&t.completedAt&&fecha(new Date(t.completedAt))>=desde).length;
             // Como en la app: las sin fecha que revisaste ("Sigue así") en el último mes no vuelven a aparecer
             const mes=Date.now()-30*86400000;
             const sinFecha=pend.filter(t=>!t.waiting&&!t.due&&!(t.reviewedAt&&Date.parse(t.reviewedAt)>=mes)),viejas=sinFecha.filter(t=>t.createdAt&&dias(hoy,fecha(new Date(t.createdAt)))>30).length;
@@ -113,7 +114,7 @@ jobs:
               const local=s=>{const d=new Date(s);if(isNaN(d))return '';const p=Object.fromEntries(fmt.formatToParts(d).map(x=>[x.type,x.value]));return p.year+'-'+p.month+'-'+p.day+'T'+p.hour+':'+p.minute};
               let n=0;
               for(const t of tareas){
-                if(!t||t.deletedAt||!revisar.includes(t.due)||!/^\d{2}:\d{2}$/.test(t.time||''))continue;
+                if(!t||t.deletedAt||t.kind==='nota'||!revisar.includes(t.due)||!/^\d{2}:\d{2}$/.test(t.time||''))continue;   // las notas nunca avisan
                 const c=corrida(t.time);if(!c)continue;
                 const R=t.due+'T'+c;
                 // La cargaste, le cambiaste la fecha o la hora (whenAt, lo anota la app) o la volviste a abrir después de esa corrida
