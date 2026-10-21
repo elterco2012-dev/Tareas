@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-O3JINn7mwizYmyF2IO5ryKurFUk6vGRsF/h/cDkJZ9I='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-fhTPnGCNsQCBD3J+zNT2ods2Otgx+UaREeb0L6Oxrx4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -383,7 +383,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .fab.mic.listening{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 1.4s ease-out infinite}
 @media (prefers-reduced-motion:reduce){.fab.mic.listening{animation:none}}
 body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
-body.fabbed .wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+@media (pointer:coarse){.wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom))}}
 /* En reposo, el alta ocupa una línea: las fechas y la nota aparecen al tocar el campo */
 .addcard.rest .chiprow{display:none}
 /* Grupos que se pliegan (cada dispositivo recuerda cuáles) */
@@ -698,11 +698,11 @@ body.fabbed .wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.21-9"></script>
+<script src="sync-core.js?v=2026.10.21-10"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.21-9';
+const APP_VERSION='2026.10.21-10';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1598,12 +1598,13 @@ function noteArrivals(prev,next,known){
   const srcs=new Set(fresh.map(t=>t.src||'')),from=srcs.size===1&&srcs.has('cel')?' desde el celular':srcs.size===1&&srcs.has('pc')?' desde la compu':'';
   // Si en pantalla hay un Deshacer o Recuperar, no se lo tapa (las nuevas igual quedan marcadas en la lista)
   const busy=toastAction&&toastKind!=='llegaron'&&!$('toast').classList.contains('hidden');
-  if(document.visibilityState==='visible'&&!busy)toast((fresh.length===1?'1 nueva':fresh.length+' nuevas')+from,showArrived,'Ver',6000,null,'llegaron');
+  if(document.visibilityState==='visible'&&!busy)toast((fresh.length===1?'1 nueva':fresh.length+' nuevas')+from,()=>showArrived(fresh.map(t=>t.id)),'Ver',6000,null,'llegaron');
 }
-// "Ver": la primera que llegó (si quedó en un grupo plegado, se despliega)
-function showArrived(){
-  let r=document.querySelector('.task.llego');
-  if(!r){const t=tasks.find(x=>arrived.has(x.id)&&!x.done);if(t){setFold(t.waiting?'waiting':groupOf(t),false);renderList();r=document.querySelector('.task.llego')}}
+// "Ver": las que anunció el aviso (si quedaron en un grupo plegado, se despliega)
+function showArrived(ids){
+  const row=()=>ids.map(id=>document.querySelector('.task.llego[data-id="'+CSS.escape(id)+'"]')).find(Boolean);
+  let r=row();
+  if(!r){const ts=tasks.filter(x=>ids.includes(x.id)&&!x.done);if(ts.length){ts.forEach(t=>setFold(t.waiting?'waiting':groupOf(t),false));renderList();r=row()}}
   if(r)r.scrollIntoView({block:'center',behavior:'smooth'});
 }
 // Se desvanecen recién cuando la ventana tiene el foco: si llegaron mientras no estabas, siguen marcadas.
@@ -1941,15 +1942,14 @@ function renderAdd(){
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
   if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(Array.isArray(x)?el('span','tag'+(x[1]?' '+x[1]:''),x[0]):el('span','tag',x)))}
   det.classList.toggle('hidden',!det.childNodes.length);
-  // El tip, solo las primeras 5 veces que se abre la app. En el celular, como las fechas, se va recién en un momento
-  // quieto (no al salir del campo: la lista saltaría bajo el dedo).
-  const tip=!listening&&(document.activeElement===$('title')||COARSE&&tipCounted&&!restArmed)&&!raw.trim()&&(tipCounted||load(K_TIP,0)<5);
-  if(tip&&!tipCounted){tipCounted=true;store(K_TIP,load(K_TIP,0)+1)}
-  $('tip').classList.toggle('hidden',!tip);
-  $('saveHint').classList.toggle('hidden',!autoSave||dock);
   // En el celular, las fechas y la nota aparecen al tocar el campo o al escribir; en reposo, el alta ocupa una línea.
   // Se vuelven a ocultar solo en momentos quietos (ver restArmed), para que la lista no salte bajo el dedo.
   const rest=COARSE&&restArmed&&!raw.trim()&&$('note').classList.contains('hidden')&&!listening&&!autoSave&&!dock&&!$('addForm').contains(document.activeElement);
+  // El tip, solo las primeras 5 veces que se abre la app. En el celular, una vez a la vista, se va junto con las fechas.
+  const tip=!listening&&(document.activeElement===$('title')||COARSE&&!rest&&!$('tip').classList.contains('hidden'))&&!raw.trim()&&(tipCounted||load(K_TIP,0)<5);
+  if(tip&&!tipCounted){tipCounted=true;store(K_TIP,load(K_TIP,0)+1)}
+  $('tip').classList.toggle('hidden',!tip);
+  $('saveHint').classList.toggle('hidden',!autoSave||dock);
   $('addForm').classList.toggle('rest',rest);
   renderWho(p);
   updateAddBtn();
@@ -1957,9 +1957,11 @@ function renderAdd(){
 }
 // Las fechas del celular, una vez a la vista, quedan hasta un momento quieto: al abrir la app, al volver después de un
 // rato o cuando el alta sale de la pantalla (ahí el navegador compensa el scroll y lo que estás viendo no se mueve)
-let restArmed=true;
+let restArmed=true,addOnScreen=true;
 $('addForm').addEventListener('focusin',()=>{restArmed=false});
-if(COARSE&&'IntersectionObserver' in window)new IntersectionObserver(es=>{if(!es[es.length-1].isIntersecting&&!restArmed){restArmed=true;renderAdd()}}).observe($('addForm'));
+// Si el alta está a la vista al salir de ella, esperar al próximo momento quieto (no plegar después del toque)
+$('addForm').addEventListener('focusout',()=>{if(COARSE&&addOnScreen)restArmed=false});
+if(COARSE&&'IntersectionObserver' in window)new IntersectionObserver(es=>{addOnScreen=es[es.length-1].isIntersecting;if(!addOnScreen&&!restArmed){restArmed=true;renderAdd()}}).observe($('addForm'));
 const samePerson=(a,b)=>!!a&&!!b&&norm(a)===norm(b);
 // La pidió esa persona, o se está esperando su respuesta
 function byPerson(t){return !personFilter||samePerson(t.requester,personFilter)||(t.waiting&&!t.done&&samePerson(t.waitingOn,personFilter))}
@@ -2053,6 +2055,8 @@ function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();
 function renderList(){
   // Mientras deslizás o arrastrás una tarea no se redibuja (se perdería el gesto); se hace al soltar
   if(swiping||dragId){renderLater=true;return}
+  // Con el teclado en el título de un grupo, el foco vuelve ahí después de redibujar
+  const ae=document.activeElement,focusG=ae&&ae.classList&&ae.classList.contains('gfold')?ae.dataset.g:null;
   const match=matcher(),q=$('search').value.trim();
   const late=Date.now()-5000;
   const unsynced=new Set(configured()?getOutbox().filter(o=>errorKind==='offline'||!(o.ts>late)).map(o=>o.id||(o.task&&o.task.id)):[]);
@@ -2123,6 +2127,8 @@ function renderList(){
   renderArchive(searching?match:null);
   renderTrash();   // buscando, la papelera muestra lo que coincide
   renderWelcome(searching);renderHint();
+  if(focusG){const x=document.querySelector('.gfold[data-g="'+focusG+'"]');if(x)x.focus()}
+  settleArrivals();   // las que llegaron y recién se ven (al desplegar o al dejar de buscar) se desvanecen
   placeMenu();
 }
 // ---- Grupos plegables ----
@@ -2137,8 +2143,7 @@ function foldHead(id,title,items,shut,noFold){
   b.append(el('span',null,title),el('span','n',String(items.length)));
   const nw=shut?items.filter(t=>arrived.has(t.id)).length:0;
   if(nw)b.append(el('span','n gnew','· '+(nw===1?'1 nueva':nw+' nuevas')));
-  // Con el teclado, el foco sigue en el mismo título (la lista se redibuja)
-  b.onclick=()=>{const kb=document.activeElement===b;setFold(id,!shut);renderList();settleArrivals();if(kb){const x=document.querySelector('.gfold[data-g="'+id+'"]');if(x)x.focus()}};
+  b.onclick=()=>{setFold(id,!shut);renderList()};
   return [b];
 }
 // ---- Primera vez ----
@@ -3774,7 +3779,7 @@ function readyToCapture(){
   if(edit||bulk||waitFor||pos||settingsOpen||dock||!$('textOv').classList.contains('hidden')||repOpen())return;
   window.scrollTo(0,0);
   if(STANDALONE&&kbdOnOpen())$('title').focus();
-  else{restArmed=true;renderAdd()}
+  else{const a=document.activeElement;if(a&&$('addForm').contains(a))a.blur();restArmed=true;renderAdd()}
 }
 function kbdOnOpen(){return load(K_KBD,false)===true}
 window.addEventListener('online',sync);

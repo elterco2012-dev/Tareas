@@ -53,6 +53,21 @@ await sleep(150);const a1=await anc();
 ok(Math.abs(a1-a0)<=1,'what you are looking at does not move '+a0+'→'+a1);
 await p.evaluate(()=>window.scrollTo(0,0));await sleep(150);
 ok(!(await vis(p,'.chiprow')),'back at the top: no dates under the field');
+// Agregar con el botón (el foco queda en el alta), bajar y volver a subir: tocar la lista no pliega nada después
+await p.locator('#title').tap();await p.keyboard.type('Con el botón');await p.locator('#addBtn').tap();await sleep(400);
+ok(gh.items.some(x=>x.title==='Con el botón')&&await vis(p,'.chiprow'),'added with the Agregar button, dates still shown');
+await p.evaluate(()=>window.scrollTo(0,900));await sleep(300);await p.evaluate(()=>window.scrollTo(0,0));await sleep(300);
+const gY=()=>p.evaluate(()=>Math.round(document.querySelector('.ghead.over .gfold').getBoundingClientRect().top));
+const g0=await gY();await p.locator('.ghead.over .gfold').tap();await sleep(600);const g1=await gY();
+ok(g1===g0,'after scrolling away and back with focus in the add card, a tap on the list does not fold the dates afterwards '+g0+'→'+g1);
+await p.locator('.ghead.over .gfold').tap();await sleep(150);
+// Al final de la página: abrir y cerrar la hoja ⋯ no corre la lista (el margen de abajo no cambia)
+await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await sleep(200);
+const lastY=()=>p.evaluate(()=>{const r=[...document.querySelectorAll('.task')].find(r=>r.textContent.includes('Respuesta de Juan'));return Math.round(r.getBoundingClientRect().top)});
+const l0=await lastY();
+await row(p,'Respuesta de Juan').locator('.more').tap();await sleep(200);await p.locator('#menuBackdrop').tap({position:{x:5,y:5}});await sleep(200);
+const l1=await lastY();
+ok(l1===l0,'bottom of the page: opening and closing ⋯ does not move the list '+l0+'→'+l1);
 await ctx.close();
 gh.items=items();gh.sha++;
 // En la compu, las fechas siempre a la vista
@@ -160,6 +175,9 @@ await p.locator('#groups .ghead.today .gfold').focus();await p.keyboard.press('E
 ok(await p.evaluate(()=>{const a=document.activeElement;return a&&a.dataset.g==='today'&&a.getAttribute('aria-expanded')==='false'}),'keyboard: Enter folds and the focus stays on the header');
 await p.keyboard.press('Enter');await sleep(150);
 ok(await p.evaluate(()=>document.activeElement.getAttribute('aria-expanded'))==='true','a second Enter unfolds it');
+await p.evaluate(()=>renderList());
+ok(await p.evaluate(()=>document.activeElement&&document.activeElement.dataset.g==='today'),'focus stays on the header when the list redraws on its own');
+await p.evaluate(()=>document.activeElement.blur());
 // Lo que llega del otro dispositivo a un grupo plegado: el título lo dice y "Ver" lo despliega
 await p.click('#groups .ghead .gfold[data-g="tomorrow"]');await sleep(150);
 gh.items.push(T('nw','Nueva del celu',{due:day(1),src:'cel'}));gh.sha++;
@@ -168,6 +186,17 @@ ok(await L.until(async()=>/1 nueva/.test(await p.innerText('#toastMsg').catch(()
 ok(/1 nueva/.test(await p.locator('.gfold[data-g="tomorrow"]').textContent()),'folded header says "· 1 nueva"');
 await p.click('#toastUndo');await sleep(300);
 ok(await p.locator('.gfold[data-g="tomorrow"]').getAttribute('aria-expanded')==='true'&&await p.locator('.task.llego',{hasText:'Nueva del celu'}).count()===1,'"Ver" unfolds the group and shows it highlighted');
+// Dos llegadas en grupos plegados: "Ver" va a la que anunció el aviso, no a una anterior
+await p.evaluate(()=>{setFold('tomorrow',true);setFold('later',true);renderList()});
+gh.items.push(T('nw2','Llegó lejos',{due:day(30),src:'cel'}));gh.sha++;
+await p.evaluate(()=>{hideToast();sync()});
+await L.until(()=>p.evaluate(()=>!document.getElementById('toast').classList.contains('hidden')&&/1 nueva/.test(document.getElementById('toastMsg').textContent)));
+gh.items.push(T('nw3','Llegó para mañana',{due:day(1),src:'cel'}));gh.sha++;
+await p.evaluate(()=>{hideToast();sync()});
+await L.until(()=>p.evaluate(()=>!document.getElementById('toast').classList.contains('hidden')&&/1 nueva/.test(document.getElementById('toastMsg').textContent)));
+await p.click('#toastUndo');await sleep(300);
+const vr=await p.evaluate(()=>({t:(document.querySelector('.gfold[data-g="tomorrow"]')||{}).ariaExpanded,l:(document.querySelector('.gfold[data-g="later"]')||{}).ariaExpanded,llego:[...document.querySelectorAll('.task.llego')].map(r=>r.textContent.slice(0,20)),arr:[...arrived],fold:localStorage.getItem('gruposPlegados'),msg:document.getElementById('toastMsg').textContent}));
+ok(vr.t==='true'&&vr.l==='false'&&vr.llego.some(x=>x.startsWith('Llegó para mañana')),'"Ver" opens the group of the task it announced '+JSON.stringify(vr));
 await ctx.close();
 gh.items=items();gh.sha++;
 
