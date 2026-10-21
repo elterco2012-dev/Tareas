@@ -211,6 +211,21 @@ SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
 - El token se guarda en localStorage en CADA navegador para evitar volver a ingresarlo. No es adecuado para dispositivos compartidos ni informacion confidencial empresarial. Un script malicioso, extension comprometida o persona con acceso al navegador podria extraerlo.
 - NO pongas el token en index.html ni en commits de GitHub.
+- En Sincronizacion el token guardado no se muestra (solo sus ultimas 4 letras). Para cambiarlo, pega uno nuevo;
+  si dejas el campo vacio, sigue el de antes.
+- La app comprueba que el repositorio de datos sea privado: si es publico, no sube nada y lo avisa en rojo.
+- La pagina tiene una politica de seguridad (CSP): solo corren los scripts de la propia app y solo habla con GitHub.
+  Al publicar una version nueva, "npm run nueva-version" recalcula lo que esa politica permite (una prueba lo exige).
+- Si tareas.json desaparece de GitHub, queda vacio o se daña, la app NO lo toma como "no hay tareas": deja de
+  sincronizar en ese dispositivo, avisa arriba en rojo y en Sincronizacion ofrece "Volver a subir la copia de este
+  dispositivo" (o "Fue a proposito: dejarlo asi", con un segundo toque). Si lo arregla el otro dispositivo, sigue sola.
+- Si tareas.json tiene datos que no son tareas o campos invalidos (por ejemplo, editado a mano), la app los arregla
+  al leerlo, avisa, y se guarda arreglado en la proxima subida.
+- "Descargar copia" (en Sincronizacion) baja un archivo .json con todas las tareas (papelera y cambios sin subir
+  incluidos) y el archivo de terminadas. Sirve para guardar una copia donde quieras.
+- Si un cambio hecho sin señal en un dispositivo choca con otro mas nuevo del otro dispositivo en el mismo campo
+  (por ejemplo, el titulo), gana el mas nuevo y la app avisa "No se aplico tu cambio en ...". Los cambios en campos
+  distintos se aplican los dos.
 - Si el token se filtra, revocalo inmediatamente en GitHub.
 - Si el token vence o GitHub lo rechaza, arriba aparece un aviso en rojo con "Renovar": genera uno nuevo en GitHub
   (mismos permisos), pegalo en Sincronizacion y carga su nueva fecha de vencimiento (asi la proxima vez tambien te
