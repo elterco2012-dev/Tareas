@@ -68,7 +68,8 @@ jobs:
 
           let tareas;
           try{tareas=JSON.parse(readFileSync('tareas.json','utf8'))}catch{console.log('Todavía no hay tareas.json: nada para recordar.');process.exit(0)}
-          const conHora=tareas.filter(t=>t&&!t.done&&!t.deletedAt&&t.due===hoy&&/^\d{2}:\d{2}$/.test(t.time||''))
+          // Las notas (kind 'nota') nunca avisan, aunque les haya quedado una fecha y una hora (por ejemplo, de cuando eran tarea)
+          const conHora=tareas.filter(t=>t&&!t.done&&!t.deletedAt&&t.kind!=='nota'&&t.due===hoy&&/^\d{2}:\d{2}$/.test(t.time||''))
             .sort((a,b)=>a.time.localeCompare(b.time));
           const clave=t=>t.id+'|'+t.due+'|'+t.time;
           const api=E.GITHUB_API||'https://api.github.com',ruta='recordatorios-enviados.json';

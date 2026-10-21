@@ -177,7 +177,17 @@ ok(r.code===0&&tgRechazos===1&&tg.length===1&&!('reply_markup' in tg[0])&&tg[0].
  const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows','recordatorios.yml'),'utf8');
  ok(/^permissions:\n {2}contents: write.*\n {2}actions: read/m.test(t),'rec template: actions: read (to see the cron-job.org runs)');
  ok(/^run-name: \$\{\{ \(inputs\.automatico == true \|\| inputs\.automatico == 'true'\) && 'Recordatorios \(cron-job\.org\)' \|\| 'Recordatorios a la hora' \}\}$/m.test(t)&&/^ {10}HORARIO: \$\{\{ github\.event\.schedule \}\}$/m.test(t),'rec template: run-name marks the cron-job.org runs, HORARIO in the env')}
-ok(logs&&!['Cerrar caja','Muy de noche','Llamar al banco','Pagar',largo,'Emojis','Tarea 0','Noche'].some(x=>logs.includes(x)),'rec: no task titles in the logs');
+// Notas (kind 'nota'): nunca avisan, aunque les haya quedado fecha de hoy y hora (de cuando eran tarea, o por un cruce)
+file=null;tg=[];put([T('nt','Nota con hora',{kind:'nota',time:'15:00'}),T('a','Llamar al banco',{time:'15:00'}),T('nt2','Nota con hora y prioridad',{kind:'nota',time:'14:55',priority:'Alta'})]);
+r=log(await run('rec.mjs',NOW,{APP_URL:'https://yo.github.io/app/'}));
+{const kb=(tg[0]&&tg[0].reply_markup&&tg[0].reply_markup.inline_keyboard)||[];
+ ok(r.code===0&&tg.length===1&&tg[0].text==='⏰ 15:00 · Llamar al banco'&&kb.length===1&&Object.keys(JSON.parse(file||'{}')).join()==='a|2026-10-12|15:00'&&/^1 recordatorio para enviar/m.test(r.out),'notes: a note due today with a time never reminds (no line, no button, not recorded); the task next to it does: '+JSON.stringify(tg[0]&&tg[0].text))}
+file=null;tg=[];put([T('nt','Nota con hora',{kind:'nota',time:'15:00'})]);
+r=log(await run('rec.mjs',NOW));ok(r.code===0&&tg.length===0&&file===null&&/Nada para recordar/.test(r.out),'notes: only a note with a time → nothing sent, nothing recorded');
+put([T('nt','Nota de la noche',{kind:'nota',time:'21:00'}),T('k','Noche',{time:'21:30'})]);
+r=log(await run('rec.mjs',NOW,{GITHUB_EVENT_NAME:'workflow_dispatch'}));
+ok(tg.length===1&&tg[0].text==='✅ Los recordatorios funcionan. El próximo de hoy: 21:30 · Noche','notes: the test message does not name a note as the next one: '+JSON.stringify(tg[0]&&tg[0].text));
+ok(logs&&!['Cerrar caja','Muy de noche','Llamar al banco','Pagar',largo,'Emojis','Tarea 0','Noche','Nota con hora','Nota de la noche'].some(x=>logs.includes(x)),'rec: no task titles in the logs');
 // ===== Resumen diario =====
 put([T('q','Sin hora hoy',{}),T('r','Banco',{time:'15:00'}),T('s','Temprano',{time:'09:00',requester:'Ana'}),T('t','En la papelera',{deletedAt:'2026-10-11T10:00:00Z'}),T('u','Vencida',{due:'2026-10-10',time:'10:00'})]);
 tg=[];r=await run('res.mjs','2026-10-12T10:00:00Z');
@@ -242,6 +252,18 @@ ok(tg[0]&&tg[0].text.startsWith('Buen día. 1 para hoy, 1 esperando respuesta\n'
 put([T('w4','Mirar ayer',{waiting:true,waitingOn:'Leo',waitingSince:'2026-10-01T12:00:00Z',followUp:'2026-10-09'}),T('w5','Vieja',{waiting:true,waitingOn:'Ana',waitingSince:'2026-10-07T12:00:00Z'})]);
 tg=[];r=await run('res.mjs','2026-10-12T10:00:00Z');
 ok(tg[0]&&tg[0].text==='Buen día. 2 esperando respuesta\n\nEsperando respuesta\n• Mirar ayer · Leo, había que mirarla el 9/10\n• Vieja · Ana, hace 5 días','daily: past follow-up date: '+JSON.stringify(tg[0]&&tg[0].text));
+// Notas (kind 'nota'): fuera del resumen y de la revisión, aunque les haya quedado fecha, hora, espera o pateadas (de cuando eran tarea)
+const notas=[T('n1','Nota vencida',{kind:'nota',due:'2026-10-10',time:'10:00'}),T('n2','Nota de hoy',{kind:'nota',time:'09:00',priority:'Alta'}),T('n3','Nota sin fecha',{kind:'nota',due:null,createdAt:'2026-08-01T12:00:00Z'}),
+  T('n4','Nota esperando',{kind:'nota',due:null,waiting:true,waitingOn:'Juan',waitingSince:'2026-10-01T12:00:00Z',followUp:'2026-10-12'}),T('n5','Nota pateada',{kind:'nota',due:'2026-10-20',postponed:5}),
+  T('n6','Nota hecha',{kind:'nota',due:null,done:true,completedAt:'2026-10-14T15:00:00Z'})];
+put([...notas,T('q','Tarea de hoy',{})]);tg=[];r=await run('res.mjs','2026-10-12T10:00:00Z');
+ok(r.code===0&&tg.length===1&&tg[0].text==='Buen día. 1 para hoy\n\nPara hoy\n• Tarea de hoy','notes: daily lists and counts only the task (not overdue, today, waiting notes): '+JSON.stringify(tg[0]&&tg[0].text));
+put(notas);tg=[];r=await run('res.mjs','2026-10-12T10:00:00Z');
+ok(r.code===0&&tg.length===0&&/no se envía nada/.test(r.out),'notes: daily with only notes → nothing sent');
+put([...notas,T('sf','Sin fecha de verdad',{due:null,createdAt:'2026-10-10T12:00:00Z'}),T('h','Hecha de verdad',{done:true,completedAt:'2026-10-15T15:00:00Z'})]);tg=[];r=await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5'});
+ok(tg.length===1&&tg[0].text.startsWith('Revisión de la semana: 1 sin fecha.\nEsta semana terminaste 1 tarea.\n'),'notes: weekly counts no note as "sin fecha", waiting, postponed or done: '+JSON.stringify(tg[0]&&tg[0].text));
+put(notas);tg=[];r=await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5'});
+ok(tg.length===0&&/Nada para revisar/.test(r.out),'notes: weekly with only notes (one marked done) → nothing sent');
 // ===== Resumen diario: recordatorios de ayer que no salieron (recordatorios-enviados.json del checkout) =====
 const ENV=repo+'/recordatorios-enviados.json',PERD=' por Telegram (revisá cron-job.org y que Actions esté activo).';
 const MARTES='2026-10-13T10:00:00Z',LUNES='2026-10-19T10:00:00Z';logs='';
@@ -294,6 +316,13 @@ fs.rmSync(repo+'/ajustes.json');
 // La revisión de los viernes no lo lleva
 put([T('f0','Del jueves',{due:'2026-10-15',time:'15:00'}),T('sf','Sin fecha',{due:null})]);fs.writeFileSync(ENV,'{}');tg=[];r=log(await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5'}));
 ok(tg.length===1&&tg[0].text.startsWith('Revisión de la semana: 1 sin fecha.')&&!tg[0].text.includes('⚠'),'weekly review: no missed-reminders line');
+// Una nota con fecha de ayer y hora no avisa (recordatorios.yml la saltea): no cuenta como aviso que no salió, aunque esté "hecha después"
+fs.writeFileSync(ENV,JSON.stringify({'zz|2026-10-12|10:00':'2026-10-12T12:50:00Z'}));
+put([T('nm','Nota con hora ayer',{kind:'nota',time:'15:00',createdAt:'2026-10-11T12:00:00Z'}),T('nd','Nota hecha después',{kind:'nota',time:'16:00',done:true,completedAt:'2026-10-12T20:00:00Z'}),
+  T('m1','Perdida',{time:'15:00',createdAt:'2026-10-11T12:00:00Z'})]);tg=[];r=await run('res.mjs',MARTES);
+ok(r.code===0&&tg.length===1&&tg[0].text==='⚠ Ayer no salió 1 aviso'+PERD+'\n\nBuen día. 1 vencida\n\nVencidas\n• Perdida · venció ayer','notes: a note with yesterday\'s date and a time is not a missed reminder (nor overdue); the task next to it is: '+JSON.stringify(tg[0]&&tg[0].text));
+put([T('nm','Nota con hora ayer',{kind:'nota',time:'15:00',createdAt:'2026-10-11T12:00:00Z'})]);tg=[];r=await run('res.mjs',MARTES);
+ok(r.code===0&&tg.length===0&&/no se envía nada/.test(r.out),'notes: only a note with a time yesterday → no warning, nothing sent');
 ok(logs&&![...ayer,...finde].some(t=>logs.includes(t.title))&&!logs.includes('Sin fecha'),'res: no task titles in the logs');
 fs.rmSync(ENV);
 // ===== Copia de seguridad diaria (respaldo.yml): copia los datos a otro repositorio privado, con git =====
@@ -381,6 +410,12 @@ fs.rmSync(ENV);
   escribir('tareas.json',soloViejas);x=await R(D2,{RESPALDO_GIT_URL:URLV});
   escribir('tareas.json',[]);x=await R(D2,{RESPALDO_GIT_URL:URLV});
   ok(x.code===0&&commits(bareV)===2,'resp: previous copy with only old done (archived by the app) and trashed tasks → emptying is not suspicious: '+JSON.stringify(x.err))}
+ // Las notas (kind 'nota') son datos tuyos como las tareas: cuentan para ver si el archivo se vació de golpe
+ {const bareN=dir+'/respaldoN.git';nuevoBare(bareN);const URLN=pathToFileURL(bareN).href;
+  escribir('tareas.json',[1,2,3,4,5].map(i=>T('nt'+i,'Nota '+i,{kind:'nota',due:null})));x=await R(D2,{RESPALDO_GIT_URL:URLN});
+  const c1=commits(bareN),copiaN=G(bareN,['show','main:tareas.json']);
+  escribir('tareas.json',[]);x=await R(D2,{RESPALDO_GIT_URL:URLN});
+  ok(c1===1&&x.code===1&&/tareas\.json quedó vacío \(en la última copia tenía 5 tareas\)/.test(x.err)&&commits(bareN)===1&&G(bareN,['show','main:tareas.json'])===copiaN,'resp: notes count as live items: previous copy with 5 notes, then emptied → suspicious, nothing pushed: '+JSON.stringify(x.err))}
  escribir('tareas.json',seis.slice(0,4));x=await R(D2);
  ok(x.code===0&&commits()===n+1&&/tareas\.json con 4 tareas/.test(x.out),'resp: 4 tasks → copied');
  escribir('tareas.json',[]);x=await R('2026-10-23T02:30:00Z');   // 22/10 a las 23:30 en Argentina
