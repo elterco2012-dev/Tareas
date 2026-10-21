@@ -7,7 +7,7 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
 4) Crea OTRO repositorio, PRIVADO, por ejemplo "mis-tareas-datos". No necesitas subir archivos.
 5) En GitHub: Settings de tu cuenta > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token.
    - Repository access: Only select repositories > mis-tareas-datos.
-   - Repository permissions > Contents: Read and write.
+   - Repository permissions > Contents: Read and write. Nada mas (sin el permiso Workflows).
    - Define una caducidad razonable; deberas renovarlo cuando venza.
    - NO compartas el token, ni lo subas al repositorio publico, ni lo pegues en conversaciones.
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
@@ -202,6 +202,10 @@ USO DIARIO
   recordatorios, primero reemplaza resumen.yml y recordatorios.yml por la version nueva (paso 0).
 - Que el recordatorio suene como alarma (fuerte, aunque estes durmiendo o en No molestar): en el Samsung, con la app
   gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
+- Copia de seguridad diaria: todas las noches GitHub copia tareas.json (y archivo/) a otro repositorio PRIVADO,
+  con un token propio que el de la app no puede tocar. Si tareas.json se borra o se vacia, ahi queda una copia
+  por dia para recuperarlo. Se configura una vez: ver repo-datos/INSTRUCCIONES.md, seccion "Copia de seguridad
+  diaria". El token de la app tiene que tener solo el repositorio de datos y nunca el permiso Workflows.
 
 SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.

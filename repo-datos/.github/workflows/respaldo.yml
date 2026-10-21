@@ -1,0 +1,132 @@
+# Copia de seguridad diaria de "Mis tareas" en otro repositorio PRIVADO (el "repositorio de respaldo").
+# Va en el repositorio PRIVADO de datos, en .github/workflows/respaldo.yml.
+# Pasos para configurarlo: ver INSTRUCCIONES.md, sección "Copia de seguridad diaria".
+#
+# Escribe con su propio token (el secreto RESPALDO_TOKEN), que solo tiene acceso al repositorio de respaldo:
+# el token de la app no puede tocar esas copias. Cada día queda guardado como un commit ("Copia del AAAA-MM-DD").
+# Minutos de Actions: 1 por día, unos 31 por mes (con recordatorios, cron-job.org y resúmenes, unos 1630 de los 2000 gratis).
+name: Copia de seguridad diaria
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # 3:17 en Argentina (6:17 UTC), todos los días
+  workflow_dispatch:        # botón "Run workflow" para probarlo
+
+permissions:
+  contents: read   # solo leer el repositorio de datos; en el de respaldo escribe con RESPALDO_TOKEN
+
+# Si una copia se demora, la siguiente espera a que termine
+concurrency:
+  group: respaldo
+  cancel-in-progress: false
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # no deja guardado el token del repositorio de datos
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Copiar al repositorio de respaldo
+        env:
+          RESPALDO_TOKEN: ${{ secrets.RESPALDO_TOKEN }}
+          RESPALDO_REPO: ${{ vars.RESPALDO_REPO }}
+          ZONA_HORARIA: America/Argentina/Buenos_Aires
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync,writeFileSync,lstatSync,readdirSync,mkdirSync,rmSync,mkdtempSync} from 'node:fs';
+          import {spawnSync} from 'node:child_process';
+          import {join,dirname} from 'node:path';
+          import {tmpdir} from 'node:os';
+          const E=process.env;
+          const zona=E.ZONA_HORARIA||'America/Argentina/Buenos_Aires';
+          // Fecha (AAAA-MM-DD) en la zona horaria de la persona, no en la del servidor
+          const hoy=new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+          const automatico=E.GITHUB_EVENT_NAME==='schedule';
+          const ver='Ver INSTRUCCIONES.md, sección "Copia de seguridad diaria".';
+          const recuperar='Para recuperar las tareas, seguí "Cómo recuperar las tareas" en INSTRUCCIONES.md (sección "Copia de seguridad diaria").';
+          const fallar=m=>{console.error(m);process.exit(1)};
+          // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org):
+          // solo cuántas son y los nombres de los archivos.
+
+          // 1. Configuración: el secreto RESPALDO_TOKEN y la variable RESPALDO_REPO ("usuario/nombre"; también se acepta
+          //    la dirección completa, https://github.com/usuario/nombre)
+          const token=(E.RESPALDO_TOKEN||'').trim();
+          const destino=(E.RESPALDO_REPO||'').trim().replace(/^(https?:\/\/)?(www\.)?github\.com\//i,'').replace(/\/+$/,'').replace(/\.git$/i,'');
+          // Recién copiado y todavía sin configurar: la corrida de cada noche no falla (ni manda mails de error).
+          // A medio configurar sí falla: así no pasan días sin copia sin que te enteres.
+          if(!token&&!destino&&automatico){console.log('Todavía no están cargados RESPALDO_TOKEN ni RESPALDO_REPO: no se copia nada. '+ver);process.exit(0)}
+          const faltan=[!token&&'el secreto RESPALDO_TOKEN',!destino&&'la variable RESPALDO_REPO'].filter(Boolean);
+          if(faltan.length)fallar('Falta configurar '+faltan.join(' y ')+' en el repositorio de datos (Settings → Secrets and variables → Actions). '+ver);
+          if(!/^[\w.-]+\/[\w.-]+$/.test(destino))fallar('La variable RESPALDO_REPO tiene que ser tu usuario, una barra y el nombre del repositorio de respaldo, por ejemplo usuario/mis-tareas-respaldo. '+ver);
+          const esEste=x=>String(x||'').toLowerCase()===String(E.GITHUB_REPOSITORY||'').toLowerCase();
+          const mismoRepo='RESPALDO_REPO es este mismo repositorio de datos: la copia tiene que ir a otro (por ejemplo, usuario/mis-tareas-respaldo). No se copia nada. '+ver;
+          if(esEste(destino))fallar(mismoRepo);
+
+          // 2. Qué se copia: tareas.json, la carpeta archivo/ y, si están, ajustes.json y recordatorios-enviados.json (no tienen
+          //    secretos: ajustes.json solo guarda fechas de vencimiento de tokens, con una huella). Nada más. Solo archivos
+          //    comunes: los enlaces (symlinks) no se siguen, y en archivo/ se saltean los que empiezan con punto.
+          const esArchivo=f=>{try{return lstatSync(f).isFile()}catch{return false}};
+          const esCarpeta=f=>{try{return lstatSync(f).isDirectory()}catch{return false}};
+          const listar=d=>esCarpeta(d)?readdirSync(d).filter(n=>!n.startsWith('.')).sort().flatMap(n=>{const f=d+'/'+n;return esCarpeta(f)?listar(f):esArchivo(f)?[f]:[]}):[];
+          const leerLista=f=>{try{const x=JSON.parse(readFileSync(f,'utf8'));return Array.isArray(x)?x:null}catch{return null}};
+          // Sin tareas.json o roto: no se toca la copia (queda la última buena) y la corrida falla, así GitHub te avisa por mail
+          if(!esArchivo('tareas.json'))fallar('⚠ No está tareas.json en el repositorio de datos: no se actualiza la copia, así queda la última buena. '+recuperar);
+          const tareas=leerLista('tareas.json');
+          if(!tareas)fallar('⚠ tareas.json no tiene una lista de tareas válida: no se actualiza la copia, así queda la última buena. '+recuperar);
+          const archivos=['tareas.json',...listar('archivo'),...['ajustes.json','recordatorios-enviados.json'].filter(esArchivo)];
+
+          // 3. El repositorio de respaldo tiene que existir, ser privado y no ser este mismo
+          const api=E.GITHUB_API||'https://api.github.com';
+          let repo;
+          try{
+            const r=await fetch(api+'/repos/'+destino,{headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+            if(r.status===401)fallar('GitHub no acepta el token RESPALDO_TOKEN: está mal copiado o venció. Generá uno nuevo y cargalo otra vez. '+ver);
+            if(r.status===403||r.status===404)fallar('No encuentro el repositorio '+destino+' con el token RESPALDO_TOKEN: revisá que RESPALDO_REPO esté bien escrito y que el token tenga elegido ese repositorio. '+ver);
+            if(!r.ok)fallar('GitHub respondió '+r.status+' al buscar el repositorio de respaldo. Probá de nuevo más tarde.');
+            repo=await r.json();
+          }catch(e){fallar('No se pudo consultar a GitHub: '+e.message)}
+          if(!repo||repo.private!==true)fallar('El repositorio de respaldo es público: no se copia nada. Hacelo privado (en '+destino+': Settings → General → abajo de todo, Change visibility → Make private) o usá otro. '+ver);
+          if(esEste(repo.full_name)||E.GITHUB_REPOSITORY_ID&&String(repo.id)===String(E.GITHUB_REPOSITORY_ID))fallar(mismoRepo);
+
+          // 4. Se baja el repositorio de respaldo con git. El token va en un encabezado que git lee de variables de entorno:
+          //    no queda en la dirección, ni en un archivo, ni en el registro.
+          const url=E.RESPALDO_GIT_URL||'https://github.com/'+destino+'.git';   // RESPALDO_GIT_URL: solo para las pruebas
+          const basic=Buffer.from('x-access-token:'+token).toString('base64');
+          const genv={...E,GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_COUNT:'1',GIT_CONFIG_KEY_0:'http.https://github.com/.extraheader',GIT_CONFIG_VALUE_0:'Authorization: Basic '+basic,
+            GIT_AUTHOR_NAME:'Respaldo Mis tareas',GIT_AUTHOR_EMAIL:'respaldo@mis-tareas.invalid',GIT_COMMITTER_NAME:'Respaldo Mis tareas',GIT_COMMITTER_EMAIL:'respaldo@mis-tareas.invalid'};
+          delete genv.RESPALDO_TOKEN;
+          const tapar=s=>String(s||'').split(token).join('***').split(basic).join('***');   // por las dudas
+          const git=(dir,...args)=>{const r=spawnSync('git',args,{cwd:dir,env:genv,encoding:'utf8'});return {ok:r.status===0,out:(r.stdout||'').trim(),salida:tapar((r.stdout||'')+(r.stderr||'')+(r.error?r.error.message:'')).trim()}};
+          const tmp=mkdtempSync(join(tmpdir(),'respaldo-'));
+          process.on('exit',()=>{try{rmSync(tmp,{recursive:true,force:true})}catch{}});
+          const copia=join(tmp,'copia');
+          let g=git(tmp,'clone','--depth','1','--quiet',url,copia);
+          if(!g.ok)fallar('No se pudo bajar el repositorio de respaldo '+destino+' ('+g.salida+'). Revisá que el token RESPALDO_TOKEN tenga Contents: Read and write en ese repositorio. '+ver);
+          // Recién creado, sin nada adentro: la primera copia va a main
+          if(!git(copia,'rev-parse','--verify','--quiet','HEAD').ok)git(copia,'symbolic-ref','HEAD','refs/heads/main');
+
+          // 5. tareas.json vacío de golpe (la última copia tenía 5 o más): no se toca la copia, por si fue un error
+          const antes=esArchivo(join(copia,'tareas.json'))?(leerLista(join(copia,'tareas.json'))||[]).length:0;
+          if(!tareas.length&&antes>=5)fallar('⚠ tareas.json quedó vacío (en la última copia tenía '+antes+' tareas): no se actualiza la copia, por si fue un error. '+recuperar+' Si lo vaciaste a propósito, la copia vuelve a andar sola cuando cargues una tarea.');
+
+          // 6. Se reemplazan los archivos copiados (lo demás del repositorio de respaldo, como un README, queda como está)
+          for(const f of ['tareas.json','ajustes.json','recordatorios-enviados.json','archivo'])rmSync(join(copia,f),{recursive:true,force:true});
+          for(const f of archivos){mkdirSync(dirname(join(copia,f)),{recursive:true});writeFileSync(join(copia,f),readFileSync(f))}
+          const plural=(n,a,b)=>n+' '+(n===1?a:b);
+          const resumen=plural(archivos.length,'archivo','archivos')+' ('+archivos.map(f=>f==='tareas.json'?'tareas.json con '+plural(tareas.length,'tarea','tareas'):f).join(', ')+')';
+          g=git(copia,'add','-A');
+          if(!g.ok)fallar('No se pudo preparar la copia ('+g.salida+').');
+          const cambios=git(copia,'status','--porcelain');
+          if(cambios.ok&&!cambios.out){console.log('Sin cambios desde la última copia: '+resumen+'. No hace falta guardar otra.');process.exit(0)}
+          const mensaje='Copia del '+hoy;
+          g=git(copia,'commit','--quiet','--no-verify','--no-gpg-sign','-m',mensaje);
+          if(!g.ok)fallar('No se pudo preparar la copia ('+g.salida+').');
+          g=git(copia,'push','--quiet','origin','HEAD');
+          if(!g.ok)fallar('No se pudo guardar la copia en '+destino+' ('+g.salida+'). Revisá que el token RESPALDO_TOKEN tenga Contents: Read and write en ese repositorio. '+ver);
+          console.log(mensaje+' guardada en '+destino+': '+resumen+'.');
+          JS
