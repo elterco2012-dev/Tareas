@@ -16,11 +16,25 @@ function shellFiles(){
   return [...m[1].matchAll(/'([^']+)'/g)].map(x=>x[1].replace(/^\.\//,'')).map(f=>f===''?'index.html':f.replace(/\?.*$/,''));
 }
 const FILES=shellFiles();
+// CSP de index.html: los <script> que van dentro de la página se permiten por su hash (sha256). Cambian con cada
+// cambio del código (y de la versión, que está adentro), así que se recalculan junto con ella
+const CSP_RE=/(<meta http-equiv="Content-Security-Policy" content="[^"]*?script-src 'self')((?: 'sha256-[A-Za-z0-9+\/=]+')*)/;
+const HASH_RE=/'sha256-[A-Za-z0-9+\/=]+'/g;
+function cspNeeded(html){
+  return [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>"'sha256-"+crypto.createHash('sha256').update(m[1],'utf8').digest('base64')+"'");
+}
+function cspCurrent(html){const m=html.match(CSP_RE);return m?(m[2].match(HASH_RE)||[]):null}
+function setCsp(){
+  const p=path.join(ROOT,'index.html'),s=fs.readFileSync(p,'utf8');
+  if(!CSP_RE.test(s))throw new Error('No encontré la CSP en index.html');
+  fs.writeFileSync(p,s.replace(CSP_RE,(m,a)=>a+' '+cspNeeded(s.replace(/\r\n/g,'\n')).join(' ')));
+}
 function fingerprint(){
   const h=crypto.createHash('sha256');
   for(const f of FILES){
     // En los de texto, sin la versión misma (si no, cambiar la versión cambiaría la huella) ni los fines de línea
-    const b=/\.(html|js|svg)$/.test(f)?Buffer.from(text(f).replace(new RegExp(VER,'g'),'VERSION')):read(f);
+    // (ni los hashes de la CSP, que dependen de la versión y salen del mismo código)
+    const b=/\.(html|js|svg)$/.test(f)?Buffer.from(text(f).replace(new RegExp(VER,'g'),'VERSION').replace(HASH_RE,"'sha256-'")):read(f);
     h.update(f+'\0');h.update(b);h.update('\0');
   }
   return h.digest('hex').slice(0,16);
@@ -31,6 +45,7 @@ function versions(){
     sw:m('sw.js',/const VERSION='([^']+)'/),huella:m('sw.js',/huella: ([0-9a-f]{16})/),
     page:m('index.html',/const APP_VERSION='([^']+)'/),script:m('index.html',/src="sync-core\.js\?v=([^"]+)"/),
     core:m('sync-core.js',/const CORE_VERSION='([^']+)'/),
+    csp:cspCurrent(text('index.html')),cspNeeded:cspNeeded(text('index.html')),
   };
 }
 // La versión de hoy, en la hora de Buenos Aires: AAAA.M.D-n (n = 1, 2, … si hay más de una en el día).
@@ -49,9 +64,10 @@ function setVersion(v){
   put('index.html',/const APP_VERSION='[^']+'/,"const APP_VERSION='"+v+"'");
   put('index.html',/src="sync-core\.js\?v=[^"]+"/,'src="sync-core.js?v='+v+'"');
   put('sync-core.js',/const CORE_VERSION='[^']+'/,"const CORE_VERSION='"+v+"'");
+  setCsp();
   put('sw.js',/huella: [0-9a-f]{16}/,'huella: '+fingerprint());
 }
-module.exports={FILES,fingerprint,versions,nextVersion,setVersion};
+module.exports={FILES,fingerprint,versions,nextVersion,setVersion,cspNeeded};
 if(require.main===module){
   const v=versions();
   if(process.argv.includes('--bump')){const n=nextVersion(v.sw);setVersion(n);console.log('Versión '+n+' · huella '+fingerprint())}

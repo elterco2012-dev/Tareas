@@ -3,8 +3,8 @@
 // la misma versión. Para publicar cambios se sube VERSION (npm run nueva-version; una prueba lo exige): Chrome ve
 // que sw.js cambió, arma la versión nueva en otra caché y la app avisa "Hay una versión nueva".
 // No toca las llamadas a GitHub ni el manifest (Chrome lo revisa por su cuenta).
-const VERSION='2026.10.16-5';
-// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: 71c86b8e41defc90
+const VERSION='2026.10.21-5';
+// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: 00cce0f5466fb07e
 importScripts('sync-core.js?v='+VERSION);
 const CACHE='tareas-'+VERSION;
 const SHELL=['./','./sync-core.js?v='+VERSION,'./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
@@ -75,6 +75,8 @@ async function subirPendientes(){
     let items=[],sha=null;
     if(r.ok){const j=await r.json();items=JSON.parse(b64utf8(j.content));sha=j.sha;if(!Array.isArray(items))return}
     else if(r.status!==404){if(r.status>=500)throw new Error('GitHub '+r.status);return}
+    // tareas.json desapareció o quedó vacío y la página tenía tareas: no se sube nada (la página lo avisa y ofrece arreglarlo)
+    if(!sha&&snap.had>0||sha&&!items.length&&snap.had>=3)return;
     const next=applyAll(items,ops);
     const w=await fetch(url,{method:'PUT',headers:{...h,'Content-Type':'application/json'},
       body:JSON.stringify({message:commitMessage(ops,items,next,(snap.src||'')+' (segundo plano)'),content:utf8b64(JSON.stringify(next,null,2)),...(sha?{sha}:{})})});
