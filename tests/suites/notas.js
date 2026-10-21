@@ -122,10 +122,10 @@ gh.items=items();gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 await p.addInitScript(FAKE);await p.reload();await sleep(700);
 await p.locator('#title').tap();
-await p.evaluate(()=>{const dt=new DataTransfer();dt.setData('text','nota: wifi casa clave123\nComprar yerba mañana\nidea: viaje a Mendoza');document.getElementById('title').dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}))});await sleep(200);
+await p.evaluate(()=>{const dt=new DataTransfer();dt.setData('text','nota: horario del dentista\nComprar yerba mañana\nidea: viaje a Mendoza');document.getElementById('title').dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}))});await sleep(200);
 ok(/notas/.test(await p.textContent('#bulkHint')),'pasted list: the hint explains "nota:"/"idea:"');
 await p.locator('#bulkOk').tap();await sleep(400);
-ok(byT(gh,'wifi casa clave123')?.kind==='nota'&&byT(gh,'viaje a Mendoza')?.kind==='nota'&&byT(gh,'Comprar yerba')?.kind!=='nota'&&byT(gh,'Comprar yerba')?.due===day(1),'pasted list: "nota:"/"idea:" lines become notes, the rest tasks');
+ok(byT(gh,'horario del dentista')?.kind==='nota'&&byT(gh,'viaje a Mendoza')?.kind==='nota'&&byT(gh,'Comprar yerba')?.kind!=='nota'&&byT(gh,'Comprar yerba')?.due===day(1),'pasted list: "nota:"/"idea:" lines become notes, the rest tasks');
 ok(/1 tarea y 2 notas agregadas/.test(await p.innerText('#toastMsg')),'toast counts both: '+await p.innerText('#toastMsg'));
 // Dictar con el botón Nota
 await p.locator('#title').tap();await p.locator('#noteChip').tap();await p.evaluate(()=>document.activeElement.blur());
@@ -147,6 +147,64 @@ await ctx.close();
 ({ctx,p}=await device(b,makeGH([T('n','Solo una nota',{kind:'nota'})]),PHONE,APP,()=>{localStorage.removeItem('githubTasksConfig');localStorage.setItem('tareasCache',JSON.stringify({items:[]}))}));
 await p.evaluate(()=>{tasks=[];notes=[{id:'x',kind:'nota',title:'Local'}];renderList()});
 ok(!(await p.isVisible('#welcome')),'unconfigured with only notes: no welcome card');
+await ctx.close();
+
+// ===== Correcciones de la revisión =====
+gh.items=[T('t1','Uno',{due:day(0),order:0}),T('t2','Dos',{due:day(0),order:1}),T('nh','reunión de consorcio el jueves a las 19',{kind:'nota',order:0}),
+  T('nd','Nota tildada en el otro celu',{kind:'nota',done:true,completedAt:L.ago(1)}),T('rs','Regar',{due:day(0),repeatOf:'r0'}),
+  T('w','Respuesta de Juan',{waiting:true,waitingOn:'Juan',waitingSince:L.ago(1)}),T('sf','Sin fecha uno')];gh.sha++;
+({ctx,p}=await device(b,gh,{viewport:{width:1300,height:900}},APP,()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas','{"gestos":1,"punto":1}');localStorage.setItem('notasAbiertas','true')}}));
+// Una nota con una hora en el texto: al convertirla no queda con esa hora (ni manda un aviso)
+await row(p,'reunión de consorcio').locator('.more').click();await p.locator('#menu button',{hasText:'Convertir en tarea'}).click();await sleep(600);
+c=gh.items.find(x=>x.id==='nh');
+ok(c.kind!=='nota'&&c.due===day(0)&&c.time==null&&!(await row(p,'reunión de consorcio').locator('.time').count()),'converted note does not pick up "a las 19" from its text: time '+c.time);
+const order=await p.evaluate(()=>[...[...document.querySelectorAll('#groups .grp')].find(g=>/^Hoy/.test(g.querySelector('.ghead').textContent)).querySelectorAll('.task .ttext')].map(x=>x.textContent.trim()));
+ok(order[order.length-1]==='reunión de consorcio el jueves a las 19','it lands at the end of Hoy, like a new one: '+JSON.stringify(order));
+await p.click('#toastUndo');await sleep(400);
+c=gh.items.find(x=>x.id==='nh');
+ok(c.kind==='nota'&&c.time==null&&c.due==null,'Undo: a note again, still without a time');
+// Una nota tildada (versión anterior en el otro dispositivo) está en Terminadas y "Volver a pendientes" la devuelve a Notas
+ok(!(await row(p,'Nota tildada').count())||await row(p,'Nota tildada').evaluate(r=>!r.closest('#notesSec')),'a done note is not shown as a live note');
+await p.click('#doneToggle');await sleep(150);
+await p.locator('.drow',{hasText:'Nota tildada'}).locator('.dbody').click();await sleep(200);
+ok(await p.textContent('#editH')==='Nota terminada'&&await p.isVisible('#eReopen')&&!(await p.isVisible('#eNoteRow')),'opening it says "Nota terminada" and offers Volver a pendientes');
+await p.click('#eReopen');await sleep(400);
+ok(gh.items.find(x=>x.id==='nd').done===false&&await row(p,'Nota tildada').evaluate(r=>!!r.closest('#notesSec')),'reopened: back in Notas');
+// Pasar a notas saca a la tarea de su serie (la próxima se puede volver a crear)
+await row(p,'Regar').locator('.more').click();await p.locator('#menu button',{hasText:'Pasar a notas'}).click();await sleep(400);
+ok(gh.items.find(x=>x.id==='rs').repeatOf==null&&gh.items.find(x=>x.id==='rs').kind==='nota','toNote clears repeatOf');
+await p.evaluate(()=>hideToast());
+// Teclado en pantalla ancha: la columna principal (con las notas) antes que Esperando y Sin fecha de la derecha
+const ord=await p.evaluate(()=>visibleIds.map(id=>(tasks.concat(notes).find(t=>t.id===id)||{}).title));
+const iN=ord.indexOf('Nota tildada en el otro celu'),iW=ord.indexOf('Respuesta de Juan'),iS=ord.indexOf('Sin fecha uno');
+ok(iN>=0&&iN<iW&&iW<iS,'wide: arrows go main column (notes), then Esperando, then Sin fecha '+JSON.stringify(ord));
+// El botón del aviso de Telegram de una tarea que pasó a notas
+await p.evaluate(()=>openPosById('rs',false));await sleep(300);
+ok(/ahora es una nota/.test(await p.innerText('#toastMsg')),'Telegram link to a task that became a note: says so ('+await p.innerText('#toastMsg')+')');
+// "Ver" después de guardar una nota con un filtro por persona puesto
+await p.evaluate(()=>{hideToast();setPersonFilter('Juan')});await p.fill('#title','nota: Juan prefiere mail');await p.press('#title','Enter');await sleep(300);
+await p.click('#toastB2');await sleep(300);
+ok(!(await p.isVisible('#filterBar'))&&await row(p,'Juan prefiere mail').count()===1,'"Ver" clears the person filter and shows the new note');
+// Lista pegada mezclada: el título cuenta tareas y notas
+await p.evaluate(()=>openBulk(['nota: a','Comprar pan','idea: b']));await sleep(150);
+ok(await p.textContent('#bulkH')==='¿Cargar 1 tarea y 2 notas?','bulk heading counts both: '+await p.textContent('#bulkH'));
+await p.click('#bulkCancel');
+ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+await ctx.close();
+// Celular: el botón Nota se apaga solo cuando el alta vuelve al reposo (no queda prendido sin verse)
+gh.items=items();gh.sha++;
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await p.addInitScript(FAKE);await p.reload();await sleep(700);
+await p.locator('#title').tap();await p.locator('#noteChip').tap();await p.evaluate(()=>document.activeElement.blur());await sleep(400);
+ok(await p.getAttribute('#noteChip','aria-pressed')==='true','Nota on while the dates are shown');
+await p.evaluate(()=>readyToCapture());await sleep(200);
+ok(await p.getAttribute('#noteChip','aria-pressed')==='false'&&await p.evaluate(()=>!asNote),'back at rest: Nota goes off');
+await p.evaluate(()=>{window.__say=['llamar al médico mañana a las 10']});
+await p.locator('#fabMic').tap();
+ok(await L.until(()=>p.evaluate(()=>!!autoSave)),'dictation countdown');
+await p.locator('#fabMic').tap();
+ok(await L.until(()=>{const x=gh.items.find(t=>/médico/.test(t.title));return x&&x.kind!=='nota'&&x.due===day(1)&&x.time==='10:00'}),'so the next dictation is a task with its date and time');
+ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 
 await b.close();

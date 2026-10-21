@@ -71,7 +71,7 @@ const b=await L.launch();
   const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#repCsv')]);
   const csv=fs.readFileSync(await dl.path(),'utf8');
   const lines=csv.replace(/^﻿/,'').split('\r\n');
-  ok(csv.charCodeAt(0)===0xfeff&&lines[0]==='Estado;Tarea;Pedida por;Creada;Fecha;Hora;Terminada;Días;Prioridad;Pospuesta;Esperando a;Tickets;Notas','CSV for Excel: BOM, ";" and header');
+  ok(csv.charCodeAt(0)===0xfeff&&lines[0]==='Estado;Tarea;Pedida por;Creada;Fecha;Hora;Terminada;Días;Prioridad;Pospuesta;Esperando a;Tickets;Detalle','CSV for Excel: BOM, ";" and header');
   ok(lines.length===5&&lines[1].startsWith('Terminada;Tickets de Julian;German;')&&/\d+\/\d+\/\d{4}/.test(lines[1])&&lines.some(l=>l.includes('"ver; con ""comillas"""'))&&lines.some(l=>l.startsWith('En espera;En espera;German;')&&l.includes(';Rau;')),'CSV rows, dates and quoting: '+lines.length);
   ok(dl.suggestedFilename().startsWith('informe-tareas-')&&dl.suggestedFilename().endsWith('.csv'),'file name');
   // Imprimir

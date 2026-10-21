@@ -140,12 +140,15 @@ USO DIARIO
 - Procesar (en la compu, arriba a la derecha, o tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas
   pateadas primero) y lo que espera respuesta hace rato. Una tecla o un toque por decision y pasa sola a la
   siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy. N la pasa a notas (si no era para hacer).
-- Notas: lo que no es para hacer (un dato, una idea, el codigo del porton). Escribi "nota:" o "idea:" al principio
-  ("nota: wifi de la casa clave123"), o toca el boton "Nota" (al lado de las fechas) y escribi o dicta. El texto se
-  guarda tal cual: no busca fechas, horas ni "@persona". Van en la seccion "Notas", abajo de todo, plegada hasta que
+- Notas: lo que no es para hacer (un dato, una idea, el talle de alguien). Escribi "nota:" o "idea:" al principio
+  ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca el boton "Nota" (al lado de las fechas) y
+  escribi o dicta. El texto se guarda tal cual: no busca fechas, horas ni "@persona". No guardes claves ni
+  contraseñas: cada cambio queda en el historial de GitHub y en la copia diaria. Van en la seccion "Notas", abajo de todo, plegada hasta que
   la abris (cada dispositivo se acuerda); al buscar aparecen las que coinciden. No tienen casilla: toca una para
   editarla. No cuentan en Hoy, Procesar, la revision de la semana, el numero del icono, el resumen ni los
-  recordatorios. En "⋯": "Convertir en tarea" (queda para hoy con el punto azul, para que le pongas fecha), y en una
+  recordatorios (si ya tenias el resumen o los recordatorios, reemplaza resumen.yml y recordatorios.yml por los
+  nuevos: ver repo-datos/INSTRUCCIONES.md). Una nota que se tilde en un dispositivo con la version anterior de la
+  app va a Terminadas; tocandola ahi, "Volver a pendientes" la devuelve a Notas. En "⋯": "Convertir en tarea" (queda para hoy con el punto azul, para que le pongas fecha), y en una
   tarea, "Pasar a notas" (le saca la fecha, la hora y la repeticion). Las dos con "Deshacer".
   El boton que agrega texto debajo de una tarea ahora se llama "+ Detalle".
 - Pateadas: si pasas una tarea vencida o de hoy para mas adelante, se cuenta. Desde la tercera vez la tarea dice

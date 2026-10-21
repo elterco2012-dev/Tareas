@@ -21,7 +21,7 @@ En "Esperando respuesta" aparece lo que espera hace 3 días o más (desde que lo
 
 Si un día no hay nada vencido, nada para hoy y nada esperando respuesta, no te llega nada (salvo que haya un aviso con ⚠, como el de un recordatorio que no salió: ver "Recordatorios a la hora").
 
-Las notas no aparecen ni se cuentan: ni en este resumen, ni en la revisión de los viernes, ni en los recordatorios (con la versión nueva de `resumen.yml` y `recordatorios.yml`).
+Las notas de la app no aparecen ni se cuentan: ni en este resumen, ni en la revisión de los viernes, ni en los recordatorios. **Si ya tenías el resumen o los recordatorios** de antes de las notas, reemplazá `resumen.yml` y `recordatorios.yml` por los de esta carpeta (como en "0. Actualizar los dos archivos", más abajo); si no, el resumen de los viernes cuenta las notas como "sin fecha".
 
 Lo hace GitHub solo, con tu repositorio **privado de datos** (el de `tareas.json`). No hace falta tener la compu prendida. Es gratis: usa alrededor de 1 minuto por día de los 2000 minutos por mes que GitHub da gratis para repositorios privados.
 

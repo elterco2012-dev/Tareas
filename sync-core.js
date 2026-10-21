@@ -3,7 +3,7 @@
 // en segundo plano. Todo lo que está acá tiene que funcionar en los dos lados.
 'use strict';
 // La versión de la app: tiene que ser la misma que la de index.html y sw.js (si no, la página recarga una vez)
-const CORE_VERSION='2026.10.21-10';
+const CORE_VERSION='2026.10.21-11';
 
 // ---- Cambios: cada acción es una operación que se puede reaplicar sobre la última versión ----
 // Cambios cruzados: cada edición de estos campos lleva lo que había antes (prev), cuándo se hizo (at) y anota en la
