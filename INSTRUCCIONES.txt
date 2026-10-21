@@ -204,7 +204,8 @@ USO DIARIO
   gratis MacroDroid. Paso a paso en repo-datos/INSTRUCCIONES.md, seccion "Que el recordatorio suene como alarma".
 - Copia de seguridad diaria: todas las noches GitHub copia tareas.json (y archivo/) a otro repositorio PRIVADO,
   con un token propio que el de la app no puede tocar. Si tareas.json se borra o se vacia, ahi queda una copia
-  por dia para recuperarlo. Se configura una vez: ver repo-datos/INSTRUCCIONES.md, seccion "Copia de seguridad
+  por dia para recuperarlo (si la app lo detecta, primero usa "Volver a subir la copia de este dispositivo", que no
+  pierde lo de despues de la copia). Se configura una vez: ver repo-datos/INSTRUCCIONES.md, seccion "Copia de seguridad
   diaria". El token de la app tiene que tener solo el repositorio de datos y nunca el permiso Workflows.
 
 SEGURIDAD Y LIMITACIONES
@@ -218,7 +219,9 @@ SEGURIDAD Y LIMITACIONES
   Al publicar una version nueva, "npm run nueva-version" recalcula lo que esa politica permite (una prueba lo exige).
 - Si tareas.json desaparece de GitHub, queda vacio o se daña, la app NO lo toma como "no hay tareas": deja de
   sincronizar en ese dispositivo, avisa arriba en rojo y en Sincronizacion ofrece "Volver a subir la copia de este
-  dispositivo" (o "Fue a proposito: dejarlo asi", con un segundo toque). Si lo arregla el otro dispositivo, sigue sola.
+  dispositivo" (o "Fue a proposito: dejarlo asi", con un segundo toque). Volver a subir usa la ultima version buena
+  que haya en el historial de GitHub si es mas nueva que la copia del dispositivo (por si el otro subio cosas despues),
+  mas lo que falte subir; nunca sube una lista vacia. Si lo arregla el otro dispositivo, sigue sola.
 - Si tareas.json tiene datos que no son tareas o campos invalidos (por ejemplo, editado a mano), la app los arregla
   al leerlo, avisa, y se guarda arreglado en la proxima subida.
 - "Descargar copia" (en Sincronizacion) baja un archivo .json con todas las tareas (papelera y cambios sin subir

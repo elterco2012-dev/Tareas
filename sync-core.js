@@ -3,16 +3,17 @@
 // en segundo plano. Todo lo que está acá tiene que funcionar en los dos lados.
 'use strict';
 // La versión de la app: tiene que ser la misma que la de index.html y sw.js (si no, la página recarga una vez)
-const CORE_VERSION='2026.10.21-6';
+const CORE_VERSION='2026.10.21-9';
 
 // ---- Cambios: cada acción es una operación que se puede reaplicar sobre la última versión ----
-// Cambios cruzados: cada edición lleva lo que había antes en los campos que cambia (prev) y cuándo se hizo (at).
-// Si al subirla GitHub ya tiene otro valor en uno de esos campos y la tarea se editó después en otro dispositivo
-// (editedAt), en ese campo gana el otro, el más nuevo, y queda anotado en lost para avisar.
+// Cambios cruzados: cada edición de estos campos lleva lo que había antes (prev), cuándo se hizo (at) y anota en la
+// tarea cuándo se cambió cada campo (edited: {campo: fecha}). Si al subirla GitHub ya tiene en un campo otro valor,
+// puesto después en otro dispositivo, en ese campo gana el otro (el más nuevo) y queda anotado en lost para avisar.
+// Si así no se aplica ningún campo de la edición, tampoco se aplica lo que dependía de ellos (orden, pateada…).
 const CONFLICT_KEYS=['title','notes','due','time','priority','requester','repeat','waiting','waitingOn','followUp'];
 const sameVal=(a,b)=>a===b||a==null&&b==null||JSON.stringify(a)===JSON.stringify(b);
 // cmp: orden de las pendientes, solo para 'move' (de una versión vieja); sin cmp, 'move' no hace nada
-function applyOp(a,op,cmp,lost){
+function applyOp(a,op,cmp){
   const item=op.id?a.find(x=>x&&x.id===op.id):null;
   switch(op.type){
     case 'add':
@@ -29,15 +30,22 @@ function applyOp(a,op,cmp,lost){
       break;
     case 'edit': {
       if(!item)break;
-      const newer=op.prev&&op.at&&item.editedAt&&item.editedAt>op.at,patch={},keys=[];
+      const ed=item.edited&&typeof item.edited==='object'?item.edited:{},patch={},keys=[],prev=op.prev||{};
       for(const k in op.patch){
-        if(newer&&k in op.prev&&!sameVal(item[k],op.prev[k])){keys.push(k);continue}   // lo cambió el otro, después
-        if(k==='editedAt'&&item.editedAt&&item.editedAt>op.patch.editedAt)continue;
+        if(k==='edited')continue;
+        // Lo cambió el otro dispositivo, después, y a otro valor que el de este cambio
+        if(op.at&&k in prev&&ed[k]>op.at&&!sameVal(item[k],prev[k])&&!sameVal(item[k],op.patch[k])){keys.push(k);continue}
         patch[k]=op.patch[k];
       }
+      const own=Object.keys(prev).filter(k=>k in op.patch);
+      if(keys.length&&keys.length===own.length)return {skipped:keys,applied:[]};
       Object.assign(item,patch);
-      if(keys.length&&lost)lost.push({id:op.id,keys});
-      break;
+      if(op.patch.edited){
+        const m={...ed};
+        for(const k in op.patch.edited)if(k in patch&&!(m[k]>op.patch.edited[k]))m[k]=op.patch.edited[k];
+        item.edited=m;
+      }
+      return {skipped:keys,applied:Object.keys(patch)};
     }
     case 'delete': {
       const i=a.findIndex(x=>x&&x.id===op.id);
@@ -56,10 +64,18 @@ function applyOp(a,op,cmp,lost){
     }
   }
 }
-// lost (opcional): ahí se anotan los campos de cambios de este dispositivo que no se aplicaron (ver arriba)
+// lost (opcional): ahí se anotan los campos de cambios de este dispositivo que no se aplicaron (ver arriba), salvo que
+// un cambio posterior de la misma subida haya puesto ese campo igual
 function applyAll(base,ops,cmp,lost){
-  const a=structuredClone(base);
-  for(const op of ops){try{applyOp(a,op,cmp,lost)}catch{}}
+  const a=structuredClone(base),miss=new Map();
+  for(const op of ops){
+    let r;try{r=applyOp(a,op,cmp)}catch{}
+    if(!r||!lost)continue;
+    const m=miss.get(op.id)||new Set();
+    r.applied.forEach(k=>m.delete(k));r.skipped.forEach(k=>m.add(k));
+    miss.set(op.id,m);
+  }
+  if(lost)for(const [id,m] of miss)if(m.size)lost.push({id,keys:[...m]});
   return a;
 }
 

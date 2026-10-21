@@ -48,7 +48,7 @@ jobs:
           const hoy=new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
           const automatico=E.GITHUB_EVENT_NAME==='schedule';
           const ver='Ver INSTRUCCIONES.md, sección "Copia de seguridad diaria".';
-          const recuperar='Para recuperar las tareas, seguí "Cómo recuperar las tareas" en INSTRUCCIONES.md (sección "Copia de seguridad diaria").';
+          const recuperar='Para recuperar las tareas: primero abrí la app en el dispositivo que las tenga más al día y, en Sincronización, tocá "Volver a subir la copia de este dispositivo"; si no se puede, seguí "Cómo recuperar las tareas" en INSTRUCCIONES.md (sección "Copia de seguridad diaria").';
           const fallar=m=>{console.error(m);process.exit(1)};
           // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org):
           // solo cuántas son y los nombres de los archivos.
@@ -111,7 +111,11 @@ jobs:
           if(!git(copia,'rev-parse','--verify','--quiet','HEAD').ok)git(copia,'symbolic-ref','HEAD','refs/heads/main');
 
           // 5. tareas.json vacío de golpe (la última copia tenía 5 o más): no se toca la copia, por si fue un error
-          const antes=esArchivo(join(copia,'tareas.json'))?(leerLista(join(copia,'tareas.json'))||[]).length:0;
+          // Se cuentan como en la app: sin las de la papelera ni las terminadas hace más de 25 días (esas las archiva la app
+          // y salen de tareas.json, así que no es un vaciado)
+          const viejo=Date.now()-25*86400000;
+          const vivas=l=>(l||[]).filter(t=>t&&typeof t==='object'&&!Array.isArray(t)&&!t.deletedAt&&!(t.done&&Date.parse(t.completedAt)<viejo)).length;
+          const antes=esArchivo(join(copia,'tareas.json'))?vivas(leerLista(join(copia,'tareas.json'))):0;
           if(!tareas.length&&antes>=5)fallar('⚠ tareas.json quedó vacío (en la última copia tenía '+antes+' tareas): no se actualiza la copia, por si fue un error. '+recuperar+' Si lo vaciaste a propósito, la copia vuelve a andar sola cuando cargues una tarea.');
 
           // 6. Se reemplazan los archivos copiados (lo demás del repositorio de respaldo, como un README, queda como está)

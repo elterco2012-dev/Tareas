@@ -3,8 +3,8 @@
 // la misma versión. Para publicar cambios se sube VERSION (npm run nueva-version; una prueba lo exige): Chrome ve
 // que sw.js cambió, arma la versión nueva en otra caché y la app avisa "Hay una versión nueva".
 // No toca las llamadas a GitHub ni el manifest (Chrome lo revisa por su cuenta).
-const VERSION='2026.10.21-6';
-// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: 775130d058a221a7
+const VERSION='2026.10.21-9';
+// Huella de los archivos de la app; la calcula y la revisa tests/lib/huella.js. huella: edf0bb03a3167f6c
 importScripts('sync-core.js?v='+VERSION);
 const CACHE='tareas-'+VERSION;
 const SHELL=['./','./sync-core.js?v='+VERSION,'./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png'];
@@ -68,21 +68,27 @@ async function subirPendientes(){
   const sent=new Set(await idbGet('enviadas')||[]);
   const ops=snap.ops.filter(o=>!sent.has(o.opId));
   if(!ops.length||ops.some(o=>o.type==='move'))return;   // 'move' (versión vieja) lo sube la página
-  const c=snap.cfg,url='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/tareas.json';
+  const c=snap.cfg,repo='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo),url=repo+'/contents/tareas.json';
   const h={'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28'};
+  // Solo a un repositorio privado (la página también lo mira): si es público o no se puede comprobar, no se sube
+  const rr=await fetch(repo,{headers:h,cache:'no-store'});
+  if(rr.status>=500)throw new Error('GitHub '+rr.status);
+  if(!rr.ok||(await rr.json().catch(()=>({}))).private!==true)return;
   for(let i=0;i<5;i++){
     const r=await fetch(url,{headers:h,cache:'no-store'});
     let items=[],sha=null;
     if(r.ok){const j=await r.json();items=JSON.parse(b64utf8(j.content));sha=j.sha;if(!Array.isArray(items))return}
     else if(r.status!==404){if(r.status>=500)throw new Error('GitHub '+r.status);return}
     // tareas.json desapareció o quedó vacío y la página tenía tareas: no se sube nada (la página lo avisa y ofrece arreglarlo)
-    if(!sha&&snap.had>0||sha&&!items.length&&snap.had>=3)return;
-    const next=applyAll(items,ops);
+    if(!sha&&snap.had>0||sha&&!items.length&&(snap.live??snap.had)>=3)return;
+    const lost=[],next=applyAll(items,ops,undefined,lost);
     const w=await fetch(url,{method:'PUT',headers:{...h,'Content-Type':'application/json'},
       body:JSON.stringify({message:commitMessage(ops,items,next,(snap.src||'')+' (segundo plano)'),content:utf8b64(JSON.stringify(next,null,2)),...(sha?{sha}:{})})});
     if(w.status===409||w.status===422)continue;
     if(!w.ok){if(w.status>=500)throw new Error('GitHub '+w.status);return}
     await idbSet('enviadas',[...sent,...ops.map(o=>o.opId)]);
+    // Lo que no se aplicó porque en el otro dispositivo se cambió lo mismo después: la página lo avisa al abrirse
+    if(lost.length)await idbSet('perdidos',[...(await idbGet('perdidos')||[]),...lost.map(x=>({...x,title:String((next.find(t=>t&&t.id===x.id)||{}).title||'')}))]);
     await idbDel('pendiente');
     const cl=await self.clients.matchAll({includeUncontrolled:true});
     cl.forEach(x=>x.postMessage({type:'subido'}));

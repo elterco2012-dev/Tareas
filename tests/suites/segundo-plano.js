@@ -16,7 +16,7 @@ await ctx.route('https://api.github.com/**',async route=>{
   if(req.method()==='PUT'){const body=JSON.parse(req.postData());gh.messages.push(body.message+(req.serviceWorker()?' [sw]':''));if(String(body.sha)!==String(gh.sha))return route.fulfill({status:409,body:'{}'});
     gh.items=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));gh.sha++;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:{sha:String(gh.sha)}})})}
   // (el repositorio existe; otros archivos, no)
-  const u=new URL(req.url());if(!/tareas\.json$/.test(u.pathname))return route.fulfill(/\/contents\//.test(u.pathname)?{status:404,body:'{}'}:{status:200,contentType:'application/json',body:'{}'});
+  const u=new URL(req.url());if(!/tareas\.json$/.test(u.pathname))return route.fulfill(/\/contents\//.test(u.pathname)?{status:404,body:'{}'}:{status:200,contentType:'application/json',body:JSON.stringify({private:!gh.publico})});
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:Buffer.from(JSON.stringify(gh.items)).toString('base64'),sha:String(gh.sha)})});
 });
 let p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));
@@ -70,4 +70,24 @@ ok(!!(await p.evaluate(()=>idbGet('pendiente'))),'snapshot written again when of
 await p.click('#statusBtn');await p.click('#clearCfg');await p.click('#clearCfg');await sleep(500);
 ok(!(await p.evaluate(()=>idbGet('pendiente'))),'clearing the connection removes the snapshot (token) from IndexedDB');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+await p.close();
+// El service worker tampoco sube sobre un tareas.json vaciado ni a un repositorio público
+gh.mode='ok';gh.items=[T('a','Uno',{due:day(0)}),T('b','Dos',{due:day(0)}),T('c','Tres',{due:day(0)}),T('d','Cuatro')];gh.sha++;
+p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));
+await p.addInitScript(()=>{if(!localStorage.getItem('githubTasksConfig'))localStorage.setItem('githubTasksConfig',JSON.stringify({owner:'u',repo:'r',token:'x'}))});   // (se borró la conexión)
+await p.goto(APPURL);await sleep(1500);
+gh.mode='offline';await p.fill('#title','Otra más sin señal');await p.press('#title','Enter');await sleep(1200);
+await p.evaluate(()=>{Object.defineProperty(document,'visibilityState',{get:()=>'hidden',configurable:true});document.dispatchEvent(new Event('visibilitychange'))});await sleep(800);
+ok(((await p.evaluate(()=>idbGet('pendiente')))||{}).live===5,'the snapshot remembers how many live tasks there are (4 + the new one)');
+await p.close();
+gh.mode='ok';const full=gh.items;gh.items=[];gh.sha++;
+let before2=gh.messages.length,reqs=swReqs;
+await cdp.send('ServiceWorker.dispatchSyncEvent',{origin:ORIGIN,registrationId:reg.registrationId,tag:'subir',lastChance:false});await sleep(2500);
+ok(swReqs>reqs&&gh.messages.length===before2&&gh.items.length===0,'tareas.json emptied: the service worker looks but does not upload');
+gh.items=full;gh.sha++;gh.publico=true;before2=gh.messages.length;reqs=swReqs;
+await cdp.send('ServiceWorker.dispatchSyncEvent',{origin:ORIGIN,registrationId:reg.registrationId,tag:'subir',lastChance:false});await sleep(2500);
+ok(swReqs>reqs&&gh.messages.length===before2,'public repository: the service worker does not upload');
+gh.publico=false;
+await cdp.send('ServiceWorker.dispatchSyncEvent',{origin:ORIGIN,registrationId:reg.registrationId,tag:'subir',lastChance:false});await sleep(2500);
+ok(gh.items.some(x=>x.title==='Otra más sin señal'),'private again: the service worker uploads it');
 await b.close();console.log('fails',L.fails)})();

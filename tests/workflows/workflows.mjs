@@ -375,6 +375,12 @@ fs.rmSync(ENV);
    ok(x.code===1&&/tareas\.json no tiene una lista de tareas válida/.test(x.err)&&commits()===n&&enCopia('tareas.json')===ultima,'resp: tareas.json not a list ('+JSON.stringify(roto)+') → exit 1, the backup keeps its last tareas.json')}
  escribir('tareas.json',[]);x=await R(D2);
  ok(x.code===1&&/tareas\.json quedó vacío \(en la última copia tenía 7 tareas\)/.test(x.err)&&commits()===n&&enCopia('tareas.json')===ultima,'resp: tareas.json emptied ([]) when the backup had 7 → exit 1, nothing pushed: '+JSON.stringify(x.err));
+ // Si en la última copia solo había terminadas viejas (que la app archiva) y de la papelera, no es un vaciado
+ const soloViejas=[1,2,3,4,5].map(i=>T('z'+i,'Vieja '+i,{done:true,completedAt:'2026-08-01T12:00:00Z'})).concat([T('p1','En la papelera',{deletedAt:'2026-10-20T12:00:00Z'})]);
+ {const bareV=dir+'/respaldoV.git';nuevoBare(bareV);const URLV=pathToFileURL(bareV).href;
+  escribir('tareas.json',soloViejas);x=await R(D2,{RESPALDO_GIT_URL:URLV});
+  escribir('tareas.json',[]);x=await R(D2,{RESPALDO_GIT_URL:URLV});
+  ok(x.code===0&&commits(bareV)===2,'resp: previous copy with only old done (archived by the app) and trashed tasks → emptying is not suspicious: '+JSON.stringify(x.err))}
  escribir('tareas.json',seis.slice(0,4));x=await R(D2);
  ok(x.code===0&&commits()===n+1&&/tareas\.json con 4 tareas/.test(x.out),'resp: 4 tasks → copied');
  escribir('tareas.json',[]);x=await R('2026-10-23T02:30:00Z');   // 22/10 a las 23:30 en Argentina

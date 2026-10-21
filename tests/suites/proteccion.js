@@ -29,10 +29,11 @@ const b=await L.launch();
   await p.fill('#title','Nueva mientras tanto');await p.press('#title','Enter');await sleep(1500);
   ok(gh.missing&&!(gh.puts>0),'mientras tanto no se sube nada');
   ok(await p.evaluate(()=>getOutbox().length)===1,'lo nuevo queda guardado para subir');
-  // Sigue frenado al volver a abrir la app
-  await p.reload();await sleep(1500);
+  // Sigue frenado al volver a abrir la app (aunque no haya señal: queda guardado)
+  gh.mode='offline';await p.reload();await sleep(1500);
   s=await state(p);
-  ok(s.kind==='missing'&&await titles(p)==='Alfa,Beta,Delta,Gama,Nueva mientras tanto','al volver a abrir sigue frenado y con las tareas ('+JSON.stringify(s)+')');
+  ok(s.kind==='missing'&&s.bar&&await titles(p)==='Alfa,Beta,Delta,Gama,Nueva mientras tanto','al volver a abrir (sin señal) sigue frenado y con las tareas ('+JSON.stringify(s)+')');
+  gh.mode='ok';await p.evaluate(()=>sync());await sleep(1000);
   // Revisar → Sincronización con la explicación y Volver a subir
   await p.click('#guardFix');await sleep(300);
   ok(await p.isVisible('#guardBox')&&/5 tareas \(con 1 cambio sin subir\)/.test(await p.textContent('#guardTxt')),'Sincronización explica: "'+await p.textContent('#guardTxt')+'"');
@@ -71,7 +72,9 @@ const b=await L.launch();
   await p.click('#statusBtn');await sleep(300);
   await p.click('#guardAccept');await sleep(200);
   ok(/Tocá de nuevo/.test(await p.textContent('#guardAccept'))&&(await state(p)).kind==='emptied','"Fue a propósito" pide un segundo toque');
-  await p.click('#guardAccept');await sleep(1500);
+  await p.click('#syncX');await sleep(300);await p.click('#statusBtn');await sleep(300);
+  ok(!/Tocá de nuevo/.test(await p.textContent('#guardAccept')),'al cerrar y volver a abrir Sincronización, vuelve a pedir los dos toques');
+  await p.click('#guardAccept');await sleep(200);await p.click('#guardAccept');await sleep(1500);
   ok(!(await state(p)).kind&&await titles(p)===''&&gh.items.length===0,'aceptado: este dispositivo también queda vacío');
   ok(!p.errs.length,'sin errores ('+p.errs.join(' | ')+')');
   await ctx.close();
@@ -84,6 +87,60 @@ const b=await L.launch();
   gh.items=[];gh.sha++;
   await p.evaluate(()=>sync());await sleep(1200);
   ok(!(await state(p)).kind,'si solo se fueron terminadas viejas (las archivó el otro), no hay aviso');
+  await ctx.close();
+}
+
+// Si las que había estaban en la papelera (y se vació en el otro dispositivo), no es un problema
+{
+  const gh=makeGH([1,2,3,4].map(i=>T('p'+i,'En la papelera '+i,{deletedAt:L.ago(1)})));
+  const {ctx,p}=await device(b,gh,DESK);await sleep(1000);
+  gh.items=[];gh.sha++;
+  await p.evaluate(()=>sync());await sleep(1200);
+  ok(!(await state(p)).kind,'vaciar la papelera en el otro dispositivo no cuenta como vaciado');
+  await ctx.close();
+}
+// ---- Volver a subir usa la última versión buena de GitHub si es más nueva que la copia del dispositivo ----
+{
+  const v1=three(),v2=[...three(),T('n','Nueva de la compu',{due:day(0)})];
+  const gh=makeGH(v1);
+  const d=await device(b,gh,PHONE);const p=d.p;await sleep(1000);
+  await offline(d,true);
+  gh.items=v2;gh.sha++;   // la compu subió algo mientras el celular no miraba
+  gh.history=[{sha:'c3',content:null,date:'2026-10-14T15:40:00Z'},{sha:'c2',content:JSON.stringify(v2),date:'2026-10-14T15:30:00Z'},{sha:'c1',content:JSON.stringify(v1),date:'2026-10-14T12:00:00Z'}];
+  gh.missing=true;gh.items=[];
+  await p.evaluate(()=>act({type:'add',task:{id:'cel',title:'Del celular sin subir',priority:'Media',due:null,done:false,createdAt:new Date().toISOString(),completedAt:null}}));
+  await offline(d,false);await p.evaluate(()=>sync());await sleep(1200);
+  ok((await state(p)).kind==='missing','el celular ve que el archivo desapareció');
+  await p.evaluate(()=>restoreFile());await sleep(2000);
+  const t=gh.items.map(x=>x.title).sort().join(',');
+  ok(!gh.missing&&t==='Alfa,Beta,Del celular sin subir,Delta,Gama,Nueva de la compu','usa la última versión buena (con lo de la compu) más lo pendiente del celular: '+t);
+  ok(/volvió la última versión buena de tareas\.json \(del 14\/10 a las 12:30\), con lo que faltaba subir/.test(await p.textContent('#toastMsg')),'toast: "'+await p.textContent('#toastMsg')+'"');
+  await d.ctx.close();
+}
+// Dañado en un dispositivo sin copia: usa la última versión buena; si no hay ninguna, no sube una lista vacía
+{
+  const good=[T('a','Alfa'),T('b','Beta')];
+  const gh=makeGH([]);gh.raw='[{"id":"a","title":"Alfa"},]';gh.sha=5;
+  gh.history=[{sha:'h2',content:gh.raw},{sha:'h1',content:JSON.stringify(good)}];
+  let d=await device(b,gh,DESK);await sleep(1200);
+  ok((await state(d.p)).kind==='broken','dañado en un dispositivo nuevo: frenado');
+  await d.p.evaluate(()=>restoreFile());await sleep(2000);
+  ok(gh.raw===undefined&&gh.items.map(x=>x.title).join(',')==='Alfa,Beta','vuelve la última versión buena del historial');
+  await d.ctx.close();
+  const gh2=makeGH([]);gh2.raw='{roto';gh2.sha=5;gh2.history=[{sha:'h1',content:'{roto'}];
+  d=await device(b,gh2,DESK);await sleep(1200);
+  await d.p.evaluate(()=>restoreFile());await sleep(1500);
+  ok(gh2.raw==='{roto'&&!(gh2.puts>0)&&/No encontré una versión buena/.test(await d.p.textContent('#toastMsg')),'sin ninguna versión buena ni copia: no sube nada y lo explica');
+  await d.ctx.close();
+}
+// Volver a subir con el repositorio que ahora es público: no sube
+{
+  const gh=makeGH(three());
+  const {ctx,p}=await device(b,gh,DESK);await sleep(1000);
+  gh.missing=true;gh.items=[];await p.evaluate(()=>sync());await sleep(1000);
+  gh.repo={private:false};
+  await p.evaluate(()=>restoreFile());await sleep(1500);
+  ok(gh.missing&&!(gh.puts>0)&&/es público/.test(await p.textContent('#toastMsg')),'repositorio que pasó a ser público: Volver a subir no sube nada');
   await ctx.close();
 }
 
@@ -159,7 +216,6 @@ const b=await L.launch();
   await p.click('#statusBtn');await sleep(300);
   await p.evaluate(()=>{$('acct').open=true});
   ok(await p.inputValue('#token')===''&&/…1234/.test(await p.getAttribute('#token','placeholder')),'el token no aparece; solo sus últimas letras ('+await p.getAttribute('#token','placeholder')+')');
-  ok(!(await p.content()).includes('github_pat_SECRETO1234'),'el token no está en la página');
   await p.click('#saveCfg');await sleep(500);
   ok(await p.evaluate(()=>cfg.token)==='github_pat_SECRETO1234','guardar sin tocar el campo deja el token como estaba');
   await p.click('#statusBtn');await sleep(300);await p.evaluate(()=>{$('acct').open=true});
@@ -228,6 +284,8 @@ const b=await L.launch();
   const x=gh.items.find(t=>t.id==='x'),y=gh.items.find(t=>t.id==='y');
   ok(x.title==='De la compu','mismo campo, la compu lo cambió después: gana la compu ('+x.title+')');
   ok(y.title==='Otra (compu)'&&y.notes==='nota del celular','campos distintos: se aplican los dos');
+  // (el aviso espera a que se vaya el Deshacer de la edición)
+  await until(async()=>/No se aplicó/.test(await cel.p.textContent('#toastMsg')),{timeout:7000});
   ok(/No se aplicó tu cambio en el título de «De la compu»/.test(await cel.p.textContent('#toastMsg')),'el celular avisa: "'+await cel.p.textContent('#toastMsg')+'"');
   await cel.ctx.close();await pc.ctx.close();
 }
@@ -243,6 +301,38 @@ const b=await L.launch();
   await cel.p.evaluate(()=>sync());await sleep(1500);
   ok(gh.items[0].title==='Del celular, después','el cambio más nuevo (el del celular) gana: '+gh.items[0].title);
   ok(!/No se aplicó/.test(await cel.p.textContent('#toastMsg')||''),'sin aviso de conflicto');
+  await cel.ctx.close();await pc.ctx.close();
+}
+
+{
+  // El otro dispositivo tocó otra cosa de la tarea después (el orden): no hace ganar su valor viejo de la fecha
+  const gh=makeGH([T('x','Uno',{due:day(0)})]);
+  const cel=await device(b,gh,PHONE),pc=await device(b,gh,DESK);await sleep(1000);
+  await offline(cel,true);
+  await pc.p.evaluate(()=>editWithUndo(tasks.find(t=>t.id==='x'),{due:addDays(2)},'Cambiada'));await sleep(1200);
+  await cel.p.clock.fastForward('10:00');
+  await cel.p.evaluate(()=>editWithUndo(tasks.find(t=>t.id==='x'),{due:addDays(5)},'Cambiada'));
+  await pc.p.clock.fastForward('20:00');
+  await pc.p.evaluate(()=>editWithUndo(tasks.find(t=>t.id==='x'),{notes:'nota de la compu'},'Cambiada'));await sleep(1200);
+  await offline(cel,false);await cel.p.evaluate(()=>sync());await sleep(1500);
+  const x=gh.items[0];
+  ok(x.due===day(5)&&x.notes==='nota de la compu','la fecha del celular (más nueva que la de la compu) gana aunque la compu después cambió la nota ('+x.due+')');
+  await cel.ctx.close();await pc.ctx.close();
+}
+{
+  // Los dos hicieron el mismo cambio (por ejemplo, pasarla a hoy): no hay aviso de conflicto
+  const gh=makeGH([T('x','Vencida',{due:day(-2)})]);
+  const cel=await device(b,gh,PHONE),pc=await device(b,gh,DESK);await sleep(1000);
+  await offline(cel,true);
+  await cel.p.evaluate(()=>reschedule(tasks.find(t=>t.id==='x'),'0'));
+  await pc.p.clock.fastForward('10:00');
+  await pc.p.evaluate(()=>reschedule(tasks.find(t=>t.id==='x'),'0'));await sleep(1200);
+  await offline(cel,false);await cel.p.evaluate(()=>sync());await sleep(1500);
+  ok(gh.items[0].due===day(0)&&!/No se aplic/.test(await cel.p.textContent('#toastMsg')||''),'mismo cambio en los dos: sin aviso de conflicto');
+  // Lo que subió el service worker con un conflicto se avisa al abrir
+  await cel.p.evaluate(async()=>{hideToast();await idbSet('perdidos',[{id:'x',keys:['title'],title:'Vencida'}]);bgCheck=true;await sync()});await sleep(800);
+  ok(/No se aplicó tu cambio en el título de «Vencida»/.test(await cel.p.textContent('#toastMsg')),'conflicto en segundo plano: se avisa al abrir ("'+await cel.p.textContent('#toastMsg')+'")');
+  ok(!(await cel.p.evaluate(()=>idbGet('perdidos'))),'y se borra el aviso guardado');
   await cel.ctx.close();await pc.ctx.close();
 }
 

@@ -8,7 +8,8 @@ const {sleep,ok,day,TZ}=H;
 // Opcionales: missing (tareas.json no existe: 404, se crea con un PUT sin sha), raw (texto de tareas.json tal cual, por
 // ejemplo dañado), repo (lo que responde el repositorio: {private:false} para uno público), mode 'ratelimit' (403 por
 // límite de consultas), big (archivos de más de 1 MB: GitHub no manda el contenido y hay que pedirlo crudo), failPut
-// (rutas que responden 500 al guardar). archivo/ se lista con lo que haya en files.
+// (rutas que responden 500 al guardar), history ([{sha, content (texto o null si lo borró), date}], del más nuevo al más
+// viejo: lo que responde /commits y /contents/tareas.json?ref=). archivo/ se lista con lo que haya en files.
 function makeGH(items){return {items:items||[],sha:1,mode:'ok',files:{},big:new Set(),failPut:new Set()}}
 async function mock(ctx,gh){
   await ctx.route('https://api.github.com/**',async route=>{
@@ -28,6 +29,11 @@ async function mock(ctx,gh){
       if(raw)return route.fulfill({status:200,contentType:'application/vnd.github.raw',body:txt});
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:'',encoding:'none',size:txt.length,sha:String(path==='tareas.json'?gh.sha:gh.files[path].sha)})});
     }
+    if(path==='tareas.json'&&u.searchParams.get('ref')&&req.method()==='GET'){
+      const h=(gh.history||[]).find(x=>x.sha===u.searchParams.get('ref'));
+      if(!h||h.content==null)return route.fulfill({status:404,body:'{}'});
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:Buffer.from(h.content).toString('base64'),sha:'blob-'+h.sha})});
+    }
     if(path==='tareas.json'&&gh.missing){
       if(req.method()!=='PUT')return route.fulfill({status:404,body:'{}'});
       const body=JSON.parse(req.postData());if(body.sha)return route.fulfill({status:422,body:'{}'});
@@ -41,7 +47,8 @@ async function mock(ctx,gh){
       if(!f)return route.fulfill({status:404,body:'{}'});
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:Buffer.from(f.content).toString('base64'),sha:String(f.sha)})});
     }
-    if(!path)return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(gh.repo||{})});
+    if(!path&&/\/commits$/.test(u.pathname))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify((gh.history||[]).map(h=>({sha:h.sha,commit:{committer:{date:h.date||new Date().toISOString()}}})))});
+    if(!path)return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(gh.repo||{private:true})});
     if(req.method()==='PUT'){if(gh.putDelay)await sleep(gh.putDelay);const body=JSON.parse(req.postData());if(String(body.sha)!==String(gh.sha))return route.fulfill({status:409,body:'{}'});
       gh.items=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));gh.sha++;gh.puts=(gh.puts||0)+1;delete gh.raw;
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:{sha:String(gh.sha)}})})}
