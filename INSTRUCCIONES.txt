@@ -40,8 +40,10 @@ VERSION Y ACTUALIZACIONES
   Con una tarea abierta no se actualiza: guardala o cerrala y toca Actualizar.
 
 ABRIR MAS RAPIDO (celular)
-- La app instalada abre con el campo listo para escribir. Si volves a ella despues de un rato, vuelve arriba
-  y lista para anotar.
+- La app instalada abre mostrando la lista, sin el teclado. Para anotar, toca el "+" de abajo a la derecha (o el
+  campo de arriba); para dictar, el microfono que esta al lado del "+". Si volves a ella despues de un rato, vuelve
+  arriba. Si preferis que abra con el teclado listo para escribir (como antes): Sincronizacion > Este dispositivo >
+  "Abrir la app con el teclado listo para anotar".
 - Atajos: mantene apretado el icono de Tareas y vas a ver "Nueva tarea" (abre para escribir) y "Dictar tarea"
   (abre con un microfono grande abajo, para hablar con una mano). Para tenerlos a un toque: mantene apretado el
   atajo y arrastralo a la pantalla de inicio, en la fila de abajo, donde llega el pulgar.
@@ -99,6 +101,7 @@ USO DIARIO
   tocando "Abrir" en el aviso de descarga) y el Calendario de Samsung (o Outlook, o el de Apple) lo agrega con
   su aviso. Si no le pusiste hora, el evento queda a las 9:00. Una tarea vencida va al calendario para hoy.
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
+  En el celular, "⋯" se abre como una hoja desde abajo, con el nombre de la tarea arriba.
   Despues de terminar, reagendar, borrar o guardar cambios aparece "Deshacer" por unos segundos.
 - Editar: si cambiaste algo y cerras con Atras, tocando afuera o con Esc, se guarda (con "Deshacer").
   La ✕ y "Cancelar" descartan los cambios.
@@ -107,8 +110,10 @@ USO DIARIO
 - Links en las notas: se muestran cortos y se pueden tocar. Un ticket como
   https://empresa.atlassian.net/browse/WB-3438 aparece como "WB-3438"; al editar la tarea quedan como botones abajo de las notas.
 - Buscar (lupa o /): tambien encuentra terminadas, de cualquier fecha, por el titulo, la nota (por ejemplo, el numero
-  de ticket) o quien la pidio. Las terminadas hace mas de un mes estan en el archivo: "Buscar tambien en el archivo"
-  las trae (solo para ver).
+  de ticket) o quien la pidio. No importan las tildes ni las mayusculas ("camion" encuentra "Camión"), y con varias
+  palabras busca las que tengan todas, en cualquier orden ("banco llamar" encuentra "Llamar al banco"). Las
+  terminadas hace mas de un mes estan en el archivo: "Buscar tambien en el archivo" las trae (solo para ver).
+  Si coincide algo que borraste, aparece abajo, en "En la papelera", con "Recuperar".
 - Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
   "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre; por unos segundos aparece
   "Deshacer", que las devuelve a la papelera.
@@ -127,9 +132,11 @@ USO DIARIO
   lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
   S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Shift+P revision de la
   semana, Alt+flechas mover, Supr borrar.
-  Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente.
-- Anotadas al pasar: lo que cargas en el celular (o dictas o compartis) sin elegir fecha queda para hoy con un punto
-  azul adelante. Cualquier decision lo saca.
+  Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente. La tarea elegida se marca
+  con una barra a la izquierda. Con las flechas no se entra a un grupo plegado.
+- Anotadas al pasar: lo que cargas sin elegir fecha (sin escribir una fecha ni tocar los botones de fecha), en el
+  celular o en la compu, queda para hoy con un punto azul adelante. Cualquier decision lo saca. La primera vez,
+  un cartel explica el punto azul y, en el celular, los gestos; "Entendido" lo saca.
 - Procesar (en la compu, arriba a la derecha, o tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas
   pateadas primero) y lo que espera respuesta hace rato. Una tecla o un toque por decision y pasa sola a la
   siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy.
@@ -149,6 +156,15 @@ USO DIARIO
   un par de minutos: Chrome instala la actualizacion con la app cerrada. Si no aparece, repetilo una vez (no antes
   de un minuto). No hace falta desinstalarla.
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
+- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, donde llega el pulgar. El microfono hace lo
+  mismo que el de arriba (escucha, muestra la cuenta regresiva y, si lo tocas, guarda ya); el "Deshacer" aparece
+  justo arriba. Se ocultan mientras escribis o con algo abierto.
+  Arriba, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Nota" aparecen al
+  tocar el campo.
+- Grupos plegables: toca el titulo de un grupo (Vencidas, Hoy, Mañana, Esperando...) para plegarlo; queda solo el
+  titulo con cuantas hay. Cada dispositivo recuerda los que plegaste. Al buscar o filtrar por persona se ven todos.
+- Sin conectar: un dispositivo nuevo, sin tareas, muestra "Conectar" para traer las de la compu (abre la cuenta de
+  GitHub en Sincronizacion).
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
   Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
   cierra de a una. Con todo cerrado, sale de la app. Una lista pegada o compartida que se cierra con Atras se
