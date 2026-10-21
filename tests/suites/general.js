@@ -104,8 +104,9 @@ let menu=await p.innerText('#menu');
 ok(!menu.includes('Para hoy')&&menu.includes('Para mañana')&&menu.includes('Para el lunes')&&menu.includes('Editar')&&menu.includes('Borrar'),'menu hides current date option');
 await p.keyboard.press('Escape');ok(!(await p.isVisible('#menu')),'Esc closes menu');
 await row(p,'Para hoy A').locator('.more').click();await p.mouse.click(5,5);ok(!(await p.isVisible('#menu')),'outside click closes menu');
-await row(p,'Para hoy A').locator('.more').click();await p.click('#menu button:has-text("Para mañana")');await sleep(300);
-ok(gh.items.find(x=>x.id==='v6').due===dayStr(1),'reschedule via menu');
+// (se espera la subida en vez de un tiempo fijo: con una consulta en curso, en CI puede tardar más de 300 ms)
+await row(p,'Para hoy A').locator('.more').click();await p.click('#menu button:has-text("Para mañana")');
+ok(await H.until(()=>gh.items.find(x=>x.id==='v6').due===dayStr(1),{timeout:4000}),'reschedule via menu');
 ok((await p.innerText('#toastMsg'))==='Pasada a mañana'&&await p.isVisible('#toastUndo'),'reschedule toast with Deshacer');
 await p.click('#toastUndo');await sleep(300);
 ok(gh.items.find(x=>x.id==='v6').due===dayStr(0),'undo reschedule');
