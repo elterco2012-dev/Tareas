@@ -88,17 +88,12 @@ const tp=await p.evaluate(()=>{const t=document.getElementById('toast').getBound
 ok(tp.vis&&tp.undo&&tp.gap>=4&&tp.gap<=40,'Undo toast right above the mic, not covering it '+JSON.stringify(tp));
 await p.locator('#toastUndo').tap();
 ok(await L.until(()=>!gh.items.some(x=>x.title==='Llamar a la escribanía')),'Undo from there removes it');
-// Con algo escrito en el campo: lo dictado va solo y lo escrito vuelve al campo
+// Con algo escrito en el campo: no dicta encima (lo mezclaría); avisa y lo escrito queda como estaba
 await p.locator('#title').tap();await p.keyboard.type('Comprar pan');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
-await p.evaluate(()=>{window.__say=['llamar al plomero']});
-await p.locator('#fabMic').tap();
-ok(await L.until(()=>p.evaluate(()=>!!autoSave))&&await p.inputValue('#title')==='llamar al plomero','typed text in the field: dictation goes into an empty field ('+await p.inputValue('#title')+')');
-await p.locator('#fabMic').tap();
-ok(await L.until(()=>gh.items.some(x=>x.title==='Llamar al plomero'))&&!gh.items.some(x=>/pan/i.test(x.title)),'saved on its own, not glued to the typed text');
-ok(await L.until(async()=>await p.inputValue('#title')==='Comprar pan'),'the typed text is back in the field');
-await p.evaluate(()=>{window.__say=[]});
-await p.locator('#fabMic').tap();await sleep(500);
-ok(await p.inputValue('#title')==='Comprar pan'&&await p.evaluate(()=>!listening&&!autoSave),'nothing heard: the typed text comes back right away');
+await p.evaluate(()=>{window.__say=['llamar al plomero'];window.scrollTo(0,500)});
+await p.locator('#fabMic').tap();await sleep(400);
+ok(await p.evaluate(()=>!listening&&!autoSave&&scrollY===0)&&await p.inputValue('#title')==='Comprar pan'&&/agregalo o borralo/.test(await p.innerText('#toastMsg')),'typed text in the field: the bottom mic does not dictate over it, goes up and says to add or clear it first');
+ok(!gh.items.some(x=>/plomero|pan/i.test(x.title)),'nothing saved');
 await p.fill('#title','');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
 // El menú ⋯ y los modales tapan la barra
 await row(p,'Pagar la luz').locator('.more').tap();await sleep(200);

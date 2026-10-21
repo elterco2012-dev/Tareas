@@ -158,7 +158,7 @@ USO DIARIO
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
 - Celular a una mano: el "+" y el microfono quedan abajo a la derecha, donde llega el pulgar. El microfono escucha,
   muestra la cuenta regresiva y, si lo tocas, guarda ya; el "Deshacer" aparece justo arriba. Si en el campo habia
-  algo escrito, no lo mezcla con lo que dictas: lo guarda aparte y lo devuelve al campo despues. Se ocultan mientras
+  algo escrito, no lo mezcla con lo que dictas: te avisa que primero lo agregues o lo borres. Se ocultan mientras
   escribis o con algo abierto.
   Arriba, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Nota" aparecen al
   tocar el campo (se vuelven a guardar al abrir la app o cuando bajas por la lista).

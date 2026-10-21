@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-91+eIYefhrgRnvOGR09KltbZV/1ppFaWfCIDSu/TPQ8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-O3JINn7mwizYmyF2IO5ryKurFUk6vGRsF/h/cDkJZ9I='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -2730,7 +2730,6 @@ $('addForm').addEventListener('submit',e=>{
   toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:'')+(av?' · '+av[0].toLowerCase():''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
   $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
-  putBackHeld();   // lo que estaba escrito antes de dictar con el micrófono de abajo
   if(refocus)$('title').focus();
   renderAdd();
 });
@@ -3023,7 +3022,6 @@ function endVoice(finished){
     if(parse($('title').value,dueFor(chip)).bare)toast('Decí también qué hay que hacer: tocá el micrófono y seguí');
     else startAutoSave();
   }
-  putBackHeld();   // no se entendió nada: vuelve lo que estaba escrito
   renderAdd();
 }
 function stopVoice(abort){
@@ -3093,27 +3091,15 @@ function renderFabs(){
   else{b.innerHTML=MIC_SVG;b.setAttribute('aria-label','Dictar tarea');b.title='Dictar tarea'}
 }
 $('fabAdd').onclick=()=>{closeMenu();if(searchOpen&&!$('search').value.trim())closeSearch();window.scrollTo(0,0);$('title').focus()};
-$('fabMic').onclick=()=>{if(listening)stopVoice();else if(autoSave)saveNow();else{closeMenu();window.scrollTo(0,0);holdForVoice();startVoice();if(!listening)putBackHeld()}};
-// Con algo escrito en el campo (que no sea un "recordame mañana" dictado, que se sigue dictando), el micrófono de abajo
-// no lo mezcla con lo que digas: lo guarda aparte, dicta en el campo vacío y lo devuelve después de guardar lo dictado
-// (o enseguida, si no se entendió nada). Si cerrás la app en el medio, queda como borrador.
-let fabHeld=null;
-function holdForVoice(){
-  const v=$('title').value;
-  if(!v.trim()||voiceFilled&&parse(v,dueFor(chip)).bare)return;
-  fabHeld=heldDraft={t:v,n:$('note').value,c:chip,ct:chipTouched,sf:sharedFill,at:Date.now()};
-  $('title').value='';$('note').value='';setNote(false);chip='0';chipTouched=false;sharedFill=false;voiceFilled=false;cancelAutoSave();
-  renderAdd();
-}
-function putBackHeld(){
-  const d=fabHeld;
-  if(!d||listening||autoSave||$('title').value.trim()||$('note').value.trim())return;   // todavía no: lo dictado sigue en el campo
-  fabHeld=null;if(heldDraft===d)heldDraft=null;
-  $('title').value=d.t||'';if(d.n){setNote(true);$('note').value=d.n}
-  if(d.ct){chip=d.c;chipTouched=true}
-  sharedFill=!!d.sf;voiceFilled=false;
-  saveDraft();renderAdd();
-}
+// Hace lo mismo que el botón de arriba: dicta solo si arriba está el micrófono (campo vacío o un "recordame mañana"
+// dictado, que se sigue dictando). Con algo escrito no lo mezcla con lo que digas: avisa que primero lo agregues o borres.
+$('fabMic').onclick=()=>{
+  if(listening){stopVoice();return}
+  if(autoSave){saveNow();return}
+  closeMenu();window.scrollTo(0,0);
+  if($('addBtn').dataset.mode!=='mic'){toast('Arriba hay algo escrito: agregalo o borralo y después dictá',null,null,6000);return}
+  startVoice();
+};
 document.addEventListener('focusin',scheduleFabs);document.addEventListener('focusout',scheduleFabs);
 
 // ---- Buscar ----
