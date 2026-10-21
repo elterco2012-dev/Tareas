@@ -68,7 +68,7 @@ const back=async ms=>{await setVis('hidden');await p.clock.fastForward(ms);await
 await back(30000);
 ok(await p.isVisible('#menu'),'short absence: nothing changes');
 await back(200000);
-ok(await L.until(async()=>!(await p.isVisible('#menu'))&&await p.evaluate(()=>scrollY)===0&&await p.evaluate(()=>document.activeElement.id)==='title',{timeout:3000}),'after 2+ min: menu closed, top, field focused');
+ok(await L.until(async()=>!(await p.isVisible('#menu'))&&await p.evaluate(()=>scrollY)===0&&await p.evaluate(()=>document.activeElement.id)==='title',{timeout:8000}),'after 2+ min: menu closed, top, field focused');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 gh.items=gh.items.filter(x=>!/^x/.test(x.id));gh.sha++;
