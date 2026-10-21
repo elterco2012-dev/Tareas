@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-fhTPnGCNsQCBD3J+zNT2ods2Otgx+UaREeb0L6Oxrx4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-xqzrRMIlUS3iA7uMQERyUkYObBnf1Lia3u0JZon9Wls='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -376,6 +376,10 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .dockmic svg{width:56px;height:56px}
 .dockmic.listening{background:var(--red);animation:pulse 1.4s ease-out infinite}
 .dockclose{background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;padding:10px 16px}
+/* Notas: sin casilla (un ícono en su lugar); en Editar, sin fecha, prioridad, repetición ni quién la pidió */
+.task.note .nico{flex:none;width:44px;height:46px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.modal.isnote .taskonly{display:none}
+#noteChip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:600}
 /* Celular a una mano: "+" y micrófono abajo, donde llega el pulgar (el aviso con Deshacer queda justo arriba) */
 .fabs{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:25;display:flex;align-items:center;gap:12px}
 .fab{width:56px;height:56px;border-radius:50%;border:0;padding:0;display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--on-accent);box-shadow:0 6px 18px var(--shadow)}
@@ -434,7 +438,7 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
   </header>
 
   <div id="searchBar" class="searchbar hidden">
-    <input id="search" class="inp" type="search" placeholder="Buscar por texto, @persona o nota…" aria-label="Buscar">
+    <input id="search" class="inp" type="search" placeholder="Buscar por texto, @persona o detalle…" aria-label="Buscar">
     <button type="button" id="searchClose" class="textbtn">Cerrar</button>
   </div>
 
@@ -450,14 +454,15 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
         <button type="button" class="chip" data-v="week">Lunes</button>
         <button type="button" class="chip" data-v="">Sin fecha</button>
       </span>
-      <button type="button" id="noteToggle" class="notebtn">+ Nota</button>
+      <button type="button" id="noteChip" class="chip" aria-pressed="false" title="Guardar como nota (sin fecha ni aviso)">Nota</button>
+      <button type="button" id="noteToggle" class="notebtn">+ Detalle</button>
     </div>
     <div id="whoRow" class="whorow hidden"></div>
     <div id="suggest" class="suggest hidden" role="listbox" aria-label="Sugerencias"></div>
     <div id="saveHint" class="savehint hidden">Se guarda solo · tocá el texto para corregir</div>
     <div id="detected" class="detected hidden"></div>
     <div id="tip" class="tip hidden">Tip: escribí “viernes”, “15/10”, “!alta” o “@Juan” y se completa solo.</div>
-    <textarea id="note" class="inp hidden" placeholder="Nota / detalle (opcional)" maxlength="2000" rows="2"></textarea>
+    <textarea id="note" class="inp hidden" placeholder="Detalle (opcional)" maxlength="2000" rows="2"></textarea>
   </form>
 
   <div id="tokenBar" class="tokenbar hidden" role="status"><span id="tokenMsg"></span><button type="button" id="tokenFix">Renovar</button><button type="button" id="tokenX" class="hidden" aria-label="Ocultar hasta mañana" title="Ocultar hasta mañana">✕</button></div>
@@ -474,6 +479,7 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
   </div>
   <div id="groups"></div>
   <div id="waitingSec"></div>
+  <div id="notesSec"></div>
 
   <div class="donesec">
     <div class="donehead">
@@ -527,8 +533,9 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
   <form id="editForm" class="modal" role="dialog" aria-modal="true" aria-labelledby="editH">
     <div class="mhead"><h2 id="editH">Editar tarea</h2><button type="button" class="xbtn" id="editX" aria-label="Cerrar">✕</button></div>
     <div id="eDone" class="edone hidden"><span id="eDoneTxt"></span><button type="button" id="eReopen" class="linkbtn">Volver a pendientes</button></div>
+    <div id="eNoteRow" class="edone hidden"><span>Nota: sin fecha ni aviso.</span><button type="button" id="eToTask" class="linkbtn">Convertir en tarea</button></div>
     <input id="eTitle" class="inp" maxlength="500" placeholder="Descripción" aria-label="Descripción">
-    <div class="fcol">
+    <div class="fcol taskonly">
       <span class="lbl">Para cuándo</span>
       <div class="echips">
         <span id="eChips" style="display:contents">
@@ -541,7 +548,7 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
         <input type="time" id="eTime" aria-label="Hora">
       </div>
     </div>
-    <div class="fcol">
+    <div class="fcol taskonly">
       <span class="lbl">Prioridad</span>
       <div class="prios" id="ePrios">
         <button type="button" class="prio Alta" data-p="Alta">Alta</button>
@@ -549,12 +556,12 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
         <button type="button" class="prio Baja" data-p="Baja">Baja</button>
       </div>
     </div>
-    <label class="fcol">Se repite
+    <label class="fcol taskonly">Se repite
       <select id="eRepeat"><option value="">No</option><option value="daily">Diaria</option><option value="weekdays">Lun a vie</option><option value="weekly">Semanal</option><option value="monthly">Mensual</option></select>
     </label>
-    <label class="fcol">Pedida por<input id="eRequester" class="inp" maxlength="100" placeholder="(opcional)"></label>
-    <label class="fcol">Notas<textarea id="eNotes" class="inp" maxlength="2000" rows="3" placeholder="(opcional)"></textarea></label>
-    <div id="eLinks" class="elinks hidden" aria-label="Links de las notas"></div>
+    <label class="fcol taskonly">Pedida por<input id="eRequester" class="inp" maxlength="100" placeholder="(opcional)"></label>
+    <label class="fcol">Detalle<textarea id="eNotes" class="inp" maxlength="2000" rows="3" placeholder="(opcional)"></textarea></label>
+    <div id="eLinks" class="elinks hidden" aria-label="Links del detalle"></div>
     <div class="mfoot">
       <button type="button" id="eDel" class="delbtn">Borrar</button>
       <span class="spacer"></span>
@@ -698,11 +705,11 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.21-10"></script>
+<script src="sync-core.js?v=2026.10.21-11"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.21-10';
+const APP_VERSION='2026.10.21-11';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -725,7 +732,7 @@ const WIDE=window.matchMedia?matchMedia('(min-width:1200px)'):{matches:false,add
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
 const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Alt ↑ ↓','mover'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','procesar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
-let cfg={},remote=[],tasks=[],trash=[],outboxMem=[];
+let cfg={},remote=[],tasks=[],notes=[],trash=[],outboxMem=[];
 let syncing=false,syncAgain=false,lastSync=null,lastError=null,authError=false;
 // Estado de la pantalla
 let chip='0',searchOpen=false,menuId=null,edit=null,settingsOpen=false,confirmClear=false;
@@ -734,7 +741,14 @@ let showDone=false,showAllDone=false,sel=null,visibleIds=[],toastAction=null,toa
 let proc=null,ask=null,waitDone=null,chipTouched=false,sharedFill=false;
 let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=false,hiddenAt=0,tipCounted=false;
 const K_DRAFT='borrador',K_TIP='tipVisto',K_AVISOS='avisosTelegram',K_VISTOS='avisosDesde',K_AVISOX='avisoOculto',K_GUARD='archivoProblema';
-const K_KBD='abrirConTeclado',K_FOLD='gruposPlegados',K_HINT='pistasVistas';
+const K_KBD='abrirConTeclado',K_FOLD='gruposPlegados',K_HINT='pistasVistas',K_NOTES_OPEN='notasAbiertas';
+// Notas: lo que no es para hacer (datos, ideas). Van en tareas.json con kind:'nota', sin fecha, hora ni aviso, y quedan
+// fuera de los grupos, Procesar, la revisión, el número del ícono, el resumen y los recordatorios. "nota:" o "idea:" al
+// principio, o el botón Nota, las guardan así.
+const NOTE_RE=/^\s*(?:nota|idea)\s*:\s*/i,isNote=t=>!!t&&t.kind==='nota';
+const NOTE_SVG='<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="2.5" width="12" height="13" rx="2"/><line x1="6" y1="6.5" x2="12" y2="6.5"/><line x1="6" y1="9.5" x2="12" y2="9.5"/><line x1="6" y1="12.5" x2="9.5" y2="12.5"/></svg>';
+let asNote=false;   // el botón Nota del alta
+function findLive(id){return tasks.find(x=>x.id===id)||notes.find(x=>x.id===id)}
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
@@ -1187,9 +1201,9 @@ function placeMoved(ops){
   const top={};
   ops.forEach(o=>{
     if(o.type!=='edit'||!o.patch||'order' in o.patch)return;
-    const t=tasks.find(x=>x.id===o.id);if(!t||t.done)return;
+    const t=findLive(o.id);if(!t||t.done)return;
     const n={...t,...o.patch};
-    if(n.done||n.waiting||(!t.waiting&&sibKey(n)===sibKey(t)))return;
+    if(n.done||n.waiting||isNote(n)||(!t.waiting&&!isNote(t)&&sibKey(n)===sibKey(t)))return;
     const k=sibKey(n);
     if(!(k in top))top[k]=Math.max(-1,...tasks.filter(x=>!x.done&&!x.waiting&&x.id!==t.id&&sibKey(x)===k).map(x=>Number(x.order)||0));
     o.patch.order=++top[k];
@@ -1206,7 +1220,7 @@ function actMany(ops){
   const iso=new Date(now).toISOString();
   ops.forEach((o,i)=>{
     if(o.type==='edit'&&o.patch){
-      const t=tasks.find(x=>x.id===o.id)||trash.find(x=>x.id===o.id),keys=CONFLICT_KEYS.filter(k=>k in o.patch),patch={...o.patch};
+      const t=findLive(o.id)||trash.find(x=>x.id===o.id),keys=CONFLICT_KEYS.filter(k=>k in o.patch),patch={...o.patch};
       if('due' in patch||'time' in patch)patch.whenAt=iso;
       if(keys.length){
         const prev={},edited={};
@@ -1228,7 +1242,8 @@ function actMany(ops){
 // Las borradas quedan en la papelera (deletedAt) hasta que pasan 30 días o se vacía
 function recompute(){
   const all=applyHere(remote,getOutbox());
-  tasks=all.filter(t=>!t.deletedAt);
+  // (una nota terminada, por ejemplo desde la versión anterior de la app en el otro dispositivo, va a Terminadas)
+  tasks=all.filter(t=>!t.deletedAt&&!(isNote(t)&&!t.done));notes=all.filter(t=>!t.deletedAt&&isNote(t)&&!t.done);
   trash=all.filter(t=>t.deletedAt).sort((a,b)=>String(b.deletedAt).localeCompare(String(a.deletedAt)));
   render();
 }
@@ -1414,7 +1429,7 @@ async function checkPrivate(c){
   if(cfg===c){repoOk=c;repoPublic=null}
 }
 // ---- Cambios que no se aplicaron porque en el otro dispositivo se cambió lo mismo después ----
-const FIELD_ES={title:'el título',notes:'la nota',due:'la fecha',time:'la hora',priority:'la prioridad',requester:'quién la pidió',repeat:'la repetición',waiting:'la espera',waitingOn:'de quién espera',followUp:'cuándo volver a mirarla'};
+const FIELD_ES={kind:'si es nota o tarea',title:'el título',notes:'el detalle',due:'la fecha',time:'la hora',priority:'la prioridad',requester:'quién la pidió',repeat:'la repetición',waiting:'la espera',waitingOn:'de quién espera',followUp:'cuándo volver a mirarla'};
 const joinY=a=>a.length>1?a.slice(0,-1).join(', ')+' y '+a[a.length-1]:a[0]||'';
 let lostLater=null;
 function reportLost(lost,items){
@@ -1592,7 +1607,7 @@ const arrived=new Set();let arrivedTimer=null;
 function noteArrivals(prev,next,known){
   if(!known)return;
   const before=new Set(prev.map(t=>t.id)),mine=new Set(getOutbox().filter(o=>o.type==='add').map(o=>o.task.id));
-  const fresh=next.filter(t=>!before.has(t.id)&&!mine.has(t.id)&&!t.done&&!t.deletedAt&&!t.repeatOf);
+  const fresh=next.filter(t=>!before.has(t.id)&&!mine.has(t.id)&&!t.done&&!t.deletedAt&&!t.repeatOf&&!isNote(t));
   if(!fresh.length)return;
   fresh.forEach(t=>arrived.add(t.id));
   const srcs=new Set(fresh.map(t=>t.src||'')),from=srcs.size===1&&srcs.has('cel')?' desde el celular':srcs.size===1&&srcs.has('pc')?' desde la compu':'';
@@ -1757,7 +1772,7 @@ function noteKeys(items,prevPull,before){
   const s=load(K_VISTOS,null)||{},m=s.m||{},P=prevPull||s.at||0,today=ymd(new Date()),now=Date.now(),out={};
   const prev=before&&new Set(before.map(t=>t&&t.id+'|'+t.due+'|'+t.time));
   for(const t of items){
-    if(!t||t.deletedAt||!t.due||t.due<today||!HM_RE.test(t.time||''))continue;
+    if(!t||t.deletedAt||isNote(t)||!t.due||t.due<today||!HM_RE.test(t.time||''))continue;
     const k=t.id+'|'+t.due+'|'+t.time;
     // Nueva para este dispositivo: si la tarea ya existía la última vez que leyó GitHub, la fecha u hora cambió después
     out[k]=k in m?m[k]:prev&&!prev.has(k)||P&&Date.parse(t.createdAt)<=P?now:0;
@@ -1773,7 +1788,7 @@ function missedAvisos(){
   const since=ms=>{const d=new Date(ms);return ymd(d)===today?d.getHours()*60+d.getMinutes()+1:0};
   const out=[];
   for(const t of remote){
-    if(!t||t.deletedAt||t.due!==today||!HM_RE.test(t.time||''))continue;
+    if(!t||t.deletedAt||isNote(t)||t.due!==today||!HM_RE.test(t.time||''))continue;
     const k=t.id+'|'+t.due+'|'+t.time,r=remindRun(today,t.time,Math.max(since(Date.parse(t.createdAt)||0),since(Date.parse(t.whenAt)||0),seen[k]?since(seen[k]):0));
     if(r==null||now<r+20)continue;
     if(!(avisos.at>=at(r)+20*60000))continue;   // lo último leído es de antes: todavía no se sabe (sin señal, recién vuelta a la app)
@@ -1922,17 +1937,22 @@ function renderHeader(){
   const n=FINE?procQueue(false).length:0;
   $('procBtn').classList.toggle('hidden',!n);$('procCount').textContent=n||'';
 }
+// Lo que está en el alta se va a guardar como nota: el botón Nota, o "nota:" / "idea:" al principio
+function noteDraft(v){return asNote||NOTE_RE.test(v)}
 function renderAdd(){
-  const raw=$('title').value,p=parse(raw,dueFor(chip));
-  const eff=p.due!==undefined?p.due:dueFor(chip);
+  // Una nota no se interpreta (ni fecha, ni hora, ni quién): se guarda el texto tal cual
+  const raw=$('title').value,nd=noteDraft(raw),p=nd?{title:raw.replace(NOTE_RE,'')}:parse(raw,dueFor(chip));
+  const eff=nd?undefined:p.due!==undefined?p.due:dueFor(chip);
   // La fecha detectada en el texto pisa el chip elegido
-  document.querySelectorAll('#chips .chip').forEach(b=>{const on=dueFor(b.dataset.v)===eff;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
+  document.querySelectorAll('#chips .chip').forEach(b=>{const on=!nd&&dueFor(b.dataset.v)===eff;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
+  $('noteChip').classList.toggle('on',nd);$('noteChip').setAttribute('aria-pressed',String(nd));
   const det=$('detected');det.replaceChildren();
   const tags=[];
+  if(nd&&p.title.trim())tags.push('Nota: sin fecha ni aviso');
   if(p.due)tags.push(shortDue(p.due));
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
   // Con la hora, cuándo llega el aviso por Telegram (o que no llega). "Recordame…" sin hora: a las 9.
-  const pr=withRemindTime(p,eff);
+  const pr=nd?{}:withRemindTime(p,eff);
   if(pr.time){const w=whenFields(pr,eff);tags.push(timeLabel(pr.time));const a=avisoTag(w.due,w.time);if(a)tags.push(a)}
   else if(p.remind&&avisosOn())tags.push(['Sin hora: sin aviso','warn']);
   if(p.requester)tags.push('@'+p.requester);
@@ -1942,9 +1962,11 @@ function renderAdd(){
   if(voiceFilled&&p.title)det.append(el('div','heard',cap(p.title)));
   if(tags.length){det.append(el('span','lbl','Detectado:'));tags.forEach(x=>det.append(Array.isArray(x)?el('span','tag'+(x[1]?' '+x[1]:''),x[0]):el('span','tag',x)))}
   det.classList.toggle('hidden',!det.childNodes.length);
-  // En el celular, las fechas y la nota aparecen al tocar el campo o al escribir; en reposo, el alta ocupa una línea.
+  // En el celular, las fechas y el detalle aparecen al tocar el campo o al escribir; en reposo, el alta ocupa una línea.
   // Se vuelven a ocultar solo en momentos quietos (ver restArmed), para que la lista no salte bajo el dedo.
   const rest=COARSE&&restArmed&&!raw.trim()&&$('note').classList.contains('hidden')&&!listening&&!autoSave&&!dock&&!$('addForm').contains(document.activeElement);
+  // Con el alta en reposo (las fechas y el botón Nota no se ven), Nota se apaga: lo próximo que dictes es una tarea
+  if(rest&&asNote){asNote=false;$('noteChip').classList.remove('on');$('noteChip').setAttribute('aria-pressed','false');saveDraft()}
   // El tip, solo las primeras 5 veces que se abre la app. En el celular, una vez a la vista, se va junto con las fechas.
   const tip=!listening&&(document.activeElement===$('title')||COARSE&&!rest&&!$('tip').classList.contains('hidden'))&&!raw.trim()&&(tipCounted||load(K_TIP,0)<5);
   if(tip&&!tipCounted){tipCounted=true;store(K_TIP,load(K_TIP,0)+1)}
@@ -2064,7 +2086,7 @@ function renderList(){
   const box=$('groups');box.replaceChildren();visibleIds=[];
   // En pantallas anchas, Sin fecha y Esperando van a la columna de la derecha, siempre a la vista
   // (con las flechas se recorren en el orden de la pantalla: la columna principal, Esperando y Sin fecha)
-  const wide=WIDE.matches,noneIds=[];$('sideNone').replaceChildren();$('sideWait').replaceChildren();
+  const wide=WIDE.matches,noneIds=[],waitIds=[];$('sideNone').replaceChildren();$('sideWait').replaceChildren();
   // Los grupos plegados muestran solo el título y cuántas hay (buscando o filtrando por persona se ven todos, y el
   // título no pliega: lo guardado no cambia sin que se vea)
   const noFold=!!(q||personFilter),folded=noFold?new Set():foldedGroups();
@@ -2092,19 +2114,34 @@ function renderList(){
     head.append(...foldHead('waiting','Esperando',waiting,shut,noFold));grp.append(head);
     if(!shut){
       const card=el('div','card');
-      waiting.forEach(t=>{visibleIds.push(t.id);card.append(taskRow(t,'waiting',unsynced))});
+      waiting.forEach(t=>{(wide?waitIds:visibleIds).push(t.id);card.append(taskRow(t,'waiting',unsynced))});
       grp.append(card);
     }
     ws.append(grp);
   }
-  visibleIds.push(...noneIds);
+  // Notas: debajo de todo, plegadas hasta que las abras (cada dispositivo lo recuerda); buscando se ven las que
+  // coinciden. Con el filtro por persona no se muestran (no tienen quién las pidió).
+  const nlist=personFilter?[]:notes.filter(match).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  const ns=$('notesSec');ns.replaceChildren();
+  if(nlist.length){
+    const grp=el('div','grp'),head=el('div','ghead'),shut=!q&&!notesOpen();
+    head.append(...foldHead('notes','Notas',nlist,shut,!!q));grp.append(head);
+    if(!shut){
+      const card=el('div','card');
+      nlist.forEach(t=>{visibleIds.push(t.id);card.append(noteRow(t))});
+      grp.append(card);
+    }
+    ns.append(grp);
+  }
+  // En pantallas anchas, después de la columna principal (con las notas) vienen Esperando y Sin fecha, a la derecha
+  visibleIds.push(...waitIds,...noneIds);
   fitSide();
   $('filterBar').classList.toggle('hidden',!personFilter);$('filterName').textContent=personFilter||'';
   const inTrash=q?trash.filter(match).length:0;
-  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.'+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':''):personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
+  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.'+(nlist.length?' Hay '+(nlist.length===1?'1 nota':nlist.length+' notas')+' más abajo.':'')+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':''):personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
   $('empty').classList.toggle('hidden',pending.length+waiting.length>0);
   if(sel&&!visibleIds.includes(sel))sel=null;
-  if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done))closeMenu();
+  if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done)&&!notes.some(t=>t.id===menuId))closeMenu();
 
   // Terminadas: por defecto solo las de los últimos 7 días
   const cutoff=Date.now()-DONE_DAYS*86400000;
@@ -2133,7 +2170,29 @@ function renderList(){
 }
 // ---- Grupos plegables ----
 function foldedGroups(){const v=load(K_FOLD,[]);return new Set(Array.isArray(v)?v:[])}
-function setFold(id,shut){const f=foldedGroups();if(shut)f.add(id);else f.delete(id);store(K_FOLD,[...f])}
+function setFold(id,shut){if(id==='notes'){store(K_NOTES_OPEN,!shut);return}const f=foldedGroups();if(shut)f.add(id);else f.delete(id);store(K_FOLD,[...f])}
+function notesOpen(){return load(K_NOTES_OPEN,false)===true}
+// Una nota en la lista: sin casilla (no se termina); tocándola se edita, y en ⋯ se convierte en tarea
+function noteRow(t){
+  const row=el('div','task note'+(sel===t.id?' sel':''));row.dataset.id=t.id;
+  const ic=el('span','nico');ic.innerHTML=NOTE_SVG;
+  const body=el('div','body');body.onclick=()=>openEdit(t);
+  body.append(el('div','ttext',t.title));
+  if(t.notes){const n=el('div','notes');n.append(...notesNodes(t.notes));body.append(n)}
+  const more=el('button','more','⋯');more.type='button';more.setAttribute('aria-label','Más acciones');more.setAttribute('aria-haspopup','menu');
+  more.onclick=e=>{e.stopPropagation();openMenu(t.id,e.detail===0)};
+  row.append(ic,body,more);
+  return row;
+}
+// "Ver" después de guardar una nota: abre la sección y la muestra
+function showNote(id){
+  if(personFilter)setPersonFilter(null);
+  const t=notes.find(x=>x.id===id);
+  if(searchOpen&&(!$('search').value.trim()||t&&!matcher()(t)))closeSearch();
+  setFold('notes',false);renderList();
+  const r=document.querySelector('#notesSec .task[data-id="'+CSS.escape(id)+'"]');
+  if(r){r.scrollIntoView({block:'center',behavior:'smooth'});if(FINE){sel=id;renderList()}}
+}
 // El título del grupo (con cuántas hay). Plegado, también cuántas llegaron del otro dispositivo.
 function foldHead(id,title,items,shut,noFold){
   if(noFold)return [el('span',null,title),el('span','n',String(items.length))];
@@ -2149,7 +2208,7 @@ function foldHead(id,title,items,shut,noFold){
 // ---- Primera vez ----
 // Un dispositivo sin conectar y sin tareas: en vez de "Nada pendiente", cómo traer las de la compu
 function renderWelcome(searching){
-  const show=!configured()&&!tasks.length&&!trash.length&&!searching&&!personFilter;
+  const show=!configured()&&!tasks.length&&!notes.length&&!trash.length&&!searching&&!personFilter;
   $('welcome').classList.toggle('hidden',!show);
   if(show){$('empty').classList.add('hidden');$('welcomeQ').textContent=COARSE?'¿Ya anotás tus tareas en la compu?':'¿Ya usás Mis tareas en otro dispositivo?'}
 }
@@ -2282,14 +2341,16 @@ document.addEventListener('click',e=>{if(swallowClick){swallowClick=false;e.stop
 // ---- Menú ⋯ ----
 function openMenu(id,byKey){
   if(menuId===id){closeMenu();return}
-  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const t=findLive(id);if(!t)return;
   menuId=id;
   const m=$('menu');m.replaceChildren();
   // En el celular, la hoja de abajo dice de qué tarea es (puede tapar la fila)
   if(COARSE)m.append(el('div','mtitle',t.title));
   const n=t.due?daysUntil(t.due):null;
   const item=(label,fn,cls)=>{const b=el('button',cls,label);b.type='button';b.setAttribute('role','menuitem');b.onclick=()=>{closeMenu();fn()};m.append(b)};
-  if(t.waiting){
+  if(isNote(t)){
+    item('Convertir en tarea',()=>toTask(t));
+  }else if(t.waiting){
     item('Ya respondió',()=>setWaiting(t,false));
     item('Reclamar…',()=>nudge(t));
     item('Volver a mirar el…',()=>askDate(t));
@@ -2302,6 +2363,7 @@ function openMenu(id,byKey){
     item('Otra fecha…',()=>askDate(t));
     item('Esperando respuesta…',()=>openWait(t));
     item('Agregar al calendario',()=>openCalendar(t));
+    item('Pasar a notas',()=>toNote(t));
     // Mover a mano (si comparte el día con otras)
     if(tasks.some(x=>!x.done&&!x.waiting&&x.id!==t.id&&(x.due||'')===(t.due||'')&&(taskTime(x)||'')===(taskTime(t)||''))){
       m.append(el('div','sep'));item('Subir',()=>moveTask(t,-1));item('Bajar',()=>moveTask(t,1));
@@ -2322,7 +2384,7 @@ function openMenu(id,byKey){
 // página (acompaña el scroll) y se vuelve a ubicar cada vez que la lista se redibuja.
 function placeMenu(){
   if(!menuId)return;
-  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task,#side .task')].find(r=>r.dataset.id===menuId);
+  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task,#side .task,#notesSec .task')].find(r=>r.dataset.id===menuId);
   if(!row){closeMenu();return}
   if(COARSE)return;   // la hoja de abajo (CSS)
   const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
@@ -2449,6 +2511,29 @@ function allToToday(items){
   actMany(prev.map(x=>({type:'edit',id:x.id,patch:x.patch})));
   toast(kick.length+' pasadas a hoy'+(left?' · '+(left===1?'1 quedó afuera: la pateaste':left+' quedaron afuera: las pateaste')+' 3 veces o más':''),()=>actMany(prev.map(x=>({type:'edit',id:x.id,patch:undoOf(x.t,x.patch)}))),'Deshacer',left?7000:4500);
 }
+// Nota → tarea: queda para hoy, anotada al pasar (punto azul), para darle fecha ("Cambiar" o Procesar). Sin hora
+// (una hora escrita en el texto de la nota no cuenta) y, si estaba terminada, vuelve a pendientes.
+function toTask(t){
+  const patch={kind:null,due:ymd(new Date()),inbox:true,time:null};
+  if(t.done)Object.assign(patch,{done:false,completedAt:null});
+  act({type:'edit',id:t.id,patch});
+  const back=undoOf(t,patch);if(t.time===undefined)back.time=null;   // (después de act: también vuelve a su lugar)
+  toast('Ahora es una tarea, para hoy',()=>act({type:'edit',id:t.id,patch:back}),'Deshacer',6000,[['Cambiar',()=>{const x=tasks.find(y=>y.id===t.id);if(x)openEdit(x)}]]);
+}
+// Tarea → nota: sin fecha, hora, repetición ni espera, así no aparece en Hoy ni avisa. Deshacer devuelve todo.
+// (Deja de ser parte de una serie que se repite: la próxima de la serie se puede volver a crear)
+function toNote(t){
+  const patch={kind:'nota',time:null};
+  if(t.due)patch.due=null;
+  if(t.repeat)patch.repeat=null;
+  if(t.repeatOf)patch.repeatOf=null;
+  if(t.waiting)patch.waiting=false;
+  if(t.followUp)patch.followUp=null;
+  if(t.inbox)patch.inbox=false;
+  act({type:'edit',id:t.id,patch});
+  const back=undoOf(t,patch);
+  toast('Pasada a notas',()=>act({type:'edit',id:t.id,patch:back}));
+}
 // Esperando respuesta: sale de los grupos por fecha hasta que respondan
 function setWaiting(t,on,name){
   const prev={waiting:!!t.waiting,waitingOn:t.waitingOn||'',waitingSince:t.waitingSince||null,...(t.inbox?{inbox:true}:{}),...(t.followUp?{followUp:t.followUp}:{}),...(t.lastNudge?{lastNudge:t.lastNudge,nudges:t.nudges||0}:{})};
@@ -2492,7 +2577,7 @@ function procActions(t){
     A('Espacio','Terminada',()=>{toggle(t);procNext()}),A('Supr','Borrar',()=>{del(t);procNext()},'danger'),A('→',proc.weekly?'Sigue así':'Siguiente',()=>procKeep(t))];
   return [A('H','Hoy',()=>{reschedule(t,'0');procNext()},t.inbox?'main':null),A('M','Mañana',()=>{reschedule(t,'1');procNext()}),A('L','Lunes',()=>{reschedule(t,'week');procNext()}),
     A('F','Otra fecha…',()=>askDate(t,procNext)),A('S','Sin fecha',()=>{if(proc.weekly&&!t.due)return procKeep(t);reschedule(t,'');procNext()}),A('W','Esperando…',()=>{waitDone=procNext;openWait(t)}),
-    A('Q','Quién…',()=>askWho(t,renderProc)),A('!',t.priority==='Alta'?'Media':'Alta',()=>{togglePrio(t);renderProc()}),A('E','Editar…',()=>openEdit(t)),
+    A('Q','Quién…',()=>askWho(t,renderProc)),A('!',t.priority==='Alta'?'Media':'Alta',()=>{togglePrio(t);renderProc()}),A('N','Nota',()=>{toNote(t);procNext()}),A('E','Editar…',()=>openEdit(t)),
     A('Espacio','Terminada',()=>{toggle(t);procNext()}),A('Supr','Borrar',()=>{del(t);procNext()},'danger'),A('→',proc.weekly?'Sigue así':'Siguiente',()=>procKeep(t))];
 }
 // "Siguiente": en la revisión semanal queda revisada por un mes; si estaba anotada al pasar, queda para hoy
@@ -2618,6 +2703,7 @@ async function openPosById(id,initial){
     const end=Date.now()+10000;
     while(!(t=tasks.find(x=>x.id===id))&&syncing&&Date.now()<end)await new Promise(r=>setTimeout(r,250));
   }
+  if(!t&&notes.some(x=>x.id===id)){toast('Esa tarea ahora es una nota (sin aviso)',null,null,8000,[['Ver',()=>showNote(id)]]);return}
   if(!t){
     toast(!configured()?'Abrí el aviso en la app instalada, conectada a GitHub (en Telegram, desactivá el navegador integrado)':
       trash.some(x=>x.id===id)?'Esa tarea está en la papelera':
@@ -2666,7 +2752,7 @@ function del(t){
 }
 function restore(t){
   act({type:'edit',id:t.id,patch:{deletedAt:null}});
-  toast('Tarea recuperada',()=>act({type:'edit',id:t.id,patch:{deletedAt:t.deletedAt}}));
+  toast(isNote(t)?'Nota recuperada':'Tarea recuperada',()=>act({type:'edit',id:t.id,patch:{deletedAt:t.deletedAt}}));
 }
 // Calendario: se descarga un evento (.ics) que el calendario del teléfono (Samsung, Outlook,
 // Apple…) agrega con su aviso. Sin hora, el evento queda a las 9:00 (o en la próxima hora en
@@ -2718,6 +2804,18 @@ $('addForm').addEventListener('submit',e=>{
   const raw=$('title').value.trim();if(!raw)return;
   // En el celular el cursor vuelve al campo solo si el teclado ya estaba abierto (se agregó con Enter)
   const refocus=FINE||document.activeElement===$('title');
+  if(noteDraft(raw)){
+    const text=raw.replace(NOTE_RE,'').trim();if(!text)return;
+    const nt={id:crypto.randomUUID(),src:SRC,kind:'nota',title:voiceFilled?cap(text):text,requester:'',priority:'Media',due:null,time:null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
+    act({type:'add',task:nt});
+    if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
+    toast('Nota guardada',()=>actMany([{type:'delete',id:nt.id}]),'Deshacer',6000,[['Ver',()=>showNote(nt.id)]]);
+    hideSuggest();
+    $('title').value='';$('note').value='';setNote(false);chip='0';asNote=false;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+    if(refocus)$('title').focus();
+    renderAdd();
+    return;
+  }
   const p0=parse(raw,dueFor(chip)),due=p0.due!==undefined?p0.due:dueFor(chip),p=withRemindTime(p0,due);
   const task={id:crypto.randomUUID(),src:SRC,title:voiceFilled?cap(p.title):p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
   if(p.repeat)task.repeat=p.repeat;
@@ -2734,7 +2832,7 @@ $('addForm').addEventListener('submit',e=>{
   const av=avisoTag(task.due,task.time);
   toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:'')+(av?' · '+av[0].toLowerCase():''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
-  $('title').value='';$('note').value='';setNote(false);chip='0';voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+  $('title').value='';$('note').value='';setNote(false);chip='0';asNote=false;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
   if(refocus)$('title').focus();
   renderAdd();
 });
@@ -2752,14 +2850,14 @@ $('note').addEventListener('focus',()=>cancelAutoSave());
 // Con la fecha elegida en los chips y de dónde vino el texto (compartido, dictado), así vuelve igual
 function saveDraft(){
   const t=$('title').value,n=$('note').value;
-  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
+  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,nt:asNote,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
 }
 function restoreDraft(){
   const d=load(K_DRAFT,null);
   if(!d||!(Date.now()-d.at<12*3600000)||$('title').value.trim())return;
   const i=$('title');i.value=d.t||'';if(d.n){setNote(true);$('note').value=d.n}
   if(d.ct&&typeof d.c==='string'){chip=d.c;chipTouched=true}
-  sharedFill=!!d.sf;voiceFilled=!!d.vf;
+  asNote=!!d.nt;sharedFill=!!d.sf;voiceFilled=!!d.vf;
   try{i.setSelectionRange(i.value.length,i.value.length)}catch{}
   renderAdd();
 }
@@ -2789,9 +2887,11 @@ $('addForm').addEventListener('focusout',()=>{
   document.addEventListener('pointerup',after,true);document.addEventListener('pointercancel',after,true);
 });
 // Elegir otra fecha durante la cuenta regresiva la vuelve a empezar
-document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;chipTouched=true;if(autoSave)startAutoSave();renderAdd();saveDraft();if(!dock)$('title').focus()}));
+document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;chipTouched=true;asNote=false;if(autoSave)startAutoSave();renderAdd();saveDraft();if(!dock)$('title').focus()}));
+// Nota: lo que escribas (o dictes) se guarda como nota; tocarlo de nuevo, o una fecha, vuelve a tarea
+$('noteChip').addEventListener('click',()=>{asNote=!asNote;if(autoSave)startAutoSave();hideSuggest();renderAdd();saveDraft();if(!dock)$('title').focus()});
 function setNote(on){
-  $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar nota':'+ Nota';
+  $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar detalle':'+ Detalle';
   if(!on)$('note').value='';
 }
 $('noteToggle').onclick=()=>{cancelAutoSave();const on=$('note').classList.contains('hidden');setNote(on);if(on)$('note').focus();else saveDraft()};
@@ -2815,7 +2915,7 @@ function personsRecent(){
 // "De: Laura · Juan · Marcela · @…" debajo de las fechas, en el celular, si el texto no dice quién la pidió
 function renderWho(p){
   const box=$('whoRow');
-  const show=COARSE&&!dock&&!listening&&!!$('title').value.trim()&&!p.requester&&!p.waiting&&!sugg.length;
+  const show=COARSE&&!dock&&!listening&&!!$('title').value.trim()&&!p.requester&&!p.waiting&&!sugg.length&&!noteDraft($('title').value);
   const ppl=show?personsRecent().slice(0,3):[];
   box.classList.toggle('hidden',!ppl.length);
   if(!ppl.length){box.replaceChildren();delete box.dataset.k;return}
@@ -2851,7 +2951,7 @@ function atWord(){
 }
 function computeSuggest(){
   const v=$('title').value;
-  if(listening||document.activeElement!==$('title'))return [];
+  if(listening||document.activeElement!==$('title')||noteDraft(v))return [];
   const at=atWord();
   if(!at&&voiceFilled)return [];
   if(at){
@@ -2934,15 +3034,15 @@ function openBulk(lines,offs){
     row.append(cb,inp);list.append(row);
   });
   const d=dueFor(chip);
-  $('bulkHint').textContent='Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'.';
+  $('bulkHint').textContent=asNote?'Se guardan como notas (sin fecha ni aviso).':'Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'. Las que empiecen con "nota:" o "idea:" van a notas.';
   $('bulkOv').classList.remove('hidden');$('wrap').inert=true;
   renderBulk();
 }
 function bulkItems(){return [...$('bulkList').children].filter(r=>r.firstChild.checked&&r.lastChild.value.trim()).map(r=>r.lastChild.value.trim())}
 function renderBulk(){
-  const n=bulkItems().length;
+  const its=bulkItems(),n=its.length,nn=asNote?n:its.filter(l=>NOTE_RE.test(l)).length,nt=n-nn,cnt=(k,a,b)=>k+' '+(k===1?a:b);
   [...$('bulkList').children].forEach(r=>r.classList.toggle('off',!r.firstChild.checked));
-  $('bulkH').textContent=n===1?'¿Cargar 1 tarea?':'¿Cargar '+n+' tareas?';
+  $('bulkH').textContent='¿Cargar '+(nn&&nt?cnt(nt,'tarea','tareas')+' y '+cnt(nn,'nota','notas'):nn?cnt(nn,'nota','notas'):cnt(nt,'tarea','tareas'))+'?';
   $('bulkOk').textContent=n===1?'Agregar 1':'Agregar '+n;$('bulkOk').disabled=!n;
 }
 function closeBulk(){bulk=null;releaseFocus($('bulkOv'));$('bulkOv').classList.add('hidden');$('wrap').inert=false}
@@ -2958,6 +3058,7 @@ $('bulkForm').addEventListener('submit',e=>{
   e.preventDefault();
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
+    if(asNote||NOTE_RE.test(line)){const text=line.replace(NOTE_RE,'').trim()||line;return {id:crypto.randomUUID(),src:SRC,kind:'nota',title:text,requester:'',priority:'Media',due:null,time:null,notes:'',done:false,createdAt:now,completedAt:null}}
     const p0=parse(line,def),due=p0.due!==undefined?p0.due:def,p=withRemindTime(p0,due);
     const task={id:crypto.randomUUID(),src:SRC,title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:'',done:false,createdAt:now,completedAt:null};
     if(p.repeat)task.repeat=p.repeat;
@@ -2968,9 +3069,10 @@ $('bulkForm').addEventListener('submit',e=>{
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
   actMany(ops);
-  $('title').value='';saveDraft();renderAdd();
+  $('title').value='';asNote=false;saveDraft();renderAdd();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
-  toast(added.length===1?'1 tarea agregada':added.length+' tareas agregadas',()=>{
+  const nn=added.filter(isNote).length,nt=added.length-nn,cnt=(n,a,b)=>n+' '+(n===1?a:b);
+  toast((nt?cnt(nt,'tarea','tareas'):'')+(nt&&nn?' y ':'')+(nn?cnt(nn,'nota','notas'):'')+(added.length===1?' agregada':' agregadas'),()=>{
     actMany(added.map(x=>({type:'delete',id:x.id})));
   });
 });
@@ -2985,7 +3087,7 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const MIC_SVG='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0"/><line x1="10" y1="15.5" x2="10" y2="18"/></svg>';
 const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
 function updateAddBtn(force){
-  const b=$('addBtn'),v=$('title').value,mode=listening?'listening':autoSave?'saving':SR&&(!v.trim()||voiceFilled&&parse(v,dueFor(chip)).bare)?'mic':'add';
+  const b=$('addBtn'),v=$('title').value,mode=listening?'listening':autoSave?'saving':SR&&(!v.trim()||voiceFilled&&!noteDraft(v)&&parse(v,dueFor(chip)).bare)?'mic':'add';
   renderDock();scheduleFabs();
   if(b.dataset.mode===mode&&!force)return;
   if(mode==='saving'){b.dataset.mode=mode;b.type='button';b.classList.remove('listening');b.textContent='Guardar · '+autoSave.n;b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora';return}
@@ -3024,7 +3126,7 @@ function startVoice(){
 function endVoice(finished){
   listening=false;rec=null;
   if(finished&&voiceFilled&&$('title').value.trim()){
-    if(parse($('title').value,dueFor(chip)).bare)toast('Decí también qué hay que hacer: tocá el micrófono y seguí');
+    if(!noteDraft($('title').value)&&parse($('title').value,dueFor(chip)).bare)toast('Decí también qué hay que hacer: tocá el micrófono y seguí');
     else startAutoSave();
   }
   renderAdd();
@@ -3226,7 +3328,7 @@ function closeReport(){releaseFocus($('repOv'));$('repOv').classList.add('hidden
 function csvCell(v){v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v=' '+v;return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function reportCsv(d){
   const f=x=>x?(x instanceof Date?x:new Date(x)).toLocaleDateString('es-AR'):'';
-  const rows=[['Estado','Tarea','Pedida por','Creada','Fecha','Hora','Terminada','Días','Prioridad','Pospuesta','Esperando a','Tickets','Notas']];
+  const rows=[['Estado','Tarea','Pedida por','Creada','Fecha','Hora','Terminada','Días','Prioridad','Pospuesta','Esperando a','Tickets','Detalle']];
   if(REP_INC.done)d.done.forEach(t=>rows.push(['Terminada',t.title,t.requester||'',f(t.createdAt),t.due?f(parseYmd(t.due)):'',t.time||'',f(t.completedAt),t.createdAt?daysBetween(t.createdAt,t.completedAt):'',t.priority||'',t.postponed||'','',tickets(t).join(' '),t.notes||'']));
   if(REP_INC.pend)d.pend.forEach(x=>{const t=x.t;rows.push([x.st.txt,t.title,t.requester||'',f(t.createdAt),t.due?f(parseYmd(t.due)):'',t.time||'','','',t.priority||'',t.postponed||'','',tickets(t).join(' '),t.notes||''])});
   if(REP_INC.wait)d.wait.forEach(t=>rows.push(['En espera',t.title,t.requester||'',f(t.createdAt),t.followUp?f(parseYmd(t.followUp)):'','','','',t.priority||'',t.postponed||'',t.waitingOn||'',tickets(t).join(' '),t.notes||'']));
@@ -3332,7 +3434,10 @@ function openEdit(t,opts={}){
   $('eRepeat').value=edit.orig.repeat||'';
   $('eTitle').value=t.title;$('eRequester').value=t.requester||'';$('eNotes').value=t.notes||'';
   // Terminada: cuándo, y volver a pendientes desde acá. Del archivo: solo para ver (no está en tareas.json).
-  $('editH').textContent=archived?'En el archivo':t.done?'Tarea terminada':'Editar tarea';
+  edit.isNote=isNote(t);
+  $('editForm').classList.toggle('isnote',edit.isNote);
+  $('eNoteRow').classList.toggle('hidden',!edit.isNote||archived||!!t.done);
+  $('editH').textContent=archived?'En el archivo':t.done?(edit.isNote?'Nota terminada':'Tarea terminada'):edit.isNote?'Nota':'Editar tarea';
   $('eDone').classList.toggle('hidden',!t.done);
   $('eDoneTxt').textContent=t.done?doneLong(t.completedAt)+(archived?' · en archivo/'+t.archivo:''):'';
   $('eReopen').classList.toggle('hidden',archived);
@@ -3382,7 +3487,7 @@ function saveEdit(){
   if(edit.readonly){closeEdit();return}
   const title=$('eTitle').value.trim();if(!title){$('eTitle').focus();return}
   // Solo se envían los campos modificados, para no pisar cambios hechos desde otro dispositivo
-  const patch=editPatch(),t0=tasks.find(x=>x.id===edit.id),trashed=!t0&&trash.some(x=>x.id===edit.id);
+  const patch=editPatch(),t0=findLive(edit.id),trashed=!t0&&trash.some(x=>x.id===edit.id);
   // Si mientras tanto se eliminó en otro dispositivo, no hay dónde guardarla: queda abierta para copiar el texto
   if(!t0&&!trashed&&!edit.readonly&&Object.keys(patch).length){toast('No se guardó: esta tarea se eliminó en otro dispositivo');return}
   if(t0&&!t0.done&&'due' in patch){const d=duePatch(t0,patch.due);if(d.postponed)patch.postponed=d.postponed}
@@ -3390,14 +3495,14 @@ function saveEdit(){
   // La hora elegida en Editar es la de la serie (si se había pospuesto, deja de valer la de antes)
   if(t0&&t0.repeatTime!=null&&('time' in patch||'repeat' in patch))patch.repeatTime=null;
   // Una vieja con la hora en el título: si se cambia el título, la hora pasa a ser un dato aparte (si no, se perdería)
-  if(t0&&t0.time===undefined&&'title' in patch&&!('time' in patch)&&$('eTime').value&&!$('eTime').validity.badInput)patch.time=$('eTime').value;
+  if(t0&&!isNote(t0)&&t0.time===undefined&&'title' in patch&&!('time' in patch)&&$('eTime').value&&!$('eTime').validity.badInput)patch.time=$('eTime').value;
   const id=edit.id;closeEdit();
   if(!Object.keys(patch).length)return;
   act({type:'edit',id,patch});
   // Deshacer vuelve a los valores de antes (t0 es la copia de antes; se calcula después de act, que le agrega
   // al cambio el lugar en el grupo nuevo, así vuelve también a su lugar)
   const back=t0?undoOf(t0,patch):null;
-  toast(trashed?'Cambios guardados (la tarea está en la papelera)':'Cambios guardados',back&&(()=>act({type:'edit',id,patch:back})));
+  toast(trashed?'Cambios guardados (está en la papelera)':'Cambios guardados',back&&(()=>act({type:'edit',id,patch:back})));
 }
 $('editForm').addEventListener('submit',e=>{e.preventDefault();saveEdit()});
 // Atrás, tocar afuera o Esc: si cambiaste algo, se guarda (con Deshacer), como en las apps de Android.
@@ -3425,7 +3530,16 @@ $('archBtn').onclick=()=>loadArchive();
 // (por ejemplo, al arrastrar para seleccionar texto y soltar afuera)
 ['editOv','syncOv'].forEach(id=>$(id).addEventListener('pointerdown',e=>{downOn=e.target}));
 $('editOv').addEventListener('click',e=>{if(e.target===$('editOv')&&downOn===e.target)dismissEdit()});
-$('eDel').onclick=()=>{const t=edit&&tasks.find(x=>x.id===edit.id);if(t)del(t);else closeEdit()};
+$('eDel').onclick=()=>{const t=edit&&findLive(edit.id);if(t)del(t);else closeEdit()};
+// Convertir la nota en tarea desde Editar: guarda también lo que hayas cambiado
+$('eToTask').onclick=()=>{
+  const t=edit&&notes.find(x=>x.id===edit.id);
+  if(!t||edit.readonly){closeEdit();return}
+  const patch=$('eTitle').value.trim()?editPatch():{},id=t.id;
+  closeEdit();
+  if(Object.keys(patch).length)act({type:'edit',id,patch});
+  const t2=notes.find(x=>x.id===id);if(t2)toTask(t2);
+};
 
 // ---- Sincronización ----
 function openSettings(){
@@ -3571,7 +3685,7 @@ document.addEventListener('keydown',e=>{
   if(typing||e.metaKey||e.ctrlKey||e.altKey||edit||settingsOpen||bulk||waitFor||ask||!$('textOv').classList.contains('hidden')||repOpen())return;
   // Espacio/Enter sobre un botón con foco ya lo activan: no duplicar la acción
   if((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter'))return;
-  const ids=visibleIds,i=ids.indexOf(sel),t=tasks.find(x=>x.id===sel&&!x.done);
+  const ids=visibleIds,i=ids.indexOf(sel),t=tasks.find(x=>x.id===sel&&!x.done),nt=!t&&notes.find(x=>x.id===sel),any=t||nt;
   const next=()=>ids[i+1]||ids[i-1]||null;
   // Pasar a otra fecha y seguir con la siguiente (si ya estaba en esa fecha, no hace nada)
   const move=v=>{if(!t||(t.due||null)===dueFor(v)&&!t.inbox)return;sel=next();reschedule(t,v)};
@@ -3582,7 +3696,7 @@ document.addEventListener('keydown',e=>{
     case 'arrowdown':case 'j':if(ids.length){e.preventDefault();select(ids[Math.min(ids.length-1,i+1)])}break;
     case 'arrowup':case 'k':if(ids.length){e.preventDefault();select(ids[Math.max(0,i-1)])}break;
     case ' ':case 'x':if(t){e.preventDefault();const nx=next();sel=nx;toggle(t)}break;
-    case 'e':case 'enter':if(t){e.preventDefault();openEdit(t)}break;
+    case 'e':case 'enter':if(any){e.preventDefault();openEdit(any)}break;
     // Decidir y pasar a la siguiente, como con Espacio
     case 'h':move('0');break;
     case 'm':move('1');break;
@@ -3593,9 +3707,9 @@ document.addEventListener('keydown',e=>{
     case 'f':if(t){e.preventDefault();askDate(t)}break;
     case 'q':if(t){e.preventDefault();askWho(t)}break;
     case '!':if(t){e.preventDefault();togglePrio(t)}break;
-    case '.':if(t){e.preventDefault();openMenu(t.id,true)}break;
+    case '.':if(any){e.preventDefault();openMenu(any.id,true)}break;
     case 'p':if(FINE){e.preventDefault();openProc(e.shiftKey)}break;   // Shift+P: la revisión de la semana
-    case 'delete':case 'backspace':if(t){e.preventDefault();const nx=next();sel=nx;del(t)}break;
+    case 'delete':case 'backspace':if(any){e.preventDefault();const nx=next();sel=nx;del(any)}break;
   }
 });
 if(FINE){
@@ -3710,12 +3824,13 @@ function fillShared(params){
     openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
     return;
   }
-  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,at:Date.now()};
+  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,at:Date.now()};
+  asNote=false;   // lo compartido es una tarea, salvo que empiece con nota: o idea:
   const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
   const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
   $('title').value=sp.title.slice(0,500);sharedFill=true;voiceFilled=false;
   setNote(!!sp.note);$('note').value=sp.note?sp.note.slice(0,2000):'';
-  if(sp.note)toast('El resto del mensaje quedó en la nota');
+  if(sp.note)toast('El resto del mensaje quedó en el detalle');
   saveDraft();renderAdd();
 }
 let pendingShare=null;
@@ -3739,8 +3854,8 @@ function handleLaunch(params,initial){
   if(initial){if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft()}
   // "Dictar" con la app abierta y algo escrito: lo escrito queda guardado aparte y vuelve después de dictar
   else if(voz&&($('title').value.trim()||$('note').value.trim())){
-    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,at:Date.now()};
-    $('title').value='';$('note').value='';setNote(false);sharedFill=false;voiceFilled=false;renderAdd();
+    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,at:Date.now()};
+    $('title').value='';$('note').value='';setNote(false);asNote=false;sharedFill=false;voiceFilled=false;renderAdd();
   }
   // En el celular, la app instalada abre mostrando la lista, sin el teclado (salvo que en Sincronización › Este
   // dispositivo se elija abrirla lista para anotar); con "Nueva tarea" o compartiendo, sí. Con "Dictar", lista para hablar.

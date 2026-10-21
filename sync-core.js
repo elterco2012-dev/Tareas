@@ -3,14 +3,14 @@
 // en segundo plano. Todo lo que está acá tiene que funcionar en los dos lados.
 'use strict';
 // La versión de la app: tiene que ser la misma que la de index.html y sw.js (si no, la página recarga una vez)
-const CORE_VERSION='2026.10.21-10';
+const CORE_VERSION='2026.10.21-11';
 
 // ---- Cambios: cada acción es una operación que se puede reaplicar sobre la última versión ----
 // Cambios cruzados: cada edición de estos campos lleva lo que había antes (prev), cuándo se hizo (at) y anota en la
 // tarea cuándo se cambió cada campo (edited: {campo: fecha}). Si al subirla GitHub ya tiene en un campo otro valor,
 // puesto después en otro dispositivo, en ese campo gana el otro (el más nuevo) y queda anotado en lost para avisar.
 // Si así no se aplica ningún campo de la edición, tampoco se aplica lo que dependía de ellos (orden, pateada…).
-const CONFLICT_KEYS=['title','notes','due','time','priority','requester','repeat','waiting','waitingOn','followUp'];
+const CONFLICT_KEYS=['title','notes','due','time','priority','requester','repeat','waiting','waitingOn','followUp','kind'];
 const sameVal=(a,b)=>a===b||a==null&&b==null||JSON.stringify(a)===JSON.stringify(b);
 // cmp: orden de las pendientes, solo para 'move' (de una versión vieja); sin cmp, 'move' no hace nada
 function applyOp(a,op,cmp){

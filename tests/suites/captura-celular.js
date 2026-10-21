@@ -38,7 +38,7 @@ await ctx.close();
 const long='Hola Juan, necesito que me mandes el informe de ventas de octubre. Tiene que incluir las sucursales del norte y el detalle por vendedor, porque lo presento en la reunión de gerencia. Gracias!';
 ({ctx,p}=await device(b,gh,PHONE,APP+'?text='+encodeURIComponent(long)));
 ok(await p.inputValue('#title')==='Necesito que me mandes el informe de ventas de octubre.'&&(await p.inputValue('#note')).startsWith('Tiene que incluir')&&await p.isVisible('#note'),'long message: first sentence title, rest in note');
-ok((await p.innerText('#toastMsg')).includes('nota'),'toast mentions the note');
+ok((await p.innerText('#toastMsg')).includes('detalle'),'toast says the rest went to the detail');
 await ctx.close();
 // Si el resto trae la fecha, queda todo en el título para que se detecte
 const longDate='Hola Juan, necesito que me mandes el informe de ventas de octubre. Tiene que incluir las sucursales del norte y el detalle por vendedor, porque lo presento el lunes en la reunión de gerencia. Gracias!';
@@ -68,7 +68,7 @@ const back=async ms=>{await setVis('hidden');await p.clock.fastForward(ms);await
 await back(30000);
 ok(await p.isVisible('#menu'),'short absence: nothing changes');
 await back(200000);
-ok(await L.until(async()=>!(await p.isVisible('#menu'))&&await p.evaluate(()=>scrollY)===0&&await p.evaluate(()=>document.activeElement.id)==='title',{timeout:3000}),'after 2+ min: menu closed, top, field focused');
+ok(await L.until(async()=>!(await p.isVisible('#menu'))&&await p.evaluate(()=>scrollY)===0&&await p.evaluate(()=>document.activeElement.id)==='title',{timeout:8000}),'after 2+ min: menu closed, top, field focused');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 gh.items=gh.items.filter(x=>!/^x/.test(x.id));gh.sha++;

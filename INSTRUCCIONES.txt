@@ -105,12 +105,12 @@ USO DIARIO
   Despues de terminar, reagendar, borrar o guardar cambios aparece "Deshacer" por unos segundos.
 - Editar: si cambiaste algo y cerras con Atras, tocando afuera o con Esc, se guarda (con "Deshacer").
   La ✕ y "Cancelar" descartan los cambios.
-- Terminadas: toca una para verla entera (con sus notas) sin volver a ponerla pendiente. Desde ahi podes corregir
-  la nota o tocar "Volver a pendientes". Para volverla a pendientes tambien sirve el circulo con el ✓.
-- Links en las notas: se muestran cortos y se pueden tocar. Un ticket como
-  https://empresa.atlassian.net/browse/WB-3438 aparece como "WB-3438"; al editar la tarea quedan como botones abajo de las notas.
-- Buscar (lupa o /): tambien encuentra terminadas, de cualquier fecha, por el titulo, la nota (por ejemplo, el numero
-  de ticket) o quien la pidio. No importan las tildes ni las mayusculas ("camion" encuentra "Camión"), y con varias
+- Terminadas: toca una para verla entera (con su detalle) sin volver a ponerla pendiente. Desde ahi podes corregir
+  el detalle o tocar "Volver a pendientes". Para volverla a pendientes tambien sirve el circulo con el ✓.
+- Links en el detalle: se muestran cortos y se pueden tocar. Un ticket como
+  https://empresa.atlassian.net/browse/WB-3438 aparece como "WB-3438"; al editar la tarea quedan como botones abajo del detalle.
+- Buscar (lupa o /): tambien encuentra terminadas, de cualquier fecha, y notas, por el titulo, el detalle (por ejemplo,
+  el numero de ticket) o quien la pidio. No importan las tildes ni las mayusculas ("camion" encuentra "Camión"), y con varias
   palabras busca las que tengan todas, en cualquier orden ("banco llamar" encuentra "Llamar al banco"). Las
   terminadas hace mas de un mes estan en el archivo: "Buscar tambien en el archivo" las trae (solo para ver).
   Si coincide algo que borraste, aparece abajo, en "En la papelera", con "Recuperar".
@@ -139,17 +139,29 @@ USO DIARIO
   un cartel explica el punto azul y, en el celular, los gestos; "Entendido" lo saca.
 - Procesar (en la compu, arriba a la derecha, o tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas
   pateadas primero) y lo que espera respuesta hace rato. Una tecla o un toque por decision y pasa sola a la
-  siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy.
+  siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy. N la pasa a notas (si no era para hacer).
+- Notas: lo que no es para hacer (un dato, una idea, el talle de alguien). Escribi "nota:" o "idea:" al principio
+  ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca el boton "Nota" (al lado de las fechas) y
+  escribi o dicta. El texto se guarda tal cual: no busca fechas, horas ni "@persona". No guardes claves ni
+  contraseñas: cada cambio queda en el historial de GitHub y en la copia diaria. Van en la seccion "Notas", abajo de todo, plegada hasta que
+  la abris (cada dispositivo se acuerda); al buscar aparecen las que coinciden. No tienen casilla: toca una para
+  editarla. No cuentan en Hoy, Procesar, la revision de la semana, el numero del icono, el resumen ni los
+  recordatorios (si ya tenias el resumen o los recordatorios, reemplaza resumen.yml y recordatorios.yml por los
+  nuevos: ver repo-datos/INSTRUCCIONES.md). Una nota que se tilde en un dispositivo con la version anterior de la
+  app va a Terminadas; tocandola ahi, "Volver a pendientes" la devuelve a Notas. En "⋯": "Convertir en tarea" (queda para hoy con el punto azul, para que le pongas fecha), y en una
+  tarea, "Pasar a notas" (le saca la fecha, la hora y la repeticion). Las dos con "Deshacer".
+  El boton que agrega texto debajo de una tarea ahora se llama "+ Detalle".
 - Pateadas: si pasas una tarea vencida o de hoy para mas adelante, se cuenta. Desde la tercera vez la tarea dice
   "pateada 3×" en ambar, "Todas a hoy" la deja afuera y el Telegram de la mañana la marca "(pospuesta 3 veces)".
   Lo anotado al pasar no cuenta: el hoy que tiene es de relleno, hasta que le pones fecha.
 - En pantallas anchas (1200 px o mas), Esperando y Sin fecha quedan en una columna a la derecha, siempre a la vista.
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
-  cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...).
+  cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...). Las que empiezan con "nota:" o
+  "idea:" van a notas (con el boton "Nota" elegido, van todas).
 - Compartir desde WhatsApp o el mail (Android, con la app instalada): en el mensaje toca Compartir y elegi
   "Tareas". El texto queda en el campo para revisarlo y tocar Agregar, sin el saludo ni el "gracias"
   ("Che, ¿me mandas el remito? Gracias!" queda "Me mandas el remito"). Si el mensaje es largo, la primera
-  oracion queda como tarea y el resto va a la nota.
+  oracion queda como tarea y el resto va al detalle.
 - Si "Tareas" no aparece al compartir o no ves "Nueva tarea" y "Dictar tarea", el celular todavia no actualizo los datos
   de la app instalada (Chrome los revisa como mucho una vez por dia). Para forzarlo: en Chrome escribi about://webapks,
   busca "Mis tareas" y toca "Update". Despues abri la app una vez, cerrala (deslizala fuera de las recientes) y espera
@@ -160,7 +172,7 @@ USO DIARIO
   muestra la cuenta regresiva y, si lo tocas, guarda ya; el "Deshacer" aparece justo arriba. Si en el campo habia
   algo escrito, no lo mezcla con lo que dictas: te avisa que primero lo agregues o lo borres. Se ocultan mientras
   escribis o con algo abierto.
-  Arriba, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Nota" aparecen al
+  Arriba, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Detalle" aparecen al
   tocar el campo (se vuelven a guardar al abrir la app o cuando bajas por la lista).
 - Grupos plegables: toca el titulo de un grupo (Vencidas, Hoy, Mañana, Esperando...) para plegarlo; queda solo el
   titulo con cuantas hay. Tocalo de nuevo para volver a verlas. Cada dispositivo recuerda los que plegaste. Al buscar
