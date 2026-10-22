@@ -23,6 +23,7 @@ let gh=makeGH([
 ]);
 let {ctx,p}=await device(b,gh,DESK);
 const g=id=>gh.items.find(x=>x.id===id);
+await L.go(p,'tareas');   // la papelera está en Tareas (la app abre en Hoy)
 ok(await visible(p,'#trashSec')&&!(await visible(p,'#trashWrap'))&&(await p.innerText('#trashSub'))==='2','before searching: trash collapsed, with its count');
 await p.click('#searchBtn');
 await search(p,'camion');
@@ -66,7 +67,8 @@ ok(same(s,['Cosa borrada del galpón'])&&!(await visible(p,'#empty'))&&!(await v
 await search(p,'otra');
 ok(await visible(p,'#trashWrap')&&(await p.innerText('#trashSub'))==='1','"otra": the other deleted one shows');
 await search(p,'');
-ok(await visible(p,'#trashSec')&&!(await visible(p,'#trashWrap'))&&(await p.textContent('#trashTitle'))==='Papelera'&&(await p.innerText('#trashSub'))==='1','search cleared: trash collapsed again (showTrash off), plain "Papelera"');
+// Con el campo vacío Buscar muestra las personas y no la lista: la papelera vuelve a ser la de siempre por dentro
+ok(await visible(p,'#searchHome')&&!(await visible(p,'#trashSec'))&&await p.evaluate(()=>$('trashWrap').classList.contains('hidden')&&showTrash===false)&&(await p.textContent('#trashTitle'))==='Papelera'&&(await p.textContent('#trashSub'))==='1','search cleared: trash collapsed again (showTrash off), plain "Papelera" (Buscar shows the people, not the list)');
 await search(p,'otra');await p.click('#searchClose');await sleep(100);
 ok(!(await visible(p,'#trashWrap'))&&(await p.textContent('#trashTitle'))==='Papelera','closing the search also folds it back');
 // Con la papelera abierta, la búsqueda la filtra igual
@@ -75,7 +77,9 @@ ok(await visible(p,'#trashWrap')&&(await visible(p,'#trashEmpty')),'trash opened
 await p.click('#searchBtn');await search(p,'llamar');
 ok(!(await visible(p,'#trashSec')),'opened by hand and searching for something not in it: hidden');
 await search(p,'');
-ok(await visible(p,'#trashWrap')&&(await visible(p,'#trashEmpty'))&&(await p.$$('#trashList .trow')).length===1,'search cleared: open again, as it was');
+ok(await visible(p,'#searchHome')&&!(await visible(p,'#trashSec'))&&await p.evaluate(()=>!$('trashWrap').classList.contains('hidden')&&!$('trashEmpty').classList.contains('hidden')&&showTrash===true)&&(await p.$$('#trashList .trow')).length===1,'search cleared: open again, as it was (Buscar shows the people, not the list)');
+await p.click('#searchClose');await sleep(100);
+ok(await visible(p,'#trashWrap')&&(await visible(p,'#trashEmpty'))&&(await p.$$('#trashList .trow')).length===1,'back in Tareas: the trash is open, as it was');
 ok(p.errs.length===0,'search: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 
@@ -83,13 +87,14 @@ await ctx.close();
 gh=makeGH([]);
 ({ctx,p}=await device(b,gh,DESK));
 const byTitle=t=>gh.items.find(x=>x.title===t);
-const inToday=(t)=>p.evaluate(t=>{const grp=[...document.querySelectorAll('#groups .grp')].find(x=>/^Hoy/.test(x.querySelector('.ghead').textContent));return !!grp&&[...grp.querySelectorAll('.task')].some(r=>r.querySelector('.ttext').textContent===t&&!!r.querySelector('.inboxdot'))},t);
+// Se agrega en la pantalla Hoy (la de inicio): la tarea va a "Para hoy"
+const inToday=(t)=>p.evaluate(t=>{const grp=[...document.querySelectorAll('#hoyList .grp')].find(x=>/^Para hoy/.test(x.querySelector('.ghead').textContent));return !!grp&&[...grp.querySelectorAll('.task')].some(r=>r.querySelector('.ttext').textContent===t&&!!r.querySelector('.inboxdot'))},t);
 ok(await p.evaluate(()=>FINE&&!COARSE)&&await p.getAttribute('#chips .chip.on','data-v')==='0','desktop: the date chip starts on "Hoy", untouched');
 await p.fill('#title','Comprar tóner');await p.press('#title','Enter');await sleep(500);
 let t=byTitle('Comprar tóner');
 ok(t&&t.inbox===true&&t.due===day(0),'desktop add without a date → saved with inbox:true, due today: '+JSON.stringify(t&&{inbox:t.inbox,due:t.due}));
 ok(await inToday('Comprar tóner'),'shown in Hoy with the inbox dot');
-ok(await visible(p,'#procBtn')&&(await p.innerText('#procCount'))==='1','"Procesar (1)"');
+ok(await visible(p,'#procBtn')&&(await p.innerText('#procCount'))==='1','Ordenar row on Hoy with 1');
 await p.fill('#title','Llamar a Pedro mañana');await p.press('#title','Enter');await sleep(500);
 t=byTitle('Llamar a Pedro');
 ok(t&&!t.inbox&&t.due===day(1),'"mañana" in the text → not inbox: '+JSON.stringify(t&&{inbox:t.inbox,due:t.due}));
@@ -102,7 +107,7 @@ ok(t&&!t.inbox&&t.due===null,'"Sin fecha" chip → not inbox, no date: '+JSON.st
 await p.fill('#title','Presupuesto de la obra #esperando @Juan');await p.press('#title','Enter');await sleep(500);
 t=gh.items.find(x=>x.waiting);
 ok(t&&!t.inbox,'waiting → not inbox: '+JSON.stringify(t&&{title:t.title,waiting:t.waiting,inbox:t.inbox}));
-ok((await p.innerText('#procCount'))==='1','"Procesar" still counts only the one without a date');
+ok((await p.innerText('#procCount'))==='1','"Ordenar" still counts only the one without a date');
 // ===== La fila seleccionada, con una barra a la izquierda =====
 await p.evaluate(()=>document.activeElement.blur());await p.focus('#title');await p.keyboard.press('ArrowDown');
 const selStyle=()=>p.evaluate(()=>{const r=document.querySelector('.task.sel');if(!r)return null;const c=getComputedStyle(r);return {shadow:c.boxShadow,bg:c.backgroundColor}});
@@ -111,7 +116,7 @@ ok(st&&/inset/.test(st.shadow)&&st.shadow.includes('rgb(79, 70, 229) 3px 0px 0px
 ok(st&&st.bg==='rgb(238, 241, 255)','light: keeps the selected background');
 await p.evaluate(()=>{document.documentElement.dataset.theme='dark'});
 st=await selStyle();
-ok(st&&/inset/.test(st.shadow)&&st.shadow.includes('rgb(129, 140, 248) 3px 0px 0px 0px')&&st.bg==='rgb(30, 35, 66)','dark theme chosen in the app: bar in the dark accent: '+JSON.stringify(st));
+ok(st&&/inset/.test(st.shadow)&&st.shadow.includes('rgb(139, 147, 255) 3px 0px 0px 0px')&&st.bg==='rgb(30, 35, 66)','dark theme chosen in the app: bar in the dark accent: '+JSON.stringify(st));
 const other=await p.evaluate(()=>{const r=[...document.querySelectorAll('.task')].find(x=>!x.classList.contains('sel'));return r?getComputedStyle(r).boxShadow:null});
 ok(other==='none','rows that are not selected have no bar: '+other);
 ok(p.errs.length===0,'desktop add: no page errors '+JSON.stringify(p.errs));
@@ -121,7 +126,7 @@ gh=makeGH([T('a','Primera',{due:day(0),order:0}),T('b2','Segunda',{due:day(0),or
 ({ctx,p}=await device(b,gh,{...DESK,colorScheme:'dark'}));
 await p.focus('#title');await p.keyboard.press('ArrowDown');
 st=await selStyle();
-ok(st&&/inset/.test(st.shadow)&&st.shadow.includes('rgb(129, 140, 248) 3px 0px 0px 0px')&&st.bg==='rgb(30, 35, 66)','dark system theme: selected row has the bar: '+JSON.stringify(st));
+ok(st&&/inset/.test(st.shadow)&&st.shadow.includes('rgb(139, 147, 255) 3px 0px 0px 0px')&&st.bg==='rgb(30, 35, 66)','dark system theme: selected row has the bar: '+JSON.stringify(st));
 ok(p.errs.length===0,'dark: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 // En el celular (filas para deslizar) la seleccionada también lleva la barra

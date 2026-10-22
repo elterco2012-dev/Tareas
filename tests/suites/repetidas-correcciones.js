@@ -1,5 +1,5 @@
 // Repetidas y pegar varias líneas con la subida en curso, compartir sin share=1, mensual día 31, calendario tarde
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,TZ}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,TZ,go}=L;
 (async()=>{
 const b=await L.launch();const APP=await L.appUrl();
 const mob={viewport:{width:375,height:740},isMobile:true,hasTouch:true};
@@ -13,7 +13,7 @@ ok(gh.items.length===1&&gh.items[0].id==='r'&&gh.items[0].done===false,'repeat u
 ok((await p.locator('.task',{hasText:'Semanal'}).count())===1,'one row in the UI');
 // 3) Terminar, reabrir y terminar otra vez → una sola próxima
 await p.locator('.task',{hasText:'Semanal'}).locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done&&gh.items.length===2);
-await p.locator('#doneToggle').tap();await p.locator('.drow',{hasText:'Semanal'}).locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done===false);
+await go(p,'tareas');await p.locator('#doneToggle').tap();await p.locator('.drow',{hasText:'Semanal'}).locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done===false);
 await p.locator('#groups .task',{hasText:'Semanal'}).first().locator('.chk').tap();await L.until(()=>gh.items.find(x=>x.id==='r')?.done);
 const pend=gh.items.filter(x=>!x.done);
 ok(pend.length===1&&pend[0].due===day(7),'reopen + complete again → single next occurrence: '+JSON.stringify(gh.items.map(x=>[x.id.slice(0,4),x.due,x.done])));
@@ -64,7 +64,7 @@ await c2.close();
 // 7) Placeholder en modo oscuro
 ({ctx,p}=await device(b,makeGH([]),{...mob,colorScheme:'dark'}));
 const r=await p.evaluate(()=>{const c=getComputedStyle(document.getElementById('title'),'::placeholder').color;return c});
-ok(r==='rgb(131, 145, 165)','dark placeholder uses --muted (#8391a5): '+r);
+ok(r==='rgb(143, 155, 176)','dark placeholder uses --muted (#8f9bb0): '+r);
 await ctx.close();
 const man=JSON.parse(L.readRepo('manifest.webmanifest'));
 ok(man.share_target.action==='./','manifest share_target action ./');

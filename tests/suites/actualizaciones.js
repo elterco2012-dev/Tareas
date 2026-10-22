@@ -69,6 +69,7 @@ await p.click('#editX');await sleep(200);
 await setVis(p,'hidden');await p.clock.fastForward(3*60e3);
 await Promise.all([p.waitForEvent('load'),setVis(p,'visible')]);await sleep(300);
 ok(await p.evaluate(()=>APP_VERSION)===v3,'back after a while with nothing open: updated by itself ('+await p.evaluate(()=>APP_VERSION)+')');
+await H.go(p,'tareas');   // la lista completa está en Tareas
 ok((await p.innerText('#groups')).includes('Llamar al banco'),'tasks still there');
 // Con la app abierta, "Nueva tarea" del ícono (launch_handler) enfoca el campo; con algo abierto, no hace nada
 await p.evaluate(()=>{document.activeElement.blur();handleLaunch(new URLSearchParams('nueva=1'),false)});

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-mD+Tl2ZGMTdmZvzZNk7rYYwAu7b1zV7aTsttpR71Hr4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-cfVBxlic/wyOqMucfqt20GFdbO+dzVLzf4JygYswuWs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -2199,8 +2199,9 @@ function renderArchive(match){
   found.slice(0,50).forEach(t=>list.append(doneRow(t,true)));
   if(found.length>50){$('archMsg').textContent='Se ven las 50 más recientes de '+found.length+'. Escribí algo más para encontrar la que buscás.';$('archMsg').classList.remove('hidden')}
 }
-// El filtro por persona es de Tareas: tocar "@Laura" en Hoy lleva a Tareas con todas las de Laura
-function setPersonFilter(name){if(name&&scr!=='tareas')goScreen('tareas',{tap:true});personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
+// El filtro por persona es de Tareas: tocar "@Laura" en Hoy lleva a Tareas con todas las de Laura (buscando, filtra lo
+// que coincide, como antes)
+function setPersonFilter(name){if(name&&scr!=='tareas'&&scr!=='buscar')goScreen('tareas',{tap:true});personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
   // Mientras deslizás o arrastrás una tarea no se redibuja (se perdería el gesto); se hace al soltar
   if(swiping||dragId){renderLater=true;return}
@@ -3419,7 +3420,7 @@ function goScreen(s,o={}){
   closeMenu();
   const from=scr;scrollPos[from]=scrollY;
   if(from==='buscar')$('search').value='';else scrPrev=from;
-  if(personFilter&&s!=='tareas')personFilter=null;   // el filtro por persona es de Tareas
+  if(personFilter&&s!=='tareas'&&s!=='buscar')personFilter=null;   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío)
   if(!$('title').value.trim()&&(s==='notas'||from==='notas'))asNote=s==='notas';
   scr=s;applyScreen();

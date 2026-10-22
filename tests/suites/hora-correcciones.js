@@ -24,7 +24,7 @@ await row(p,/^Diaria$/).locator('.chk').click();await L.until(()=>gh.items.some(
 const n1=gh.items.find(x=>x.repeatOf==='d1');
 await row(p,/^Diaria$/).locator('.more').click();await p.click('#menu button:has-text("Borrar")');await sleep(500);
 ok(g(n1.id).deletedAt,'next instance trashed');
-await p.click('#doneToggle');await p.locator('.drow',{hasText:'Diaria'}).locator('.chk').click();await L.until(()=>g('d1').done===false);
+await L.go(p,'tareas');await p.click('#doneToggle');await p.locator('.drow',{hasText:'Diaria'}).locator('.chk').click();await L.until(()=>g('d1').done===false);
 ok(!g('d1').done,'reopened');
 await row(p,/^Diaria$/).locator('.chk').click();await L.until(()=>g('d1').done&&gh.items.some(x=>x.repeatOf==='d1'&&!x.deletedAt));
 const nexts=gh.items.filter(x=>x.repeatOf==='d1'&&!x.deletedAt);
@@ -35,6 +35,7 @@ await ctx.close();
 gh=makeGH([T('e1','Pagar luz a las 10',{due:day(0)}),T('e2','Sin hora',{due:day(0)})]);gh.mode='offline';
 ({ctx,p}=await device(b,gh,{viewport:{width:1000,height:900}},undefined,()=>{localStorage.setItem('tareasCache',JSON.stringify({owner:'u',repo:'r',items:[
   {id:'e1',title:'Pagar luz a las 10',priority:'Media',order:0,done:false,due:new Date().toISOString().slice(0,10)},{id:'e2',title:'Sin hora',priority:'Media',order:1,done:false,due:null}]}))}));
+await L.go(p,'tareas'); // la sin fecha no está en Hoy
 await row(p,'Pagar luz').locator('.body').click();
 ok(await p.inputValue('#eTime')==='10:00','legacy edit shows 10:00');
 await p.fill('#eTime','');await p.click('#editForm button[type=submit]');await sleep(300);
@@ -49,7 +50,7 @@ await ctx.close();
 gh=makeGH([T('s1','Mandar mail a proveedor',{done:true,completedAt:L.date().toISOString(),requester:'Lautaro'})]);
 ({ctx,p}=await device(b,gh,{viewport:{width:375,height:740},isMobile:true,hasTouch:true,deviceScaleFactor:2}));
 await p.locator('#title').tap();await p.keyboard.type('Mandar');await sleep(100);
-const pos=await p.evaluate(()=>({chips:document.querySelector('.chiprow').getBoundingClientRect().bottom,sug:document.getElementById('suggest').getBoundingClientRect().top,vis:!document.getElementById('suggest').classList.contains('hidden')}));
+const pos=await p.evaluate(()=>({chips:document.querySelector('#addForm .chiprow').getBoundingClientRect().bottom,sug:document.getElementById('suggest').getBoundingClientRect().top,vis:!document.getElementById('suggest').classList.contains('hidden')}));
 ok(pos.vis&&pos.sug>=pos.chips,'dropdown below the chips '+JSON.stringify(pos));
 await p.screenshot({path:L.out('suggest2-375.png')});
 await p.locator('#chips .chip[data-v="1"]').tap();await sleep(100);

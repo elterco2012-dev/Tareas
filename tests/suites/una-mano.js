@@ -23,13 +23,13 @@ let {ctx,p}=await device(b,gh,PHONE,APP,SEEN);
 const hd=await p.evaluate(()=>({h:Math.round(document.querySelector('.top').getBoundingClientRect().height),short:getComputedStyle(document.querySelector('.dshort')).display,long:getComputedStyle(document.querySelector('.dlong')).display,
   h1:document.querySelector('.top h1').textContent,h1w:document.querySelector('.top h1').getBoundingClientRect().width,txt:document.querySelector('#todayLabel .dshort').textContent}));
 ok(hd.short!=='none'&&hd.long==='none'&&hd.txt==='Mié 14/10','phone: short date "Mié 14/10" '+JSON.stringify(hd));
-ok(hd.h<=56&&hd.h1==='Mis tareas'&&hd.h1w<=1,'phone: header on one line, title only for screen readers '+JSON.stringify(hd));
-ok(await p.evaluate(()=>document.getElementById('addForm').classList.contains('rest'))&&!(await vis(p,'.chiprow')),'phone at rest: no date chips under the field');
+ok(hd.h<=56&&hd.h1==='Hoy'&&hd.h1w<=1,'phone: header on one line, title only for screen readers '+JSON.stringify(hd));
+ok(await p.evaluate(()=>document.getElementById('addForm').classList.contains('rest'))&&!(await vis(p,'#addForm .chiprow')),'phone at rest: no date chips under the field');
 ok(await active(p)!=='title','phone browser tab: opens without the keyboard');
 await p.locator('#title').tap();await sleep(150);
-ok(await vis(p,'.chiprow')&&await vis(p,'#chips .chip[data-v="1"]'),'tapping the field shows the dates');
+ok(await vis(p,'#addForm .chiprow')&&await vis(p,'#chips .chip[data-v="1"]'),'tapping the field shows the dates');
 await p.locator('#chips .chip[data-v="1"]').tap();await sleep(400);
-ok(await vis(p,'.chiprow')&&await p.evaluate(()=>document.querySelector('#chips .chip.on').dataset.v)==='1'&&await active(p)==='title','tapping Mañana selects it and the dates stay');
+ok(await vis(p,'#addForm .chiprow')&&await p.evaluate(()=>document.querySelector('#chips .chip.on').dataset.v)==='1'&&await active(p)==='title','tapping Mañana selects it and the dates stay');
 await p.keyboard.type('Pasar presupuesto');await p.keyboard.press('Enter');await sleep(400);
 ok(gh.items.some(x=>x.title==='Pasar presupuesto'&&x.due===day(1)),'added for tomorrow');
 // Tocar la lista: las fechas no se van ahí (la lista no salta bajo el dedo) y el toque cae donde apuntaba
@@ -37,14 +37,15 @@ const vY=()=>p.evaluate(()=>Math.round(document.querySelector('.ghead.over .gfol
 const y0=await vY();
 await p.locator('.ghead.over .gfold').tap();await sleep(600);
 const y1=await vY();
-ok(await vis(p,'.chiprow')&&y1===y0&&await p.locator('.ghead.over .gfold').getAttribute('aria-expanded')==='false','leaving the field: the dates stay, nothing moves under the finger, the tap lands '+y0+'→'+y1);
+ok(await vis(p,'#addForm .chiprow')&&y1===y0&&await p.locator('.ghead.over .gfold').getAttribute('aria-expanded')==='false','leaving the field: the dates stay, nothing moves under the finger, the tap lands '+y0+'→'+y1);
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 // Con el alta fuera de la pantalla se vuelven a guardar, sin mover lo que estás viendo
 gh.items=items().concat(Array.from({length:25},(_,i)=>T('m'+i,'Más tarde '+i,{due:day(9)})));gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await L.go(p,'tareas');   // las de más adelante están en Tareas
 await p.locator('#title').tap();await sleep(100);await p.evaluate(()=>document.activeElement.blur());await sleep(400);
-ok(await vis(p,'.chiprow'),'dates shown after visiting the field');
+ok(await vis(p,'#addForm .chiprow'),'dates shown after visiting the field');
 await p.evaluate(()=>window.scrollTo(0,900));await sleep(100);
 const anc=()=>p.evaluate(()=>Math.round([...document.querySelectorAll('.task')].find(r=>r.textContent.includes('Más tarde 12')).getBoundingClientRect().top));
 const a0=await anc();
@@ -52,10 +53,10 @@ ok(await L.until(()=>p.evaluate(()=>document.getElementById('addForm').classList
 await sleep(150);const a1=await anc();
 ok(Math.abs(a1-a0)<=1,'what you are looking at does not move '+a0+'→'+a1);
 await p.evaluate(()=>window.scrollTo(0,0));await sleep(150);
-ok(!(await vis(p,'.chiprow')),'back at the top: no dates under the field');
+ok(!(await vis(p,'#addForm .chiprow')),'back at the top: no dates under the field');
 // Agregar con el botón (el foco queda en el alta), bajar y volver a subir: tocar la lista no pliega nada después
 await p.locator('#title').tap();await p.keyboard.type('Con el botón');await p.locator('#addBtn').tap();await sleep(400);
-ok(gh.items.some(x=>x.title==='Con el botón')&&await vis(p,'.chiprow'),'added with the Agregar button, dates still shown');
+ok(gh.items.some(x=>x.title==='Con el botón')&&await vis(p,'#addForm .chiprow'),'added with the Agregar button, dates still shown');
 await p.evaluate(()=>window.scrollTo(0,900));await sleep(300);await p.evaluate(()=>window.scrollTo(0,0));await sleep(300);
 const gY=()=>p.evaluate(()=>Math.round(document.querySelector('.ghead.over .gfold').getBoundingClientRect().top));
 const g0=await gY();await p.locator('.ghead.over .gfold').tap();await sleep(600);const g1=await gY();
@@ -73,7 +74,7 @@ gh.items=items();gh.sha++;
 // En la compu, las fechas siempre a la vista
 ({ctx,p}=await device(b,gh,DESK,APP,SEEN));
 await p.evaluate(()=>document.activeElement.blur());await sleep(400);
-ok(await vis(p,'.chiprow')&&await vis(p,'.top h1')&&!(await vis(p,'#fabs')),'desktop: dates, title and no bottom buttons');
+ok(await vis(p,'#addForm .chiprow')&&await vis(p,'.top h1')&&!(await vis(p,'#fabs')),'desktop: dates, title and no bottom buttons');
 await ctx.close();
 gh.items=items();gh.sha++;
 
@@ -81,8 +82,9 @@ gh.items=items();gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 await p.addInitScript(FAKE);await p.reload();await sleep(700);
 ok(await vis(p,'#fabs')&&await vis(p,'#fabAdd')&&await vis(p,'#fabMic'),'phone: + and mic at the bottom');
-const fr=await p.evaluate(()=>{const r=document.getElementById('fabAdd').getBoundingClientRect();return {b:Math.round(innerHeight-r.bottom),r:Math.round(innerWidth-r.right)}});
-ok(fr.b<=24&&fr.r<=24,'bottom right, within thumb reach '+JSON.stringify(fr));
+// Abajo está la barra de secciones (76 px): los botones van justo arriba de ella
+const fr=await p.evaluate(()=>{const r=document.getElementById('fabAdd').getBoundingClientRect(),n=document.getElementById('nav').getBoundingClientRect();return {b:Math.round(n.top-r.bottom),r:Math.round(innerWidth-r.right)}});
+ok(fr.b>=0&&fr.b<=24&&fr.r<=24,'bottom right, right above the bottom bar, within thumb reach '+JSON.stringify(fr));
 await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await sleep(100);
 await p.locator('#fabAdd').tap();await sleep(300);
 ok(await active(p)==='title'&&await p.evaluate(()=>scrollY)===0,'+ goes to the top with the field ready');
@@ -110,7 +112,8 @@ await p.locator('#fabMic').tap();await sleep(400);
 ok(await p.evaluate(()=>!listening&&!autoSave&&scrollY===0)&&await p.inputValue('#title')==='Comprar pan'&&/agregalo o borralo/.test(await p.innerText('#toastMsg')),'typed text in the field: the bottom mic does not dictate over it, goes up and says to add or clear it first');
 ok(!gh.items.some(x=>/plomero|pan/i.test(x.title)),'nothing saved');
 await p.fill('#title','');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
-// El menú ⋯ y los modales tapan la barra
+// El menú ⋯ y los modales tapan la barra (la de mañana está en Tareas)
+await L.go(p,'tareas');
 await row(p,'Pagar la luz').locator('.more').tap();await sleep(200);
 ok(!(await vis(p,'#fabs')),'bottom buttons hidden under the ⋯ sheet');
 await p.locator('#menuBackdrop').tap({position:{x:5,y:5}});await sleep(200);
@@ -138,6 +141,7 @@ ok(!(await p.isVisible('#kbdRow')),'desktop: no keyboard option');
 await ctx.close();
 // Volver después de un rato: arriba y sin menú, pero sin abrir el teclado
 ({ctx,p}=await device(b,gh,PHONE,APP,STANDALONE));
+await L.go(p,'tareas');
 await row(p,'Pagar la luz').locator('.more').tap();await sleep(100);
 const setVis=v=>p.evaluate(v=>{window.__vis=v;Object.defineProperty(document,'visibilityState',{get:()=>window.__vis,configurable:true});document.dispatchEvent(new Event('visibilitychange'))},v);
 await setVis('hidden');await p.clock.fastForward(200000);await setVis('visible');
@@ -146,6 +150,7 @@ await ctx.close();
 
 // ===== Grupos que se pliegan =====
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await L.go(p,'tareas');
 const hoy=p.locator('#groups .ghead.today .gfold');
 ok(await hoy.getAttribute('aria-expanded')==='true','groups start open');
 await hoy.tap();await sleep(200);
@@ -166,6 +171,7 @@ await ctx.close();
 // En la compu: con las flechas no se entra a un grupo plegado; "Todas a hoy" sigue andando
 gh.items=items().concat([T('a2','Otra vencida',{due:day(-2)})]);gh.sha++;
 ({ctx,p}=await device(b,gh,DESK,APP,SEEN));
+await L.go(p,'tareas');
 await p.click('#groups .ghead.over .gfold');await sleep(150);
 await p.evaluate(()=>document.activeElement.blur());await p.keyboard.press('ArrowDown');await sleep(100);
 ok(await p.evaluate(()=>document.querySelector('.task.sel .ttext').textContent)==='Mandar remitos','desktop: arrows skip the folded group');
@@ -202,6 +208,7 @@ gh.items=items();gh.sha++;
 
 // ===== Menú ⋯ como hoja de abajo =====
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await L.go(p,'tareas');
 await row(p,'Comprar cartuchos').locator('.chk').tap();
 await L.until(()=>p.evaluate(()=>!document.getElementById('toast').classList.contains('hidden')&&!document.getElementById('toastUndo').classList.contains('hidden')));
 await row(p,'Revisar stock').locator('.more').tap();await sleep(200);
@@ -241,17 +248,18 @@ await ctx.close();
 gh.items=items();gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE));
 ok(await p.isVisible('#hint')&&!/punto azul/.test(await p.innerText('#hint')),'no blue dot visible: only the gestures');
+await L.go(p,'tareas');   // la sin fecha está en Tareas
 const box=await row(p,'Comprar cartuchos').boundingBox();
 await p.evaluate(({x,y})=>{const r=[...document.querySelectorAll('.task')].find(e=>e.textContent.includes('Comprar cartuchos'));const ev=(t,cx)=>r.dispatchEvent(new PointerEvent(t,{bubbles:true,pointerId:7,isPrimary:true,pointerType:'touch',clientX:cx,clientY:y}));
   ev('pointerdown',x);for(let i=1;i<=10;i++)ev('pointermove',x+i*15);ev('pointerup',x+150)},{x:box.x+40,y:box.y+box.height/2});
 await sleep(600);
 ok(gh.items.find(x=>x.id==='e').done===true&&!(await p.isVisible('#hint')),'a swipe completes the task and retires the hint');
 await ctx.close();
-// En la compu: solo el punto azul (con Procesar)
+// En la compu: solo el punto azul (con Ordenar)
 gh.items=items().concat([T('in','Anotada al pasar',{due:day(0),inbox:true})]);gh.sha++;
 ({ctx,p}=await device(b,gh,DESK));
 ht=await p.innerText('#hint').catch(()=>'');
-ok(await p.isVisible('#hint')&&!/Deslizá/.test(ht)&&/Procesar/.test(ht),'desktop: blue dot legend, no swipe hint: '+ht.replace(/\s+/g,' '));
+ok(await p.isVisible('#hint')&&!/Deslizá/.test(ht)&&/Ordenar/.test(ht),'desktop: blue dot legend, no swipe hint: '+ht.replace(/\s+/g,' '));
 await ctx.close();
 gh.items=items();gh.sha++;
 

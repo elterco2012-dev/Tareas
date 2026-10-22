@@ -1,5 +1,5 @@
 // Esperando respuesta, filtrar por persona, copiar el informe
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 (async()=>{
 const b=await L.launch();
 const ago=L.ago;
@@ -12,6 +12,7 @@ const gh=makeGH([
   T('e','Mandar cotización',{due:day(2),requester:'Martín',waiting:true,waitingOn:'Martín',waitingSince:ago(5)}),
 ]);
 let {ctx,p}=await device(b,gh,{viewport:{width:1100,height:900}});
+await go(p,'tareas');   // Esperando, el filtro y el informe están en Tareas (la app abre en Hoy)
 const g=id=>gh.items.find(x=>x.id===id);
 // ===== 4. Esperando =====
 ok((await p.innerText('#waitingSec')).includes('ESPERANDO')||(await p.innerText('#waitingSec')).toUpperCase().includes('ESPERANDO'),'Esperando section shown');
@@ -19,8 +20,8 @@ ok(!(await p.innerText('#groups')).includes('Mandar cotización'),'waiting task 
 const wtxt=await p.innerText('#waitingSec');
 ok(wtxt.includes('Martín · hace 5 días'),'row shows "Martín · hace 5 días": '+wtxt.replace(/\n/g,' | '));
 ok(await p.evaluate(()=>!!document.querySelector('#waitingSec .late')),'≥3 days shown in amber');
-ok(await p.evaluate(()=>getComputedStyle(document.querySelector('#waitingSec .late')).color)==='rgb(180, 83, 9)','amber color #b45309');
-const sub=await p.innerText('.sub');
+ok(await p.evaluate(()=>getComputedStyle(document.querySelector('#waitingSec .late')).color)==='rgb(161, 92, 7)','amber color #a15c07');
+await go(p,'hoy');const sub=await p.innerText('.sub');await go(p,'tareas');   // el resumen se ve en Hoy
 ok(/1 vencida/.test(sub)&&/2 para hoy/.test(sub)&&!/3/.test(sub.split('\n').slice(1).join(' ')),'header summary excludes waiting: '+sub.replace(/\n/g,' | '));
 // Marcar como esperando desde el menú
 await p.locator('#groups .task',{hasText:'Llamar proveedor'}).locator('.more').click();
@@ -60,9 +61,11 @@ ok(await p.isVisible('#filterBar')&&(await p.innerText('#filterBar')).includes('
 let gt=await p.innerText('#groups');
 ok(gt.includes('Revisar stock')&&gt.includes('Cargar pedidos')&&!gt.includes('Llamar proveedor')&&!gt.includes('Ordenar carpeta'),'filter (case-insensitive) on pending');
 ok(!(await p.innerText('#waitingSec')).includes('Mandar cotización'),'filter applies to Esperando');
+// El filtro sigue en Buscar: se busca adentro de lo de esa persona; Cerrar vuelve a Tareas con el filtro puesto
 await p.click('#searchBtn');await p.fill('#search','stock');gt=await p.innerText('#groups');
-ok(gt.includes('Revisar stock')&&!gt.includes('Cargar pedidos'),'filter combines with search');
+ok(await p.isVisible('#filterBar')&&gt.includes('Revisar stock')&&!gt.includes('Cargar pedidos'),'filter combines with search');
 await p.click('#searchClose');
+ok(await p.evaluate(()=>document.body.dataset.screen)==='tareas'&&await p.isVisible('#filterBar'),'Cerrar: back to Tareas, still filtered');
 await p.keyboard.press('Escape');ok(!(await p.isVisible('#filterBar')),'Esc removes the filter');
 await p.locator('#waitingSec .person',{hasText:'Martín'}).first().click();
 ok((await p.innerText('#waitingSec')).includes('Mandar cotización')&&!(await p.innerText('#groups')).includes('Revisar stock'),'filter by waitingOn name');
@@ -97,7 +100,7 @@ await ctx.close();
 // 375 px: sin desbordes con todo visible (filtro, esperando, terminadas + herramientas) en claro y oscuro
 for(const cs of ['light','dark']){
   ({ctx,p}=await device(b,gh,{viewport:{width:375,height:800},isMobile:true,hasTouch:true,colorScheme:cs}));
-  await p.locator('#doneToggle').tap();await p.evaluate(()=>setPersonFilter('Martín'));await sleep(100);
+  await go(p,'tareas');await p.locator('#doneToggle').tap();await p.evaluate(()=>setPersonFilter('Martín'));await sleep(100);
   ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),cs+' 375: no overflow');
   await p.evaluate(()=>setPersonFilter(null));await sleep(100);
   ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),cs+' 375: no overflow (no filter)');

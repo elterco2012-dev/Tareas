@@ -13,6 +13,7 @@ let gh=makeGH([
   T('h5','Diaria',{due:day(0),time:'08:00',repeat:'daily',order:4}),
 ]);
 let {ctx,p}=await device(b,gh,{viewport:{width:1000,height:900}});
+await L.go(p,'tareas'); // los grupos (Hoy, Mañana, Sin fecha) están en Tareas
 const hoy=await p.evaluate(()=>[...document.querySelectorAll('#groups .grp')].find(g=>/Hoy/.test(g.querySelector('.ghead').textContent))).catch(()=>null);
 const order=await p.evaluate(()=>{const g=[...document.querySelectorAll('#groups .grp')].find(g=>/^Hoy/.test(g.querySelector('.ghead').textContent));return [...g.querySelectorAll('.task')].map(r=>r.querySelector('.ttext').textContent+'|'+((r.querySelector('.time')||{}).textContent||''))});
 ok(JSON.stringify(order)===JSON.stringify(['Temprano|00:00','Diaria|08:00','Pagar luz a las 10|10:00','Reunión tarde|18:00','Sin hora hoy|']),'Hoy sorted by time, untimed last: '+JSON.stringify(order));
@@ -57,7 +58,7 @@ gh=makeGH([
   T('dd','Terminada y borrada vieja',{done:true,completedAt:iso(120),deletedAt:iso(2)}),
 ]);
 ({ctx,p}=await device(b,gh,{viewport:{width:1000,height:900}}));
-await sleep(600);
+await sleep(600);await L.go(p,'tareas'); // la papelera está al pie de Tareas
 ok(!gh.items.find(x=>x.id==='old'),'purged after 30 days in the trash');
 ok(gh.items.find(x=>x.id==='rec'),'29 days: still in the trash');
 ok(!(await p.innerText('#groups')).includes('papelera'),'trash items not in list');
@@ -89,7 +90,7 @@ ok(p.errs.length===0,'trash: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 // Sin GitHub: borrar y recuperar
 {const c=await b.newContext({timezoneId:L.TZ});const q=await c.newPage();const errs=[];q.on('pageerror',e=>errs.push(e.message));
-await q.goto(await L.appUrl());await sleep(300);
+await q.goto(await L.appUrl());await sleep(300);await L.go(q,'tareas');
 await q.fill('#title','Local uno');await q.press('#title','Enter');
 await q.locator('.task',{hasText:'Local uno'}).locator('.more').click();await q.click('#menu button:has-text("Borrar")');
 ok(await q.isVisible('#trashSec'),'local: trash visible');

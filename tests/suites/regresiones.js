@@ -1,5 +1,5 @@
 // Regresiones: deshacer sin señal, Espacio con foco en un botón, menú anclado, modal, teclado, texto libre
-const H=require('../lib/harness');const {ok,sleep,TZ}=H;
+const H=require('../lib/harness');const {ok,sleep,TZ,go}=H;
 let APP;   // la app servida por http (H.appUrl)
 const gh={items:[],sha:1,mode:'ok'};
 async function mock(ctx,devOffline){
@@ -27,6 +27,7 @@ const b=await H.launch();APP=await H.appUrl();
 gh.items=['Uno','Dos','Tres','Cuatro'].map((t,i)=>({id:'t'+i,title:t,priority:'Media',order:i,done:false,due:null,notes:'',requester:''}));
 // 1) Deshacer borrado sin señal no pisa cambios del otro dispositivo
 const P=await device(b,{viewport:{width:375,height:740},isMobile:true,hasTouch:true}),D=await device(b,{viewport:{width:1100,height:900}});
+await go(P.p,'tareas');await go(D.p,'tareas');   // las tareas sin fecha están en Tareas (la app abre en Hoy)
 P.off.v=true;
 await row(P.p,'Dos').locator('.more').tap();await P.p.click('#menu button:has-text("Borrar")');await P.p.click('#toastUndo');await sleep(200);
 ok(await P.p.evaluate(()=>{const o=JSON.parse(localStorage.getItem('tareasPendientes'));return o.length===2&&o[0].patch.deletedAt&&o[1].patch.deletedAt===null}),'undo queues the restore');

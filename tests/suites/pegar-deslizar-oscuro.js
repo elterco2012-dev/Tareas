@@ -98,7 +98,8 @@ const gh2=makeGH([T('o','Vencida importante',{due:day(-2),priority:'Alta',reques
 for(const vp of [{viewport:{width:375,height:800},isMobile:true,hasTouch:true},{viewport:{width:1100,height:900}}]){
   vp.width=vp.viewport.width;
   ({ctx,p}=await device(b,gh2,{viewport:vp.viewport,isMobile:vp.isMobile,hasTouch:vp.hasTouch,colorScheme:'dark'}));
-  ok(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(15, 21, 32)','dark background applied');
+  ok(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(14, 19, 27)','dark background applied');
+  await L.go(p,'tareas'); // la lista completa (con Terminadas) está en Tareas
   await p.click('#doneToggle');await p.fill('#title','reunión mañana !alta @Juan');await sleep(100);
   let bad=await contrast(p);ok(bad.length===0,'dark contrast main '+vp.width+': '+JSON.stringify(bad));
   await p.locator('.task .more').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast menu: '+JSON.stringify(bad));await p.keyboard.press('Escape');

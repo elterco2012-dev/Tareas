@@ -31,6 +31,7 @@ await ctx.setOffline(true);
 await p.reload({waitUntil:'domcontentloaded'});await sleep(800);
 ok((await p.title())==='Mis tareas','page opens offline (served from cache)');
 await p.fill('#title','Offline real');await p.press('#title','Enter');await sleep(200);
+await H.go(p,'tareas');   // la lista completa está en Tareas
 ok((await p.innerText('#groups')).includes('Offline real'),'add works offline');
 await ctx.setOffline(false);
 await p.screenshot({path:H.out('m360.png')});

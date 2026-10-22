@@ -1,5 +1,5 @@
 // Dictado por voz: botón micrófono/Agregar, confirmación, aviso, calendario, errores
-const H=require('../lib/harness');const {ok,sleep,TZ}=H;
+const H=require('../lib/harness');const {ok,sleep,TZ,go}=H;
 const gh={items:[{id:'a',title:'Tarea existente',priority:'Media',order:0,done:false,due:null}],sha:1};
 async function mock(ctx){await ctx.route('https://api.github.com/**',async route=>{const req=route.request();
   if(req.method()==='PUT'){const body=JSON.parse(req.postData());if(String(body.sha)!==String(gh.sha))return route.fulfill({status:409,body:'{}'});gh.items=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));gh.sha++;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:{sha:String(gh.sha)}})})}
@@ -68,8 +68,8 @@ await p.locator('#addBtn').tap();await sleep(900);
 await p.locator('#addBtn').tap();await sleep(300);
 ok(gh.items.some(x=>x.title==='Comprar pan'),'dictated lowercase saved capitalized');
 ok(!(await p.isVisible('#toastB3')),'no calendar offer without time/recordame');
-// Menú: agregar al calendario (todo el día)
-await p.locator('.task',{hasText:'Tarea existente'}).locator('.more').tap();
+// Menú: agregar al calendario (todo el día); la tarea sin fecha está en Tareas
+await go(p,'tareas');await p.locator('.task',{hasText:'Tarea existente'}).locator('.more').tap();
 const [dl2]=await Promise.all([p.waitForEvent('download'),p.click('#menu button:has-text("Agregar al calendario")')]);
 url=require('fs').readFileSync(await dl2.path(),'utf8');
 const today=(await p.evaluate(()=>ymd(new Date()))).replace(/-/g,'');

@@ -1,5 +1,5 @@
 // Orden por prioridad y mover a mano (arrastrar, Alt+flechas, ⋯ Subir/Bajar); correcciones del informe
-const L=require('../lib/gh');const {sleep,ok,mock,device,makeGH,day,T,TZ}=L;
+const L=require('../lib/gh');const {sleep,ok,mock,device,makeGH,day,T,TZ,go}=L;
 const fs=require('fs');
 const iso=L.ago;
 const DESK={viewport:{width:1000,height:900}},PHONE={viewport:{width:384,height:832},isMobile:true,hasTouch:true};
@@ -13,6 +13,7 @@ const b=await L.launch();
 {
   const gh=makeGH([T('a','Uno media',{order:0}),T('b','Dos baja',{order:1,priority:'Baja'}),T('c','Tres alta',{order:2,priority:'Alta'}),T('d','Cuatro media',{order:3})]);
   let {ctx,p}=await device(b,gh,DESK);
+  await go(p,'tareas');   // Sin fecha está en Tareas (la app abre en Hoy)
   ok((await noneTitles(p)).join('|')==='Tres alta|Uno media|Cuatro media|Dos baja','Sin fecha: Alta arriba, Baja abajo, Media en el orden elegido');
   // Cambiar a Baja la baja
   await p.locator('.task .ttext',{hasText:'Uno media'}).click();await sleep(150);
@@ -37,9 +38,10 @@ const b=await L.launch();
 {
   const gh=makeGH([T('e','Mail ARCA',{order:0}),T('f','Vako envios',{order:1}),T('g','Probar costo de envío',{order:2}),T('h','Proyecto Overstock',{order:3,priority:'Alta'}),T('x','Para hoy',{due:day(0),order:4})]);
   let {ctx,p}=await device(b,gh,DESK);
+  await go(p,'tareas');
   ok((await noneTitles(p)).join('|')==='Proyecto Overstock|Mail ARCA|Vako envios|Probar costo de envío','start');
   const row=t=>p.locator('.task',{has:p.locator('.ttext',{hasText:t})}).first();
-  await p.mouse.click(5,5);await sleep(200);   // el primer clic oculta el tip de arriba y la lista sube un poco
+  await p.click('.top h1');await sleep(200);   // clic en un lugar neutro: si el tip de arriba se ve, se oculta y la lista sube un poco (en (5,5) ahora está la barra de la izquierda)
   await row('Probar costo de envío').dragTo(row('Vako envios'),{targetPosition:{x:200,y:4}});await sleep(500);
   ok((await noneTitles(p)).join('|')==='Proyecto Overstock|Mail ARCA|Probar costo de envío|Vako envios','drag #4 to #3 (above Vako)');
   await row('Probar costo de envío').dragTo(row('Mail ARCA'),{targetPosition:{x:200,y:4}});await sleep(500);
@@ -60,6 +62,7 @@ const b=await L.launch();
 {
   const gh=makeGH([T('e','Primera',{order:0}),T('f','Segunda',{order:1})]);
   let {ctx,p}=await device(b,gh,PHONE);
+  await go(p,'tareas');
   await p.locator('.task',{has:p.locator('.ttext',{hasText:'Primera'})}).locator('.more').tap();await sleep(150);
   await p.locator('#menu button',{hasText:'Bajar'}).tap();await sleep(500);
   ok((await titles(p,'#groups')).join('|')==='Segunda|Primera','phone: ⋯ Bajar');
@@ -73,6 +76,7 @@ const b=await L.launch();
     T('r1','Rep',{done:true,completedAt:iso(0.1),createdAt:iso(0.2),repeat:'daily'}),T('r2','Rep',{due:day(1),repeatOf:'r1',createdAt:iso(0.1)})]);
   gh.files['archivo/2026.json']={content:JSON.stringify([T('a1','Archivada',{done:true,createdAt:iso(60),completedAt:iso(50)})]),sha:1};
   let {ctx,p}=await device(b,gh,DESK,undefined,stub);
+  await go(p,'tareas');   // el botón Informe está en Tareas
   let slow=true;
   await p.route('**/contents/archivo',async r=>{if(slow)await new Promise(res=>setTimeout(res,1500));return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{name:'2026.json',path:'archivo/2026.json',type:'file'}])})});
   await p.evaluate(()=>{sel=tasks.find(t=>t.title==='Tarea uno').id;renderList()});
