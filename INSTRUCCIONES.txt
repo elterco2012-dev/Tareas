@@ -11,7 +11,8 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
    - Define una caducidad razonable; deberas renovarlo cuando venza.
    - NO compartas el token, ni lo subas al repositorio publico, ni lo pegues en conversaciones.
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
-7) Toca el boton de estado (arriba a la derecha) para abrir Sincronizacion; escribe usuario, nombre del repo PRIVADO
+7) Toca Ajustes (la rueda: arriba a la derecha en el celular, abajo a la izquierda en la compu) para abrir
+   Sincronizacion; escribe usuario, nombre del repo PRIVADO
    y token, y pulsa Guardar conexion. Opcional: carga tambien la fecha en que vence el token (la ves en GitHub, en la
    lista de tus tokens): una semana antes la app te avisa para que lo renueves (y el Telegram de la mañana tambien, con el resumen.yml nuevo).
    La fecha se guarda en ajustes.json del repositorio privado: la cargas una vez y la ven tus dos dispositivos.
@@ -30,8 +31,8 @@ INSTALAR COMO APLICACION
 - Desinstalar de verdad (Android): mantene apretado el icono > Desinstalar (o Ajustes > Aplicaciones > Tareas >
   Desinstalar). Para confirmar que no quedo escondida, en Chrome escribi about://webapks: no tiene que aparecer
   "Mis tareas". Si Chrome dice "ya esta instalada" pero no la ves, buscala ahi.
-- Antes de desinstalar o de borrar los datos del sitio, mira que Sincronizacion diga "Al dia": lo que todavia no
-  subio se pierde.
+- Antes de desinstalar o de borrar los datos del sitio, mira que el punto de estado este verde (en Sincronizacion
+  dice "Al dia"): lo que todavia no subio se pierde.
 
 VERSION Y ACTUALIZACIONES
 - En Sincronizacion > Este dispositivo se ve la version de la app y si esta abierta como app instalada.
@@ -40,10 +41,10 @@ VERSION Y ACTUALIZACIONES
   Con una tarea abierta no se actualiza: guardala o cerrala y toca Actualizar.
 
 ABRIR MAS RAPIDO (celular)
-- La app instalada abre mostrando la lista, sin el teclado. Para anotar, toca el "+" de abajo a la derecha (o el
-  campo de arriba); para dictar, el microfono que esta al lado del "+". Si volves a ella despues de un rato, vuelve
-  arriba. Si preferis que abra con el teclado listo para escribir (como antes): Sincronizacion > Este dispositivo >
-  "Abrir la app con el teclado listo para anotar".
+- La app instalada abre en Hoy, sin el teclado. Para anotar, toca el "+" de abajo a la derecha (o el campo de
+  arriba); para dictar, el microfono que esta al lado del "+". Si volves a ella despues de un rato, vuelve a Hoy,
+  arriba (salvo que tengas algo abierto). Si preferis que abra con el teclado listo para escribir (como antes):
+  Sincronizacion > Este dispositivo > "Abrir la app con el teclado listo para anotar".
 - Atajos: mantene apretado el icono de Tareas y vas a ver "Nueva tarea" (abre para escribir) y "Dictar tarea"
   (abre con un microfono grande abajo, para hablar con una mano). Para tenerlos a un toque: mantene apretado el
   atajo y arrastralo a la pantalla de inicio, en la fila de abajo, donde llega el pulgar.
@@ -53,6 +54,23 @@ ABRIR MAS RAPIDO (celular)
   directo de una esquina y elegi Tareas. Tambien desde Ajustes > Pantalla de bloqueo (y AOD), tocando la vista previa.
 - Sin manos: "Ok Google, abri Tareas" o "Hola Bixby, abri Tareas".
 - Los nombres de los menus pueden cambiar un poco segun la version del celular: si no los encontras, usa la lupa de Ajustes.
+
+PANTALLAS
+- La app tiene cuatro pantallas: Hoy, Tareas, Notas y Buscar. En el celular se eligen en la barra de abajo; en la
+  compu (900 px de ancho o mas), en la barra de la izquierda, con cuantas hay en cada una.
+- Hoy (la de inicio): arriba la fecha y el resumen ("2 vencidas · 7 para hoy · proximo aviso 15:00 · 2 hechas hoy").
+  Si hay algo para ordenar aparece la fila "2 anotadas al pasar · 1 vencida · 1 para reclamar · Ordenar ›". Despues:
+  Vencidas (con "Todas a hoy"), Para reclamar (lo que espera respuesta y ya toca mirar: llego el dia de "Volver a
+  mirar el…" o pasaron 3 dias sin respuesta, como en el Telegram de la mañana), Para hoy (primero las que tienen
+  hora) y Proximos avisos (hasta 3 con hora, de mañana a 7 dias; dice "Proximas con hora" si no tenes los avisos
+  por Telegram). Al final, "Mañana · N" y "Esperando respuesta · N" llevan a esa parte de Tareas.
+- Tareas: la lista completa, con todos los grupos, Esperando, Terminadas (con Informe y Revision de la semana) y la
+  Papelera.
+- Notas: las notas, las mas nuevas primero. Estando ahi, lo que anotas arranca como nota.
+- Buscar: el campo de busqueda (ver "Buscar" mas abajo). Con el campo vacio muestra las personas: un toque busca
+  todo lo de esa persona. "Cerrar" (o Esc) vuelve a la pantalla de antes.
+- Ajustes (la rueda, al lado del punto de estado) abre Sincronizacion, que ahora tambien tiene Herramientas:
+  Informe y Revision de la semana.
 
 USO DIARIO
 - Abris la app, escribis la tarea y Enter: queda para hoy. Con los botones Mañana, Lunes o Sin fecha elegis otro dia.
@@ -109,20 +127,22 @@ USO DIARIO
   el detalle o tocar "Volver a pendientes". Para volverla a pendientes tambien sirve el circulo con el ✓.
 - Links en el detalle: se muestran cortos y se pueden tocar. Un ticket como
   https://empresa.atlassian.net/browse/WB-3438 aparece como "WB-3438"; al editar la tarea quedan como botones abajo del detalle.
-- Buscar (lupa o /): tambien encuentra terminadas, de cualquier fecha, y notas, por el titulo, el detalle (por ejemplo,
+- Buscar (en la barra de pantallas, o /): tambien encuentra terminadas, de cualquier fecha, y notas, por el titulo, el detalle (por ejemplo,
   el numero de ticket) o quien la pidio. No importan las tildes ni las mayusculas ("camion" encuentra "Camión"), y con varias
   palabras busca las que tengan todas, en cualquier orden ("banco llamar" encuentra "Llamar al banco"). Las
   terminadas hace mas de un mes estan en el archivo: "Buscar tambien en el archivo" las trae (solo para ver).
   Si coincide algo que borraste, aparece abajo, en "En la papelera", con "Recuperar".
-- Papelera: lo que borras queda abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
+- Papelera: lo que borras queda en Tareas, abajo de todo, en "Papelera", durante 30 dias. "Recuperar" la devuelve a la lista.
   "Vaciar papelera" (pide confirmar con un segundo toque) las elimina para siempre; por unos segundos aparece
   "Deshacer", que las devuelve a la papelera.
 - La tarea queda guardada en el dispositivo al instante: podes cerrar la app enseguida.
   Se sube a GitHub sola; si no habia señal, Chrome la sube cuando vuelve la conexion, aunque hayas cerrado la app
   (en Android, con la app instalada).
-  El boton de arriba a la derecha muestra el estado y abre Sincronizacion:
+  El punto de estado (arriba a la derecha en el celular; abajo a la izquierda en la compu, con su texto) abre
+  Sincronizacion. En el celular, con todo bien se ve solo el punto; si hay algo para mirar, tambien el texto:
     verde "Al dia": tenes lo ultimo de GitHub;
-    ambar "Pendiente", "Sin señal" o "Reintentando": hay algo sin subir, pero esta guardado y se sube solo;
+    ambar "Pendiente", "Sin señal" o "Reintentando": hay algo sin subir, pero esta guardado y se sube solo
+    ("Pendiente" y "Subiendo…", que duran un segundo despues de cada cambio, en el celular quedan solo como punto);
     rojo: hay que hacer algo (token vencido, permisos) o algo no sube hace mas de 30 minutos.
   En Sincronizacion se ve que falta subir, "Sincronizar ahora", "Ver historial en GitHub" (cada cambio queda con
   un mensaje como "+ Llamar al banco · cel") y, plegada, la cuenta de GitHub y el token.
@@ -130,22 +150,24 @@ USO DIARIO
   que la mires, con un aviso "2 nuevas desde el celular · Ver".
 - En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir (con el campo vacio, flecha abajo pasa a la
   lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
-  S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P procesar, Shift+P revision de la
-  semana, Alt+flechas mover, Supr borrar.
+  S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P ordenar, Shift+P revision de la
+  semana, Alt+flechas mover, Supr borrar. Al pie de la barra de la izquierda se ven N, / y .; "Todos los atajos"
+  muestra el resto.
   Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente. La tarea elegida se marca
   con una barra a la izquierda. Con las flechas no se entra a un grupo plegado.
 - Anotadas al pasar: lo que cargas sin elegir fecha (sin escribir una fecha ni tocar los botones de fecha), en el
   celular o en la compu, queda para hoy con un punto azul adelante. Cualquier decision lo saca. La primera vez,
   un cartel explica el punto azul y, en el celular, los gestos; "Entendido" lo saca.
-- Procesar (en la compu, arriba a la derecha, o tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas
-  pateadas primero) y lo que espera respuesta hace rato. Una tecla o un toque por decision y pasa sola a la
-  siguiente; al final dice cuantas procesaste y con cuantas quedo Hoy. N la pasa a notas (si no era para hacer).
+- Ordenar (antes se llamaba "Procesar"; la fila "… · Ordenar ›" arriba de Hoy, en el celular y en la compu, o la
+  tecla P): muestra de a una lo anotado al pasar, las vencidas (las mas pateadas primero) y lo que espera respuesta
+  hace rato. Una tecla o un toque por decision y pasa sola a la siguiente; al final dice cuantas ordenaste y con
+  cuantas quedo Hoy. N la pasa a notas (si no era para hacer). "Deshacer" (o Z) vuelve a la tarjeta de antes.
 - Notas: lo que no es para hacer (un dato, una idea, el talle de alguien). Escribi "nota:" o "idea:" al principio
   ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca el boton "Nota" (al lado de las fechas) y
   escribi o dicta. El texto se guarda tal cual: no busca fechas, horas ni "@persona". No guardes claves ni
-  contraseñas: cada cambio queda en el historial de GitHub y en la copia diaria. Van en la seccion "Notas", abajo de todo, plegada hasta que
-  la abris (cada dispositivo se acuerda); al buscar aparecen las que coinciden. No tienen casilla: toca una para
-  editarla. No cuentan en Hoy, Procesar, la revision de la semana, el numero del icono, el resumen ni los
+  contraseñas: cada cambio queda en el historial de GitHub y en la copia diaria. Van en la pantalla Notas (estando
+  ahi, el boton "Nota" ya aparece elegido); al buscar aparecen las que coinciden. No tienen casilla: toca una para
+  editarla. No cuentan en Hoy, Ordenar, la revision de la semana, el numero del icono, el resumen ni los
   recordatorios (si ya tenias el resumen o los recordatorios, reemplaza resumen.yml y recordatorios.yml por los
   nuevos: ver repo-datos/INSTRUCCIONES.md). Una nota que se tilde en un dispositivo con la version anterior de la
   app va a Terminadas; tocandola ahi, "Volver a pendientes" la devuelve a Notas. En "⋯": "Convertir en tarea" (queda para hoy con el punto azul, para que le pongas fecha), y en una
@@ -154,7 +176,8 @@ USO DIARIO
 - Pateadas: si pasas una tarea vencida o de hoy para mas adelante, se cuenta. Desde la tercera vez la tarea dice
   "pateada 3×" en ambar, "Todas a hoy" la deja afuera y el Telegram de la mañana la marca "(pospuesta 3 veces)".
   Lo anotado al pasar no cuenta: el hoy que tiene es de relleno, hasta que le pones fecha.
-- En pantallas anchas (1200 px o mas), Esperando y Sin fecha quedan en una columna a la derecha, siempre a la vista.
+- En pantallas anchas (1200 px o mas), Esperando y Sin fecha quedan en una columna a la derecha, siempre a la vista
+  (en Hoy, Esperando sin las que ya estan en Para reclamar).
 - Pegar una lista: si pegas varias lineas en el campo, pregunta "¿Cargar N tareas?" y podes editar o destildar
   cada una. Las que no digan fecha usan el boton de fecha elegido (Hoy, Mañana...). Las que empiezan con "nota:" o
   "idea:" van a notas (con el boton "Nota" elegido, van todas).
@@ -168,21 +191,22 @@ USO DIARIO
   un par de minutos: Chrome instala la actualizacion con la app cerrada. Si no aparece, repetilo una vez (no antes
   de un minuto). No hace falta desinstalarla.
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
-- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, donde llega el pulgar. El microfono escucha,
+- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, encima de la barra, donde llega el pulgar. El microfono escucha,
   muestra la cuenta regresiva y, si lo tocas, guarda ya; el "Deshacer" aparece justo arriba. Si en el campo habia
   algo escrito, no lo mezcla con lo que dictas: te avisa que primero lo agregues o lo borres. Se ocultan mientras
-  escribis o con algo abierto.
-  Arriba, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Detalle" aparecen al
+  escribis o con algo abierto (la barra de abajo tambien se oculta mientras escribis). En Buscar, el "+" lleva a Hoy.
+  Arriba de Hoy, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Detalle" aparecen al
   tocar el campo (se vuelven a guardar al abrir la app o cuando bajas por la lista).
 - Grupos plegables: toca el titulo de un grupo (Vencidas, Hoy, Mañana, Esperando...) para plegarlo; queda solo el
   titulo con cuantas hay. Tocalo de nuevo para volver a verlas. Cada dispositivo recuerda los que plegaste. Al buscar
   o filtrar por persona se ven todos. Si llega algo del otro dispositivo a un grupo plegado, el titulo dice
-  "· 1 nueva" y "Ver" en el aviso lo despliega.
+  "· 1 nueva" y "Ver" en el aviso lo despliega. Las secciones de Hoy se pliegan aparte: plegar "Hoy" en Tareas no
+  esconde "Para hoy".
 - Sin conectar: un dispositivo nuevo, sin tareas, muestra "Conectar" para traer las del otro dispositivo (abre la
   cuenta de GitHub en Sincronizacion).
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
   Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
-  cierra de a una. Con todo cerrado, sale de la app. Una lista pegada o compartida que se cierra con Atras se
+  cierra de a una. Con todo cerrado, desde Tareas, Notas o Buscar vuelve a Hoy, y desde Hoy sale de la app. Una lista pegada o compartida que se cierra con Atras se
   puede recuperar con "Recuperar" en el aviso.
 - Orden: en cada grupo (Hoy, Mañana, Sin fecha...) van primero las de prioridad Alta, despues Media y abajo las
   Baja (en Hoy, antes las que tienen hora). Dentro de la misma prioridad, el orden lo elegis vos: en la compu,
@@ -194,15 +218,17 @@ USO DIARIO
   "Reclamar…" arma el mensaje ("Hola Juan, ¿pudiste ver lo de …?") para WhatsApp o lo que elijas, y queda anotado
   ("Juan · reclamado hace 1 dia (2º)"). "Volver a mirar el…" le pone una fecha: hasta ese dia no se pone en ambar.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
-- Revision de la semana: abajo, junto a Terminadas, "Revision de la semana" (en la compu tambien Shift+P) muestra de a
+- Revision de la semana: en Tareas, abajo, junto a Terminadas, o en Ajustes > Herramientas (en la compu tambien
+  Shift+P), "Revision de la semana" muestra de a
   una lo que no tiene fecha, lo que espera respuesta y lo pateado 3 veces o mas. "Sigue asi" la deja como esta; si no
   tiene fecha (tambien con S), no vuelve a aparecer en un mes. Los viernes tambien puede llegar por Telegram, con el
   enlace: ver repo-datos/INSTRUCCIONES.md. Si ya tenias el resumen diario, reemplaza resumen.yml por la version nueva
   (si no, no llegan la revision, el aviso del token ni la marca de pateadas).
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
-- Filtrar por persona: toca "@Laura" en una tarea para ver solo las que te pidio. La ✕ (o Esc) quita el filtro.
-- Informe: en Terminadas, "Informe" arma un control de tus tareas para mostrar como venis. Elegis el periodo
+- Filtrar por persona: toca "@Laura" en una tarea para ver, en Tareas, solo las que te pidio. La ✕ (o Esc, o Atras)
+  quita el filtro.
+- Informe: en Tareas, junto a Terminadas, o en Ajustes > Herramientas, "Informe" arma un control de tus tareas para mostrar como venis. Elegis el periodo
   (esta semana, la pasada, este mes, el pasado, 30 dias o todo) y quien las pidio (por ejemplo, solo las de German).
   Muestra las terminadas en ese periodo (cuando se crearon, cuando se terminaron y cuantos dias llevaron), las
   pendientes con su estado (vencida, para hoy, para el jue 22/10, sin fecha; cuando se crearon y si se pospusieron)

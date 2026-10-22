@@ -5,43 +5,50 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Jgile3LVWjsIEC8UsDehufVeSsT/yWI+4hkkdyU06aY=' 'sha256-xqzrRMIlUS3iA7uMQERyUkYObBnf1Lia3u0JZon9Wls='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-mD+Tl2ZGMTdmZvzZNk7rYYwAu7b1zV7aTsttpR71Hr4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1520" media="(prefers-color-scheme: dark)">
-<script>try{var t=localStorage.getItem('tema');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==='dark'?'#0f1520':'#4f46e5'})}}catch(e){}</script>
+<meta name="theme-color" content="#0e131b" media="(prefers-color-scheme: dark)">
+<script>try{var t=localStorage.getItem('tema');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==='dark'?'#0e131b':'#4f46e5'})}}catch(e){}</script>
 <meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tareas">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
+/* Colores (los mismos nombres de siempre; --sf2/--sf3, --hl, --blue, --n1…5 y --pb1…5 son del rediseño) */
 :root{color-scheme:light dark;
-  --bg:#f4f6f9;--card:#fff;--border:#d6dce5;--input:#ccd5df;--chip:#d5dce5;--divider:#edf0f4;
-  --text:#182433;--text2:#445468;--muted:#5b6779;--faint:#647083;
-  --accent:#4f46e5;--accent-h:#4338ca;--accent-soft:#eef2ff;--accent-text:#4338ca;--on-accent:#fff;--tag-text:#3730a3;--addcard-border:#d9ddf5;
-  --red:#b42318;--red-soft:#fef3f2;--amber:#b45309;--amber-dot:#d97706;--green:#16a34a;--green-soft:#f0fdf4;--green-text:#15803d;
-  --hover:#f4f6f9;--hover2:#f8f9fb;--sel:#eef1ff;--statusbox:#f6f7f9;--circle:#7f8b9d;--kbd:#dde2e9;--gray-dot:#98a2b3;
-  --toast-bg:#182433;--toast-text:#fff;--toast-btn:#c7d2fe;--overlay:rgba(20,30,45,.42);--shadow:rgba(20,30,45,.16)}
+  --bg:#f4f5f8;--card:#fff;--sf2:#eef0f4;--sf3:#e2e6ec;--border:#dde2e9;--input:#ccd5df;--chip:#d5dce5;--divider:#eceff3;
+  --text:#141b26;--text2:#3f4b5e;--muted:#5d6879;--faint:#647083;
+  --accent:#4f46e5;--accent-h:#4338ca;--accent-soft:#ebecfd;--accent-text:#3f37c9;--on-accent:#fff;--tag-text:#3730a3;--addcard-border:#d9ddf5;
+  --red:#b42318;--red-soft:#fdecea;--amber:#a15c07;--amber-dot:#d97706;--green:#16a34a;--green-soft:#e6f5eb;--green-text:#15803d;
+  --hover:#f4f5f8;--hover2:#f8f9fb;--sel:#eef1ff;--statusbox:#f6f7f9;--circle:#8a94a5;--kbd:#dde2e9;--gray-dot:#98a2b3;
+  --hl:#fff0a3;--blue:#2563eb;
+  --n1:#fbf0c9;--n2:#dff0e2;--n3:#e0eafb;--n4:#f7e1ec;--n5:#e9e3f8;--pb1:#fbdcc0;--pb2:#cfeccf;--pb3:#d3e1fb;--pb4:#f6d3e4;--pb5:#e0d6f6;
+  --toast-bg:#141b26;--toast-text:#fff;--toast-btn:#b9bdff;--overlay:rgba(20,30,45,.42);--shadow:rgba(20,30,45,.16)}
 /* Modo oscuro: sigue al del sistema, salvo que en este dispositivo se haya elegido Claro u Oscuro */
 :root[data-theme="light"]{color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0f1520;--card:#182131;--border:#2c384c;--input:#3a475d;--chip:#3a475d;--divider:#212b3b;
-  --text:#e6ebf2;--text2:#a7b2c2;--muted:#8391a5;--faint:#8391a5;
-  --accent:#818cf8;--accent-h:#a5b4fc;--accent-soft:#1e2342;--accent-text:#a5b4fc;--on-accent:#0f1520;--tag-text:#c7d2fe;--addcard-border:#2d3654;
-  --red:#f97066;--red-soft:#3a1d1d;--amber:#fbbf24;--amber-dot:#fbbf24;--green:#4ade80;--green-soft:#14301f;--green-text:#4ade80;
-  --hover:#212b3b;--hover2:#1e2838;--sel:#1e2342;--statusbox:#121a27;--circle:#6b7a92;--kbd:#273244;--gray-dot:#6b778a;
-  --toast-bg:#e6ebf2;--toast-text:#0f1520;--toast-btn:#4338ca;--overlay:rgba(0,0,0,.6);--shadow:rgba(0,0,0,.5);color-scheme:dark}}
+  --bg:#0e131b;--card:#161d28;--sf2:#1d2533;--sf3:#273042;--border:#283243;--input:#3a475d;--chip:#3a475d;--divider:#202a39;
+  --text:#e8ecf2;--text2:#b4bdcb;--muted:#8f9bb0;--faint:#8391a5;
+  --accent:#8b93ff;--accent-h:#a9afff;--accent-soft:#252b52;--accent-text:#c2c6ff;--on-accent:#0e131b;--tag-text:#c7d2fe;--addcard-border:#2d3654;
+  --red:#ff7b70;--red-soft:#3a1f20;--amber:#f2b44b;--amber-dot:#f2b44b;--green:#4ade80;--green-soft:#16301f;--green-text:#5ad48a;
+  --hover:#1d2533;--hover2:#1a2230;--sel:#1e2342;--statusbox:#121a27;--circle:#6d7a90;--kbd:#273244;--gray-dot:#6b778a;
+  --hl:#5a4810;--blue:#60a5fa;
+  --n1:#3a3116;--n2:#18321f;--n3:#1b2942;--n4:#3a1f30;--n5:#2a2343;--pb1:#5c3a1a;--pb2:#1f4a2a;--pb3:#24406e;--pb4:#5c2846;--pb5:#40366e;
+  --toast-bg:#e8ecf2;--toast-text:#0e131b;--toast-btn:#3f37c9;--overlay:rgba(0,0,0,.6);--shadow:rgba(0,0,0,.5);color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1520;--card:#182131;--border:#2c384c;--input:#3a475d;--chip:#3a475d;--divider:#212b3b;
-  --text:#e6ebf2;--text2:#a7b2c2;--muted:#8391a5;--faint:#8391a5;
-  --accent:#818cf8;--accent-h:#a5b4fc;--accent-soft:#1e2342;--accent-text:#a5b4fc;--on-accent:#0f1520;--tag-text:#c7d2fe;--addcard-border:#2d3654;
-  --red:#f97066;--red-soft:#3a1d1d;--amber:#fbbf24;--amber-dot:#fbbf24;--green:#4ade80;--green-soft:#14301f;--green-text:#4ade80;
-  --hover:#212b3b;--hover2:#1e2838;--sel:#1e2342;--statusbox:#121a27;--circle:#6b7a92;--kbd:#273244;--gray-dot:#6b778a;
-  --toast-bg:#e6ebf2;--toast-text:#0f1520;--toast-btn:#4338ca;--overlay:rgba(0,0,0,.6);--shadow:rgba(0,0,0,.5);color-scheme:dark}
+  --bg:#0e131b;--card:#161d28;--sf2:#1d2533;--sf3:#273042;--border:#283243;--input:#3a475d;--chip:#3a475d;--divider:#202a39;
+  --text:#e8ecf2;--text2:#b4bdcb;--muted:#8f9bb0;--faint:#8391a5;
+  --accent:#8b93ff;--accent-h:#a9afff;--accent-soft:#252b52;--accent-text:#c2c6ff;--on-accent:#0e131b;--tag-text:#c7d2fe;--addcard-border:#2d3654;
+  --red:#ff7b70;--red-soft:#3a1f20;--amber:#f2b44b;--amber-dot:#f2b44b;--green:#4ade80;--green-soft:#16301f;--green-text:#5ad48a;
+  --hover:#1d2533;--hover2:#1a2230;--sel:#1e2342;--statusbox:#121a27;--circle:#6d7a90;--kbd:#273244;--gray-dot:#6b778a;
+  --hl:#5a4810;--blue:#60a5fa;
+  --n1:#3a3116;--n2:#18321f;--n3:#1b2942;--n4:#3a1f30;--n5:#2a2343;--pb1:#5c3a1a;--pb2:#1f4a2a;--pb3:#24406e;--pb4:#5c2846;--pb5:#40366e;
+  --toast-bg:#e8ecf2;--toast-text:#0e131b;--toast-btn:#3f37c9;--overlay:rgba(0,0,0,.6);--shadow:rgba(0,0,0,.5);color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
 a{color:var(--accent)}
@@ -58,7 +65,7 @@ button{cursor:pointer}
 /* Encabezado */
 .top{display:flex;align-items:flex-start;gap:12px;padding:4px 2px 16px}
 .top .ttl{flex:1;min-width:0}
-h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:700}
+h1{margin:0;font-size:30px;line-height:1.15;letter-spacing:-.01em;font-weight:700}
 .sub{margin-top:5px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px}
 #summary{display:contents}
 .sub .over{color:var(--red);font-weight:600}
@@ -100,7 +107,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 /* Lista */
 .emptycard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 16px;text-align:center;color:var(--muted);font-size:15px}
 .grp{margin-bottom:18px}
-.ghead{display:flex;align-items:baseline;gap:6px;padding:0 4px 7px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
+.ghead{display:flex;align-items:baseline;gap:6px;padding:0 4px 7px;font-size:15px;font-weight:650;color:var(--text2)}
 .ghead.over{color:var(--red)}
 .ghead.today{color:var(--accent)}
 .ghead .n{font-weight:500;color:var(--faint)}
@@ -133,7 +140,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .repinc{display:flex;flex-wrap:wrap;gap:6px}
 .repinc .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:600}
 .repview{border:1px solid var(--border);border-radius:12px;padding:12px 14px;max-height:46vh;overflow:auto;font-size:14px;line-height:1.45}
-.repview h3,.printarea h3{margin:12px 0 6px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
+.repview h3,.printarea h3{margin:12px 0 6px;font-size:14px;font-weight:650;color:var(--text2)}
 .repview h3:first-child{margin-top:0}
 .repsum{margin:0 0 4px;color:var(--text);font-weight:600}
 .repsub{margin:0 0 6px;color:var(--muted);font-size:13px}
@@ -193,7 +200,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .ttext{font-size:15px;line-height:1.4;color:var(--text);overflow-wrap:anywhere;text-wrap:pretty}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:3px;font-size:13px;color:var(--muted)}
 .meta .over{color:var(--red);font-weight:600}
-.alta{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--red);background:var(--red-soft);border-radius:5px;padding:2px 6px}
+.alta{font-size:11.5px;font-weight:800;color:var(--red);background:var(--red-soft);border-radius:6px;padding:2px 6px}
 .unsynced{color:var(--amber)}
 .notes{margin-top:3px;font-size:13px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .more{flex:none;width:40px;height:46px;background:none;border:0;border-radius:10px;color:var(--faint);font-size:20px;line-height:1;padding:0}
@@ -216,8 +223,8 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .trow .tt div+div{font-size:12.5px;color:var(--faint);margin-top:2px}
 .trow .linkbtn{flex:none;margin:0;padding:8px}
 
-/* Anotadas al pasar, pateadas, Procesar, dos columnas */
-.inboxdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:2px}
+/* Anotadas al pasar, pateadas, Ordenar, dos columnas */
+.inboxdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--blue);margin-right:7px;vertical-align:2px}
 #askIn{font-size:16px;padding:11px 12px;border-radius:10px;width:100%}
 #editOv{z-index:55}
 .modal.proc{max-width:560px}
@@ -250,7 +257,7 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .filterbar b{font-weight:700}
 .filterbar button{width:32px;height:32px;border:0;border-radius:50%;background:none;color:inherit;font-size:14px;flex:none}
 .filterbar button:hover{background:var(--hover)}
-.ghead .gbtn{margin-left:auto;background:none;border:0;padding:4px 4px;font:inherit;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);cursor:pointer}
+.ghead .gbtn{margin-left:auto;background:none;border:0;padding:4px 4px;font:inherit;font-size:13.5px;font-weight:600;color:var(--accent);cursor:pointer}
 .ghead .gbtn:hover{text-decoration:underline}
 /* Aviso del token de GitHub */
 .tokenbar{display:flex;align-items:center;gap:6px;background:var(--red-soft);color:var(--red);border-radius:12px;padding:6px 6px 6px 14px;margin-bottom:14px;font-size:14px;line-height:1.4}
@@ -276,9 +283,9 @@ h1{margin:0;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .donetools{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px}
 .donetools select{font-size:13px;padding:5px 8px;border:1px solid var(--chip);border-radius:8px;background:var(--card);color:var(--text2)}
 .donetools .linkbtn{margin:0}
-.donebtn{display:flex;align-items:baseline;gap:7px;background:none;border:0;padding:6px 4px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
+.donebtn{display:flex;align-items:baseline;gap:7px;background:none;border:0;padding:6px 4px;font-size:15px;font-weight:650;color:var(--text2)}
 .donebtn svg{flex:none;align-self:center;transition:transform .15s}
-.donebtn .n{font-weight:500;letter-spacing:0;text-transform:none;color:var(--faint)}
+.donebtn .n{font-weight:500;color:var(--faint)}
 #doneList{margin-top:6px}
 .drow{display:flex;align-items:center;gap:2px;padding:0 10px 0 4px}
 .drow+.drow{border-top:1px solid var(--divider)}
@@ -391,7 +398,7 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
 /* En reposo, el alta ocupa una línea: las fechas y la nota aparecen al tocar el campo */
 .addcard.rest .chiprow{display:none}
 /* Grupos que se pliegan (cada dispositivo recuerda cuáles) */
-.ghead .gfold{flex:1;min-width:0;display:flex;align-items:center;gap:6px;background:none;border:0;padding:0;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;text-align:left;cursor:pointer}
+.ghead .gfold{flex:1;min-width:0;display:flex;align-items:center;gap:6px;background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .ghead .gfold svg{flex:none;transition:transform .15s}
 .ghead .gfold[aria-expanded="true"] svg{transform:rotate(90deg)}
 @media (pointer:coarse){.ghead .gfold{min-height:28px}}
@@ -419,27 +426,106 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
   .dlong{display:none}
   .dshort{display:inline;color:var(--text);font-weight:700}
 }
+/* Pantallas: Hoy · Tareas · Notas · Buscar. Se ve una por vez (las clases scr-* del body) */
+body:not(.scr-hoy) #hoyView{display:none}
+body:not(.listing) #groups,body:not(.listing) #waitingSec,body:not(.listing) .donesec{display:none}
+body.scr-buscar #addForm{display:none}
+body:not(.scr-hoy) .top .sub{display:none}
+@media (max-width:520px){body:not(.scr-hoy) .top h1{position:static;width:auto;height:auto;overflow:visible;clip:auto;white-space:normal;font-size:22px}}
+.sht{display:none}
+@media (max-width:520px){.lng{display:none}.sht{display:inline}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ordrow{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;margin:0 0 18px;padding:11px 14px;border:0;border-radius:14px;background:var(--accent-soft);color:var(--accent-text);font-size:14.5px;line-height:1.35;text-align:left}
+.ordrow .ot{flex:1;min-width:0;color:var(--text)}
+.ordrow .go{flex:none;font-weight:700;white-space:nowrap}
+.ordrow:hover .go{text-decoration:underline}
+.hoylinks{display:flex;flex-wrap:wrap;gap:0 18px}
+.hoylinks .linkbtn{margin:0;min-height:44px;padding:6px 4px}
+.searchhome{display:flex;flex-direction:column;gap:10px;padding:2px 2px 0}
+.searchhome .chiprow{margin-top:6px}
+.searchhome .chip{min-height:40px}
+/* La barra: abajo en el celular (y en una ventana angosta), a la izquierda desde 900 px */
+.nav{position:fixed;z-index:10;display:flex;background:var(--card)}
+.nb{position:relative;display:flex;align-items:center;background:none;border:0;padding:0;color:var(--muted);font-weight:600}
+.nb .ic{flex:none;display:flex;align-items:center;justify-content:center}
+.nb .ic svg{display:block}
+.nb .n{font-weight:500;color:var(--faint);font-variant-numeric:tabular-nums}
+.nb kbd,.navfoot,#setBtn .nl{display:none}
+@media (max-width:899px){
+  .nav{left:0;right:0;bottom:0;height:calc(76px + env(safe-area-inset-bottom));padding:0 4px env(safe-area-inset-bottom);border-top:1px solid var(--border)}
+  .nb{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:4px;font-size:12.5px}
+  .nb .ic{width:60px;height:32px;border-radius:16px}
+  .nb[aria-current="page"]{color:var(--text)}
+  .nb[aria-current="page"] .ic{background:var(--accent-soft);color:var(--accent-text)}
+  .nb .n{display:none}
+  #searchBtn{order:4}
+  /* Escribiendo (con el teclado del celular abierto) o dictando, la barra no ocupa lugar */
+  body.typing .nav,body.docked .nav{display:none}
+  .wrap{padding-bottom:calc(76px + 110px + env(safe-area-inset-bottom))}
+  .fabs{bottom:calc(76px + 16px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(76px + 12px + env(safe-area-inset-bottom))}
+  body.fabbed .toast{bottom:calc(76px + 84px + env(safe-area-inset-bottom))}
+  body.typing .toast{bottom:calc(20px + env(safe-area-inset-bottom))}
+  html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  /* El estado: solo el punto cuando está todo bien; con texto si hay algo que mirar */
+  #statusBtn.quiet{width:40px;padding:0;justify-content:center}
+  #statusBtn.quiet #statusShort{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
+@media (min-width:900px){
+  .nav{left:0;top:0;bottom:0;width:232px;flex-direction:column;gap:2px;padding:16px 12px 14px;border-right:1px solid var(--border);overflow-y:auto}
+  .nb{width:100%;gap:12px;min-height:44px;padding:0 12px;border-radius:12px;font-size:15px;color:var(--text2);text-align:left}
+  .nb .nl{flex:1;min-width:0}
+  .nb:hover{background:var(--hover)}
+  .nb[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text)}
+  .nb[aria-current="page"] .n{color:var(--accent-text)}
+  #searchBtn{order:-1;margin-bottom:10px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-weight:500}
+  #searchBtn kbd{display:inline-block}
+  .navfoot{display:flex;flex-direction:column;gap:12px;margin-top:auto;padding-top:14px}
+  .navfoot .hbtns{flex-direction:column;align-items:stretch;gap:6px}
+  .navfoot #statusBtn{width:100%;border-radius:12px}
+  .navfoot #setBtn{width:100%;justify-content:flex-start;gap:10px;padding:0 12px;font-size:14px;font-weight:500}
+  .navfoot #setBtn .nl{display:inline}
+  .navfoot .shortcuts{margin-top:0;flex-direction:column;flex-wrap:nowrap;gap:6px}
+  .wrap{max-width:none;margin:0;padding-left:calc(232px + 32px);padding-right:32px}
+  .wrap>:not(.nav){max-width:680px;margin-left:auto;margin-right:auto}
+}
+@media (min-width:1200px){.wrap>:not(.nav){max-width:1140px}}
+/* Los atajos al pie de la barra lateral: N, / y . a la vista; "Atajos" despliega el resto */
+.shortcuts .more{display:none}
+.shortcuts.open .more{display:flex}
+.shortcuts .scbtn{background:none;border:0;padding:2px 0;color:var(--accent);font-weight:600;font-size:12.5px;text-align:left}
+@media print{.nav{display:none}}
 </style>
 </head>
 <body>
 <div class="wrap" id="wrap">
+  <!-- Las cuatro pantallas: abajo en el celular, a la izquierda en la compu -->
+  <nav id="nav" class="nav" aria-label="Secciones">
+    <button type="button" id="navHoy" class="nb" data-s="hoy"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg></span><span class="nl">Hoy</span><span class="n" id="navHoyN"></span></button>
+    <button type="button" id="navTareas" class="nb" data-s="tareas"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M3.5 18l1.5 1.5L7.5 17"/></svg></span><span class="nl">Tareas</span><span class="n" id="navTareasN"></span></button>
+    <button type="button" id="navNotas" class="nb" data-s="notas"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3.5"/></svg></span><span class="nl">Notas</span><span class="n" id="navNotasN"></span></button>
+    <button type="button" id="searchBtn" class="nb" data-s="buscar" aria-label="Buscar" title="Buscar ( / )"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span><span class="nl">Buscar</span><kbd>/</kbd></button>
+    <div id="navFoot" class="navfoot"><div id="shortcuts" class="shortcuts hidden"></div></div>
+  </nav>
   <header class="top">
     <div class="ttl">
-      <h1>Mis tareas</h1>
+      <h1 id="scrTitle">Hoy</h1>
       <div class="sub"><span id="todayLabel"></span><span id="summary"></span></div>
     </div>
-    <div class="hbtns">
-      <button type="button" id="procBtn" class="pill hidden" title="Procesar lo anotado, las vencidas y lo que espera respuesta ( P )">Procesar <span class="n" id="procCount" style="color:var(--accent);font-weight:700"></span></button>
-      <button type="button" id="searchBtn" class="iconbtn" aria-label="Buscar" title="Buscar ( / )">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="5.5"/><line x1="11.8" y1="11.8" x2="16" y2="16"/></svg>
-      </button>
-      <button type="button" id="statusBtn" class="pill" title="Sincronización y ajustes"><span class="dot" id="dot"></span><span id="statusShort"></span></button>
+    <div class="hbtns" id="hbtns">
+      <button type="button" id="statusBtn" class="pill" title="Estado de la sincronización"><span class="dot" id="dot"></span><span id="statusShort"></span></button>
+      <button type="button" id="setBtn" class="iconbtn" aria-label="Ajustes" title="Ajustes y sincronización"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="nl">Ajustes</span></button>
     </div>
   </header>
 
   <div id="searchBar" class="searchbar hidden">
     <input id="search" class="inp" type="search" placeholder="Buscar por texto, @persona o detalle…" aria-label="Buscar">
     <button type="button" id="searchClose" class="textbtn">Cerrar</button>
+  </div>
+  <!-- Buscar con el campo vacío: las personas, para buscar de un toque -->
+  <div id="searchHome" class="searchhome hidden">
+    <div id="searchPeopleRow" class="hidden"><span class="lbl">Personas</span><div id="searchPeople" class="chiprow"></div></div>
+    <p class="fine">Sin importar tildes ni mayúsculas, con todas las palabras en cualquier orden. También busca en las terminadas y en la papelera.</p>
   </div>
 
   <form id="addForm" class="addcard" autocomplete="off">
@@ -476,6 +562,12 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
     <p><b id="welcomeQ">¿Ya anotás tus tareas en la compu?</b><br>Conectá tu repositorio para verlas acá también.</p>
     <button type="button" id="welcomeGo" class="primary">Conectar</button>
     <p class="fine">O empezá a anotar arriba: se guarda en este dispositivo.</p>
+  </div>
+  <!-- Hoy: la fila para ordenar, Vencidas, Para reclamar, Para hoy y Próximos avisos -->
+  <div id="hoyView">
+    <button type="button" id="procBtn" class="ordrow hidden" title="Ordenar lo anotado al pasar, las vencidas y lo que hay que reclamar ( P )"><span class="ot" id="procTxt"></span><span class="go">Ordenar ›</span><span class="sr" id="procCount"></span></button>
+    <div id="hoyList"></div>
+    <div id="hoyLinks" class="hoylinks"></div>
   </div>
   <div id="groups"></div>
   <div id="waitingSec"></div>
@@ -523,7 +615,6 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
   <aside id="side" class="side"><div id="sideWait"></div><div id="sideNone"></div></aside>
   </div>
 
-  <div id="shortcuts" class="shortcuts hidden"></div>
 </div>
 
 <div id="menuBackdrop" class="backdrop hidden"></div>
@@ -605,6 +696,10 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
       </div>
     </details>
     <div class="devsec">
+      <span class="lbl">Herramientas</span>
+      <div class="cfgbtns"><button type="button" id="setRep" class="secbtn">Informe</button><button type="button" id="setRev" class="secbtn">Revisión de la semana</button></div>
+    </div>
+    <div class="devsec">
       <span class="lbl">Este dispositivo</span>
       <div class="themerow"><span id="themeLbl">Apariencia</span><div class="seg" id="themeSeg" role="group" aria-labelledby="themeLbl">
         <button type="button" data-t="auto">Automática</button><button type="button" data-t="light">Clara</button><button type="button" data-t="dark">Oscura</button>
@@ -646,7 +741,7 @@ body.fabbed .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
 
 <div id="procOv" class="overlay hidden">
   <div class="modal proc" role="dialog" aria-modal="true" aria-labelledby="procH">
-    <div class="mhead"><h2 id="procH">Procesar</h2><span class="n" id="procN"></span><button type="button" class="xbtn" id="procX" aria-label="Cerrar">✕</button></div>
+    <div class="mhead"><h2 id="procH">Ordenar</h2><span class="n" id="procN"></span><button type="button" class="xbtn" id="procX" aria-label="Cerrar">✕</button></div>
     <div id="procCard"></div>
     <div id="procBtns" class="procbtns"></div>
   </div>
@@ -731,7 +826,7 @@ const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
 const WIDE=window.matchMedia?matchMedia('(min-width:1200px)'):{matches:false,addEventListener(){}};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
-const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Alt ↑ ↓','mover'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','procesar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
+const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Alt ↑ ↓','mover'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','ordenar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
 let cfg={},remote=[],tasks=[],notes=[],trash=[],outboxMem=[];
 let syncing=false,syncAgain=false,lastSync=null,lastError=null,authError=false;
 // Estado de la pantalla
@@ -743,7 +838,7 @@ let showTrash=false,confirmEmpty=false,sugg=[],suggSel=-1,autoSave=null,dock=fal
 const K_DRAFT='borrador',K_TIP='tipVisto',K_AVISOS='avisosTelegram',K_VISTOS='avisosDesde',K_AVISOX='avisoOculto',K_GUARD='archivoProblema';
 const K_KBD='abrirConTeclado',K_FOLD='gruposPlegados',K_HINT='pistasVistas',K_NOTES_OPEN='notasAbiertas';
 // Notas: lo que no es para hacer (datos, ideas). Van en tareas.json con kind:'nota', sin fecha, hora ni aviso, y quedan
-// fuera de los grupos, Procesar, la revisión, el número del ícono, el resumen y los recordatorios. "nota:" o "idea:" al
+// fuera de los grupos, Ordenar, la revisión, el número del ícono, el resumen y los recordatorios. "nota:" o "idea:" al
 // principio, o el botón Nota, las guardan así.
 const NOTE_RE=/^\s*(?:nota|idea)\s*:\s*/i,isNote=t=>!!t&&t.kind==='nota';
 const NOTE_SVG='<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="2.5" width="12" height="13" rx="2"/><line x1="6" y1="6.5" x2="12" y2="6.5"/><line x1="6" y1="9.5" x2="12" y2="9.5"/><line x1="6" y1="12.5" x2="9.5" y2="12.5"/></svg>';
@@ -752,6 +847,15 @@ function findLive(id){return tasks.find(x=>x.id===id)||notes.find(x=>x.id===id)}
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 let personFilter=null,waitFor=null,downOn=null,rec=null,listening=false,voiceFilled=false,bulk=null,swiping=false,renderLater=false,swallowClick=false;
+// La pantalla: Hoy (el inicio), Tareas, Notas o Buscar. Al recargar se queda en Tareas o Notas si estaba ahí (lo dice
+// el historial); abierta desde un aviso, un acceso del ícono o compartiendo, en Hoy.
+const LAUNCH_KEYS=['nueva','share','title','text','url','voz','revisar','tarea'];
+let scr=(()=>{
+  try{if(sessionStorage.getItem('aHoy')){sessionStorage.removeItem('aHoy');return 'hoy'}}catch{}
+  const p=history.state&&history.state.pantalla,q=new URLSearchParams(location.search);
+  return (p==='tareas'||p==='notas')&&!LAUNCH_KEYS.some(k=>q.has(k))?p:'hoy';
+})();
+let scrPrev='hoy';const scrollPos={};
 
 // ---- Almacenamiento local ----
 function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch{return def}}
@@ -1615,11 +1719,17 @@ function noteArrivals(prev,next,known){
   const busy=toastAction&&toastKind!=='llegaron'&&!$('toast').classList.contains('hidden');
   if(document.visibilityState==='visible'&&!busy)toast((fresh.length===1?'1 nueva':fresh.length+' nuevas')+from,()=>showArrived(fresh.map(t=>t.id)),'Ver',6000,null,'llegaron');
 }
-// "Ver": las que anunció el aviso (si quedaron en un grupo plegado, se despliega)
+// "Ver": las que anunció el aviso. Si no están en la pantalla, en Hoy (si son de ahí) o en Tareas; si quedaron en un
+// grupo plegado, se despliega.
 function showArrived(ids){
-  const row=()=>ids.map(id=>document.querySelector('.task.llego[data-id="'+CSS.escape(id)+'"]')).find(Boolean);
+  const row=()=>ids.map(id=>document.querySelector('#wrap .task.llego[data-id="'+CSS.escape(id)+'"]')).find(Boolean);
   let r=row();
-  if(!r){const ts=tasks.filter(x=>ids.includes(x.id)&&!x.done);if(ts.length){ts.forEach(t=>setFold(t.waiting?'waiting':groupOf(t),false));renderList();r=row()}}
+  const ts=tasks.filter(x=>ids.includes(x.id)&&!x.done);
+  if(!r&&ts.length&&scr==='hoy'){
+    const secs=ts.map(t=>t.waiting?(waitingLate(t)?'hoy-reclamar':null):{over:'hoy-over',today:'hoy-today'}[groupOf(t)]||null).filter(Boolean);
+    if(secs.length){secs.forEach(x=>setFold(x,false));renderList();r=row()}
+  }
+  if(!r&&ts.length){if(scr!=='tareas')goScreen('tareas',{tap:true});ts.forEach(t=>setFold(t.waiting?'waiting':groupOf(t),false));renderList();r=row()}
   if(r)r.scrollIntoView({block:'center',behavior:'smooth'});
 }
 // Se desvanecen recién cuando la ventana tiene el foco: si llegaron mientras no estabas, siguen marcadas.
@@ -1883,9 +1993,12 @@ function renderTokenBar(){
   $('tokenMsg').textContent=nt.msg;
   $('tokenX').classList.toggle('hidden',!!nt.hard);
 }
+// En el celular, con todo bien (o subiendo, un segundo después de cada cambio) se ve solo el punto
+const QUIET=['Al día','Pendiente','Subiendo…','Conectando…'];
 function renderStatus(){
   const st=status();
   $('dot').style.background=st.dot;$('statusShort').textContent=st.short;
+  $('statusBtn').classList.toggle('quiet',QUIET.includes(st.short));$('statusBtn').setAttribute('aria-label','Sincronización: '+st.short);
   if(settingsOpen)renderSync(st);
 }
 
@@ -1902,7 +2015,7 @@ function applyTheme(){
   if(t==='auto')delete root.dataset.theme;else root.dataset.theme=t;
   // La barra de la app instalada acompaña al tema elegido
   document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{
-    const dark=m.media.includes('dark');m.content=t==='auto'?(dark?'#0f1520':'#4f46e5'):(t==='dark'?'#0f1520':'#4f46e5');
+    const dark=m.media.includes('dark');m.content=t==='auto'?(dark?'#0e131b':'#4f46e5'):(t==='dark'?'#0e131b':'#4f46e5');
   });
   document.querySelectorAll('#themeSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===t)));
 }
@@ -1922,20 +2035,31 @@ function updateBadge(){
   try{(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{})}catch{}
 }
 function renderHeader(){
-  const today=ymd(new Date()),pend=tasks.filter(t=>!t.done&&!t.waiting);
+  const today=ymd(new Date()),pend=tasks.filter(t=>!t.done&&!t.waiting&&!isNote(t));
   // Completa en la compu ("Miércoles, 14 de octubre"); corta en el celular ("Mié 14/10"), en la misma línea que el resumen
   const now=new Date();
   $('todayLabel').replaceChildren(el('span','dlong',cap(now.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}))),el('span','dshort',WD[now.getDay()]+' '+now.getDate()+'/'+(now.getMonth()+1)));
-  const over=pend.filter(t=>groupOf(t)==='over').length,tod=pend.filter(t=>groupOf(t)==='today').length;
-  const doneToday=tasks.filter(t=>t.done&&t.completedAt&&ymd(new Date(t.completedAt))===today).length;
+  const overL=pend.filter(t=>groupOf(t)==='over'),todL=pend.filter(t=>groupOf(t)==='today').sort(cmpPending),over=overL.length,tod=todL.length;
+  // (las notas terminadas no cuentan como hechas)
+  const doneToday=tasks.filter(t=>t.done&&!isNote(t)&&t.completedAt&&ymd(new Date(t.completedAt))===today).length;
+  // La próxima de hoy con hora (la hora de la tarea, la misma que se ve en la fila)
+  const nowT=timeNow(now),nx=todL.map(taskTime).find(x=>x&&x>=nowT);
   const s=$('summary');s.replaceChildren();
   if(over)s.append(el('span','over',over+(over===1?' vencida':' vencidas')));
   if(tod)s.append(el('span','today',tod+' para hoy'));
+  if(nx){const a=el('span','next');a.append(el('span','lng',(avisosOn()?'próximo aviso ':'la próxima a las ')+nx),el('span','sht',(avisosOn()?'aviso ':'próxima ')+nx));s.append(a)}
   if(doneToday)s.append(el('span',null,doneToday+(doneToday===1?' hecha hoy':' hechas hoy')));
   if(!over&&!tod&&!doneToday&&pend.length)s.append(el('span',null,pend.length+(pend.length===1?' pendiente':' pendientes')));
-  // En la compu: "Procesar (N)" con lo anotado al pasar, las vencidas y lo que espera respuesta hace rato
-  const n=FINE?procQueue(false).length:0;
+  // La fila Ordenar de Hoy: lo anotado al pasar, las vencidas y lo que hay que reclamar (lo mismo que recorre Ordenar;
+  // una anotada al pasar que ya venció cuenta como vencida, una sola vez)
+  const anot=pend.filter(t=>t.inbox&&!(t.due&&t.due<today)).length,venc=pend.filter(t=>t.due&&t.due<today).length;
+  const recl=tasks.filter(t=>!t.done&&t.waiting&&waitingLate(t)).length,n=anot+venc+recl;
+  $('procTxt').textContent=[anot&&(anot===1?'1 anotada al pasar':anot+' anotadas al pasar'),venc&&(venc===1?'1 vencida':venc+' vencidas'),recl&&recl+' para reclamar'].filter(Boolean).join(' · ');
   $('procBtn').classList.toggle('hidden',!n);$('procCount').textContent=n||'';
+  // Las cantidades de la barra lateral: Hoy es el mismo número del ícono (vencidas y para hoy)
+  $('navHoyN').textContent=over+tod||'';
+  $('navTareasN').textContent=pend.length||'';
+  $('navNotasN').textContent=notes.length||'';
 }
 // Lo que está en el alta se va a guardar como nota: el botón Nota, o "nota:" / "idea:" al principio
 function noteDraft(v){return asNote||NOTE_RE.test(v)}
@@ -1965,8 +2089,9 @@ function renderAdd(){
   // En el celular, las fechas y el detalle aparecen al tocar el campo o al escribir; en reposo, el alta ocupa una línea.
   // Se vuelven a ocultar solo en momentos quietos (ver restArmed), para que la lista no salte bajo el dedo.
   const rest=COARSE&&restArmed&&!raw.trim()&&$('note').classList.contains('hidden')&&!listening&&!autoSave&&!dock&&!$('addForm').contains(document.activeElement);
-  // Con el alta en reposo (las fechas y el botón Nota no se ven), Nota se apaga: lo próximo que dictes es una tarea
-  if(rest&&asNote){asNote=false;$('noteChip').classList.remove('on');$('noteChip').setAttribute('aria-pressed','false');saveDraft()}
+  // Con el alta en reposo (las fechas y el botón Nota no se ven), Nota vuelve a lo de la pantalla: lo próximo que dictes
+  // es una tarea, o una nota si estás en Notas
+  if(rest&&asNote!==(scr==='notas')){asNote=scr==='notas';$('noteChip').classList.toggle('on',asNote);$('noteChip').setAttribute('aria-pressed',String(asNote));saveDraft()}
   // El tip, solo las primeras 5 veces que se abre la app. En el celular, una vez a la vista, se va junto con las fechas.
   const tip=!listening&&(document.activeElement===$('title')||COARSE&&!rest&&!$('tip').classList.contains('hidden'))&&!raw.trim()&&(tipCounted||load(K_TIP,0)<5);
   if(tip&&!tipCounted){tipCounted=true;store(K_TIP,load(K_TIP,0)+1)}
@@ -1989,8 +2114,9 @@ const samePerson=(a,b)=>!!a&&!!b&&norm(a)===norm(b);
 function byPerson(t){return !personFilter||samePerson(t.requester,personFilter)||(t.waiting&&!t.done&&samePerson(t.waitingOn,personFilter))}
 // Sin importar tildes ni mayúsculas, y con todas las palabras, en cualquier orden y en cualquier campo
 // ("banco llamar" encuentra "Llamar al banco"; "@" adelante de un nombre se ignora)
+// (las palabras buscadas cuentan solo en Buscar: lo que quedó escrito no filtra Hoy ni Tareas)
 function matcher(){
-  const words=norm($('search').value).split(' ').map(w=>w.replace(/^@/,'')).filter(Boolean);
+  const words=scr==='buscar'?norm($('search').value).split(' ').map(w=>w.replace(/^@/,'')).filter(Boolean):[];
   return t=>byPerson(t)&&(!words.length||(s=>words.every(w=>s.includes(w)))(norm(t.title+' '+(t.requester||'')+' '+(t.waitingOn||'')+' '+(t.notes||''))));
 }
 // Una terminada: tocándola se ve entera (las notas, con sus links) sin volver a pendientes
@@ -2073,26 +2199,34 @@ function renderArchive(match){
   found.slice(0,50).forEach(t=>list.append(doneRow(t,true)));
   if(found.length>50){$('archMsg').textContent='Se ven las 50 más recientes de '+found.length+'. Escribí algo más para encontrar la que buscás.';$('archMsg').classList.remove('hidden')}
 }
-function setPersonFilter(name){personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
+// El filtro por persona es de Tareas: tocar "@Laura" en Hoy lleva a Tareas con todas las de Laura
+function setPersonFilter(name){if(name&&scr!=='tareas')goScreen('tareas',{tap:true});personFilter=name||null;closeMenu();renderList();window.scrollTo({top:0,behavior:'smooth'})}
 function renderList(){
   // Mientras deslizás o arrastrás una tarea no se redibuja (se perdería el gesto); se hace al soltar
   if(swiping||dragId){renderLater=true;return}
   // Con el teclado en el título de un grupo, el foco vuelve ahí después de redibujar
   const ae=document.activeElement,focusG=ae&&ae.classList&&ae.classList.contains('gfold')?ae.dataset.g:null;
-  const match=matcher(),q=$('search').value.trim();
+  const match=matcher(),q=scr==='buscar'?$('search').value.trim():'';
   const late=Date.now()-5000;
   const unsynced=new Set(configured()?getOutbox().filter(o=>errorKind==='offline'||!(o.ts>late)).map(o=>o.id||(o.task&&o.task.id)):[]);
   const pending=tasks.filter(t=>!t.done&&!t.waiting&&match(t)).sort(cmpPending);
   const box=$('groups');box.replaceChildren();visibleIds=[];
+  // Cada pantalla dibuja solo lo suyo (una tarea nunca tiene dos filas): Tareas, la lista completa; Buscar, lo que
+  // coincide (como la lista completa, con las notas, las terminadas y la papelera); Hoy y Notas, lo de ellas
+  const listing=scr==='tareas'||scr==='buscar'&&!!q;
+  document.body.classList.toggle('listing',listing);
   // En pantallas anchas, Sin fecha y Esperando van a la columna de la derecha, siempre a la vista
   // (con las flechas se recorren en el orden de la pantalla: la columna principal, Esperando y Sin fecha)
   const wide=WIDE.matches,noneIds=[],waitIds=[];$('sideNone').replaceChildren();$('sideWait').replaceChildren();
   // Los grupos plegados muestran solo el título y cuántas hay (buscando o filtrando por persona se ven todos, y el
   // título no pliega: lo guardado no cambia sin que se vea)
   const noFold=!!(q||personFilter),folded=noFold?new Set():foldedGroups();
+  const hoy=scr==='hoy'?renderHoy(pending,unsynced,folded,noFold):null;
+  if(!hoy){$('hoyList').replaceChildren();$('hoyLinks').replaceChildren()}
+  renderSearchHome(scr==='buscar'&&!q);
   for(const g of GROUPS){
     const items=pending.filter(t=>groupOf(t)===g.id);
-    if(!items.length)continue;
+    if(!items.length||!listing&&!(wide&&g.id==='none'))continue;
     const grp=el('div','grp'),shut=folded.has(g.id);
     const head=el('div','ghead'+(g.id==='over'?' over':g.id==='today'?' today':''));
     head.append(...foldHead(g.id,g.title,items,shut,noFold));
@@ -2106,40 +2240,44 @@ function renderList(){
     }
     (wide&&g.id==='none'?$('sideNone'):box).append(grp);
   }
-  // Esperando: debajo de los pendientes, las más viejas primero
+  // Esperando: debajo de los pendientes, las más viejas primero. En Hoy, las que hay que reclamar ya están en el centro.
   const waiting=tasks.filter(t=>!t.done&&t.waiting&&match(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''));
   $('waitingSec').replaceChildren();const ws=wide?$('sideWait'):$('waitingSec');
-  if(waiting.length){
+  const waitShow=!listing&&!wide?[]:hoy?waiting.filter(t=>!hoy.ids.has(t.id)):waiting;
+  if(waitShow.length){
     const grp=el('div','grp'),head=el('div','ghead'),shut=folded.has('waiting');
-    head.append(...foldHead('waiting','Esperando',waiting,shut,noFold));grp.append(head);
+    head.append(...foldHead('waiting','Esperando',waitShow,shut,noFold));grp.append(head);
     if(!shut){
       const card=el('div','card');
-      waiting.forEach(t=>{(wide?waitIds:visibleIds).push(t.id);card.append(taskRow(t,'waiting',unsynced))});
+      waitShow.forEach(t=>{(wide?waitIds:visibleIds).push(t.id);card.append(taskRow(t,'waiting',unsynced))});
       grp.append(card);
     }
     ws.append(grp);
   }
-  // Notas: debajo de todo, plegadas hasta que las abras (cada dispositivo lo recuerda); buscando se ven las que
-  // coinciden. Con el filtro por persona no se muestran (no tienen quién las pidió).
-  const nlist=personFilter?[]:notes.filter(match).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  // Notas: su pantalla (las más nuevas primero); buscando, las que coinciden. Con el filtro por persona no se
+  // muestran (no tienen quién las pidió).
+  const nlist=personFilter||!(scr==='notas'||scr==='buscar'&&q)?[]:notes.filter(match).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const ns=$('notesSec');ns.replaceChildren();
   if(nlist.length){
-    const grp=el('div','grp'),head=el('div','ghead'),shut=!q&&!notesOpen();
-    head.append(...foldHead('notes','Notas',nlist,shut,!!q));grp.append(head);
-    if(!shut){
-      const card=el('div','card');
-      nlist.forEach(t=>{visibleIds.push(t.id);card.append(noteRow(t))});
-      grp.append(card);
-    }
+    const grp=el('div','grp'),head=el('div','ghead');
+    head.append(...foldHead('notes','Notas',nlist,false,true));grp.append(head);
+    const card=el('div','card');
+    nlist.forEach(t=>{visibleIds.push(t.id);card.append(noteRow(t))});
+    grp.append(card);
     ns.append(grp);
   }
   // En pantallas anchas, después de la columna principal (con las notas) vienen Esperando y Sin fecha, a la derecha
   visibleIds.push(...waitIds,...noneIds);
   fitSide();
   $('filterBar').classList.toggle('hidden',!personFilter);$('filterName').textContent=personFilter||'';
-  const inTrash=q?trash.filter(match).length:0;
-  $('empty').textContent=q?'Ninguna tarea pendiente coincide con “'+q+'”.'+(nlist.length?' Hay '+(nlist.length===1?'1 nota':nlist.length+' notas')+' más abajo.':'')+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':''):personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.';
-  $('empty').classList.toggle('hidden',pending.length+waiting.length>0);
+  const inTrash=q?trash.filter(match).length:0,nothing=!pending.length&&!waiting.length;
+  // El mensaje cuando no hay nada para mostrar, según la pantalla
+  const [emptyOn,emptyTxt]=scr==='hoy'?[!hoy.main,nothing?'Nada pendiente. Buen trabajo.':'Nada para hoy.']:
+    scr==='notas'?[!nlist.length,personFilter?'':'Todavía no hay notas. Para guardar una, escribí “nota:” al principio o tocá Nota.']:
+    scr==='buscar'?[!!q&&nothing,'Ninguna tarea pendiente coincide con “'+q+'”.'+(nlist.length?' Hay '+(nlist.length===1?'1 nota':nlist.length+' notas')+' más abajo.':'')+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':'')]:
+    [nothing,personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.'];
+  $('empty').textContent=emptyTxt;
+  $('empty').classList.toggle('hidden',!emptyOn);
   if(sel&&!visibleIds.includes(sel))sel=null;
   if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done)&&!notes.some(t=>t.id===menuId))closeMenu();
 
@@ -2168,10 +2306,63 @@ function renderList(){
   settleArrivals();   // las que llegaron y recién se ven (al desplegar o al dejar de buscar) se desvanecen
   placeMenu();
 }
+// ---- Hoy ----
+// Vencidas · Para reclamar (las esperas que ya toca mirar, como en el Telegram de la mañana) · Para hoy (primero las
+// que tienen hora) · Próximos avisos (hasta 3 con hora, de mañana a 7 días). Al final, Mañana y Esperando, que llevan
+// a Tareas. Las secciones se pliegan aparte de los grupos de Tareas (plegar Hoy en Tareas no vacía el inicio).
+function hoyReclamar(){return tasks.filter(t=>!t.done&&t.waiting&&waitingLate(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''))}
+function renderHoy(pending,unsynced,folded,noFold){
+  const list=$('hoyList');list.replaceChildren();
+  const ids=new Set();let main=0;
+  const sec=(id,title,cls,items,gid,btn)=>{
+    items.forEach(t=>ids.add(t.id));
+    if(!items.length)return;
+    const grp=el('div','grp'),shut=folded.has(id),head=el('div','ghead'+(cls?' '+cls:''));
+    head.append(...foldHead(id,title,items,shut,noFold));
+    if(btn)head.append(btn);
+    grp.append(head);
+    if(!shut){
+      const card=el('div','card');
+      items.forEach(t=>{visibleIds.push(t.id);const r=taskRow(t,gid,unsynced);card.append(COARSE&&gid!=='waiting'?swipeRow(r,t):r)});
+      grp.append(card);
+    }
+    list.append(grp);
+  };
+  const over=pending.filter(t=>groupOf(t)==='over'),recl=hoyReclamar(),today=pending.filter(t=>groupOf(t)==='today');
+  let all=null;
+  // Vencidas: pasarlas todas a hoy de un toque (como en Tareas)
+  if(over.length>1&&over.some(t=>(t.postponed||0)<3)){all=el('button','gbtn','Todas a hoy');all.type='button';all.onclick=()=>allToToday(over)}
+  sec('hoy-over','Vencidas','over',over,'over',all);
+  sec('hoy-reclamar','Para reclamar','',recl,'waiting');
+  sec('hoy-today','Para hoy','today',today,'today');
+  main=over.length+recl.length+today.length;
+  const soon=pending.filter(t=>t.due&&taskTime(t)&&daysUntil(t.due)>=1&&daysUntil(t.due)<=7).slice(0,3);
+  sec('hoy-avisos',avisosOn()?'Próximos avisos':'Próximas con hora','',soon,'week');
+  // Mañana · N y, sin la columna de la derecha, Esperando respuesta · N
+  const links=$('hoyLinks');links.replaceChildren();
+  const link=(txt,fn)=>{const b=el('button','linkbtn',txt);b.type='button';b.onclick=fn;links.append(b)};
+  const tom=pending.filter(t=>groupOf(t)==='tomorrow').length,wait=tasks.filter(t=>!t.done&&t.waiting).length;
+  if(tom)link('Mañana · '+tom+' ›',()=>showGroup('tomorrow'));
+  if(wait&&!WIDE.matches)link('Esperando respuesta · '+wait+' ›',()=>showGroup('waiting'));
+  return {ids,main};
+}
+// Un grupo de Tareas, abierto y a la vista (desde los links de Hoy)
+function showGroup(g){
+  goScreen('tareas',{tap:true});setFold(g,false);renderList();
+  const b=document.querySelector('.gfold[data-g="'+g+'"]'),r=b&&b.closest('.grp');
+  if(r){r.scrollIntoView({block:'start'});if(FINE){const f=r.querySelector('.task');if(f){sel=f.dataset.id;renderList()}}}
+}
+// Buscar con el campo vacío: las personas (las que más aparecen), que buscan sus tareas de un toque
+function renderSearchHome(on){
+  $('searchHome').classList.toggle('hidden',!on);
+  if(!on)return;
+  const ps=personsKnown().slice(0,12),box=$('searchPeople');box.replaceChildren();
+  ps.forEach(p=>{const b=el('button','chip','@'+p.name);b.type='button';b.onclick=()=>{$('search').value='@'+p.name;renderList();$('search').focus()};box.append(b)});
+  $('searchPeopleRow').classList.toggle('hidden',!ps.length);
+}
 // ---- Grupos plegables ----
 function foldedGroups(){const v=load(K_FOLD,[]);return new Set(Array.isArray(v)?v:[])}
 function setFold(id,shut){if(id==='notes'){store(K_NOTES_OPEN,!shut);return}const f=foldedGroups();if(shut)f.add(id);else f.delete(id);store(K_FOLD,[...f])}
-function notesOpen(){return load(K_NOTES_OPEN,false)===true}
 // Una nota en la lista: sin casilla (no se termina); tocándola se edita, y en ⋯ se convierte en tarea
 function noteRow(t){
   const row=el('div','task note'+(sel===t.id?' sel':''));row.dataset.id=t.id;
@@ -2184,12 +2375,10 @@ function noteRow(t){
   row.append(ic,body,more);
   return row;
 }
-// "Ver" después de guardar una nota: abre la sección y la muestra
+// "Ver" después de guardar una nota: va a Notas y la muestra
 function showNote(id){
-  if(personFilter)setPersonFilter(null);
-  const t=notes.find(x=>x.id===id);
-  if(searchOpen&&(!$('search').value.trim()||t&&!matcher()(t)))closeSearch();
-  setFold('notes',false);renderList();
+  if(scr!=='notas')goScreen('notas',{tap:true});
+  renderList();
   const r=document.querySelector('#notesSec .task[data-id="'+CSS.escape(id)+'"]');
   if(r){r.scrollIntoView({block:'center',behavior:'smooth'});if(FINE){sel=id;renderList()}}
 }
@@ -2208,7 +2397,7 @@ function foldHead(id,title,items,shut,noFold){
 // ---- Primera vez ----
 // Un dispositivo sin conectar y sin tareas: en vez de "Nada pendiente", cómo traer las de la compu
 function renderWelcome(searching){
-  const show=!configured()&&!tasks.length&&!notes.length&&!trash.length&&!searching&&!personFilter;
+  const show=!configured()&&!tasks.length&&!notes.length&&!trash.length&&!searching&&!personFilter&&(scr==='hoy'||scr==='tareas');
   $('welcome').classList.toggle('hidden',!show);
   if(show){$('empty').classList.add('hidden');$('welcomeQ').textContent=COARSE?'¿Ya anotás tus tareas en la compu?':'¿Ya usás Mis tareas en otro dispositivo?'}
 }
@@ -2219,9 +2408,9 @@ function hintsSeen(){const v=load(K_HINT,{});return v&&typeof v==='object'?v:{}}
 function seeHint(k){const v=hintsSeen();if(!v[k]){v[k]=1;store(K_HINT,v);renderHint()}}
 let hintKeys=[];
 function renderHint(){
-  const seen=hintsSeen(),parts=[];hintKeys=[];
-  if(COARSE&&!seen.gestos&&visibleIds.length){hintKeys.push('gestos');parts.push('Deslizá una tarea a la derecha para terminarla o a la izquierda para pasarla a mañana.')}
-  if(!seen.punto&&tasks.some(t=>t.inbox&&!t.done&&visibleIds.includes(t.id))){hintKeys.push('punto');parts.push('El punto azul marca lo anotado al pasar sin elegir fecha: queda para hoy hasta que lo ordenes'+(FINE?' (con Procesar).':'.'))}
+  const seen=hintsSeen(),parts=[],here=scr==='hoy'||scr==='tareas';hintKeys=[];
+  if(COARSE&&!seen.gestos&&here&&visibleIds.length){hintKeys.push('gestos');parts.push('Deslizá una tarea a la derecha para terminarla o a la izquierda para pasarla a mañana.')}
+  if(!seen.punto&&here&&tasks.some(t=>t.inbox&&!t.done&&visibleIds.includes(t.id))){hintKeys.push('punto');parts.push('El punto azul marca lo anotado al pasar sin elegir fecha: queda para hoy hasta que lo ordenes (con Ordenar, arriba en Hoy).')}
   $('hint').classList.toggle('hidden',!parts.length);
   $('hintTxt').textContent=parts.join(' ');
 }
@@ -2384,7 +2573,7 @@ function openMenu(id,byKey){
 // página (acompaña el scroll) y se vuelve a ubicar cada vez que la lista se redibuja.
 function placeMenu(){
   if(!menuId)return;
-  const row=[...document.querySelectorAll('#groups .task,#waitingSec .task,#side .task,#notesSec .task')].find(r=>r.dataset.id===menuId);
+  const row=document.querySelector('#wrap .task[data-id="'+CSS.escape(menuId)+'"]');
   if(!row){closeMenu();return}
   if(COARSE)return;   // la hoja de abajo (CSS)
   const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
@@ -2401,7 +2590,7 @@ let toastMore=[],toastAt=-1,toastKind=null;
 // kind: 'llegaron' para el aviso de tareas nuevas de otro dispositivo (no tapa un Deshacer pendiente)
 function toast(msg,action,label,ms,more,kind){
   $('toastMsg').textContent=msg;toastAction=action||null;toastMore=more||[];toastKind=kind||null;
-  toastAt=proc?proc.i:-1;   // en Procesar: sobre qué tarea fue la acción
+  toastAt=proc?proc.i:-1;   // en Ordenar: sobre qué tarea fue la acción
   $('toastUndo').textContent=label||'Deshacer';
   $('toastUndo').classList.toggle('hidden',!action);
   ['toastB2','toastB3'].forEach((id,i)=>{const m=toastMore[i];$(id).classList.toggle('hidden',!m);$(id).textContent=m?m[0]:''});
@@ -2511,7 +2700,7 @@ function allToToday(items){
   actMany(prev.map(x=>({type:'edit',id:x.id,patch:x.patch})));
   toast(kick.length+' pasadas a hoy'+(left?' · '+(left===1?'1 quedó afuera: la pateaste':left+' quedaron afuera: las pateaste')+' 3 veces o más':''),()=>actMany(prev.map(x=>({type:'edit',id:x.id,patch:undoOf(x.t,x.patch)}))),'Deshacer',left?7000:4500);
 }
-// Nota → tarea: queda para hoy, anotada al pasar (punto azul), para darle fecha ("Cambiar" o Procesar). Sin hora
+// Nota → tarea: queda para hoy, anotada al pasar (punto azul), para darle fecha ("Cambiar" u Ordenar). Sin hora
 // (una hora escrita en el texto de la nota no cuenta) y, si estaba terminada, vuelve a pendientes.
 function toTask(t){
   const patch={kind:null,due:ymd(new Date()),inbox:true,time:null};
@@ -2546,7 +2735,7 @@ function setWaiting(t,on,name){
     toast('Volvió a pendientes',()=>act({type:'edit',id:t.id,patch:prev}));
   }
 }
-// ---- Procesar: de a una tarea, una tecla por decisión ----
+// ---- Ordenar (antes Procesar): de a una tarea, una tecla por decisión ----
 // Cola: lo anotado al pasar, después las vencidas (las más pateadas primero) y lo que espera respuesta
 // hace rato. En la revisión semanal (?revisar=1): Sin fecha sin revisar hace un mes, Esperando y las pateadas.
 function procQueue(weekly){
@@ -2561,7 +2750,7 @@ function procQueue(weekly){
 function openProc(weekly,fromLink){
   closeMenu();
   proc={queue:procQueue(weekly),i:0,n:0,weekly:!!weekly,fromLink:!!fromLink};
-  $('procH').textContent=weekly?'Revisión de la semana':'Procesar';
+  $('procH').textContent=weekly?'Revisión de la semana':'Ordenar';
   $('procOv').classList.remove('hidden');$('wrap').inert=true;
   renderProc();
 }
@@ -2594,7 +2783,7 @@ function renderProc(){
   if(!t){
     $('procN').textContent='';
     const today=tasks.filter(x=>!x.done&&!x.waiting&&x.due===ymd(new Date())).length;
-    const d=el('div','pdone');d.append(el('h3',null,proc.n?'Listo':'Nada para '+(proc.weekly?'revisar':'procesar')),el('p','muted',(proc.n?proc.n+(proc.n===1?' procesada':' procesadas')+' · ':'')+'Hoy quedó con '+today+(today===1?' tarea':' tareas')+'.'));
+    const d=el('div','pdone');d.append(el('h3',null,proc.n?'Listo':'Nada para '+(proc.weekly?'revisar':'ordenar')),el('p','muted',(proc.n?proc.n+(proc.n===1?' ordenada':' ordenadas')+' · ':'')+'Hoy quedó con '+today+(today===1?' tarea':' tareas')+'.'));
     // Telegram abre los enlaces en su propio navegador, que no tiene la conexión de la app
     if(proc.fromLink&&!configured()&&!proc.n)d.append(el('p','muted','Este navegador no está conectado a tus tareas: abrí el enlace en la app instalada o en Chrome.'));
     card.append(d);
@@ -2624,10 +2813,12 @@ function procKey(e){
   const t=procCur();
   if(!t){if(e.key==='Enter'||e.key===' '){e.preventDefault();closeProc()}return}
   const k=e.key===' '?'Espacio':e.key==='Delete'||e.key==='Backspace'?'Supr':e.key==='ArrowRight'||e.key==='Enter'?'→':e.key.length===1?e.key.toUpperCase():e.key;
-  if((k==='Z'||k==='z')&&toastAction){e.preventDefault();const a=toastAction,at=toastAt;hideToast();a();if(at>=0&&at<proc.i){proc.i=at;proc.n=Math.max(0,proc.n-1)}renderProc();return}
+  if((k==='Z'||k==='z')&&toastAction){e.preventDefault();procUndo();return}
   const a=procActions(t).find(x=>x.k===k);
   if(a){e.preventDefault();a.fn()}
 }
+// Deshacer en Ordenar (Z o el botón del aviso): vuelve a la tarjeta de la que se deshizo
+function procUndo(){const a=toastAction,at=toastAt;clearTimeout(toastTimer);hideToast();if(a)a();if(proc){if(at>=0&&at<proc.i){proc.i=at;proc.n=Math.max(0,proc.n-1)}renderProc()}}
 $('procBtn').onclick=()=>openProc(false);
 $('revBtn').onclick=()=>openProc(true);
 $('procX').onclick=closeProc;
@@ -2811,7 +3002,7 @@ $('addForm').addEventListener('submit',e=>{
     if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
     toast('Nota guardada',()=>actMany([{type:'delete',id:nt.id}]),'Deshacer',6000,[['Ver',()=>showNote(nt.id)]]);
     hideSuggest();
-    $('title').value='';$('note').value='';setNote(false);chip='0';asNote=false;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+    $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
     if(refocus)$('title').focus();
     renderAdd();
     return;
@@ -2821,7 +3012,7 @@ $('addForm').addEventListener('submit',e=>{
   if(p.repeat)task.repeat=p.repeat;
   if(p.waiting)Object.assign(task,{waiting:true,waitingOn:p.waitingOn||p.requester||'',waitingSince:task.createdAt});
   // Anotada al pasar, sin elegir fecha (ni en el texto ni en los chips), en el celular o en la compu: queda para hoy,
-  // marcada para procesar
+  // marcada para ordenar
   if(p.due===undefined&&!p.time&&!chipTouched&&!p.waiting)task.inbox=true;
   act({type:'add',task});
   if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
@@ -2832,7 +3023,7 @@ $('addForm').addEventListener('submit',e=>{
   const av=avisoTag(task.due,task.time);
   toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:'')+(av?' · '+av[0].toLowerCase():''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
-  $('title').value='';$('note').value='';setNote(false);chip='0';asNote=false;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+  $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
   if(refocus)$('title').focus();
   renderAdd();
 });
@@ -3069,7 +3260,7 @@ $('bulkForm').addEventListener('submit',e=>{
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
   actMany(ops);
-  $('title').value='';asNote=false;saveDraft();renderAdd();
+  $('title').value='';asNote=scr==='notas';saveDraft();renderAdd();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   const nn=added.filter(isNote).length,nt=added.length-nn,cnt=(n,a,b)=>n+' '+(n===1?a:b);
   toast((nt?cnt(nt,'tarea','tareas'):'')+(nt&&nn?' y ':'')+(nn?cnt(nn,'nota','notas'):'')+(added.length===1?' agregada':' agregadas'),()=>{
@@ -3089,6 +3280,7 @@ const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="tru
 function updateAddBtn(force){
   const b=$('addBtn'),v=$('title').value,mode=listening?'listening':autoSave?'saving':SR&&(!v.trim()||voiceFilled&&!noteDraft(v)&&parse(v,dueFor(chip)).bare)?'mic':'add';
   renderDock();scheduleFabs();
+  $('title').placeholder=mode==='listening'?'Escuchando…':noteDraft(v)?'Escribí una nota…':'¿Qué tenés que hacer?';
   if(b.dataset.mode===mode&&!force)return;
   if(mode==='saving'){b.dataset.mode=mode;b.type='button';b.classList.remove('listening');b.textContent='Guardar · '+autoSave.n;b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora';return}
   b.dataset.mode=mode;b.type=mode==='add'?'submit':'button';
@@ -3096,7 +3288,6 @@ function updateAddBtn(force){
   if(mode==='add'){b.textContent='Agregar';b.removeAttribute('aria-label');b.removeAttribute('title')}
   else if(mode==='mic'){b.innerHTML=MIC_SVG;b.setAttribute('aria-label','Dictar tarea');b.title='Dictar tarea'}
   else{b.innerHTML=STOP_SVG+'<span>Listo</span>';b.setAttribute('aria-label','Dejar de escuchar');b.title='Dejar de escuchar'}
-  $('title').placeholder=mode==='listening'?'Escuchando…':'¿Qué tenés que hacer?';
 }
 const VOICE_ERR={'not-allowed':'Permití el uso del micrófono para dictar','service-not-allowed':'Permití el uso del micrófono para dictar','no-speech':'No se escuchó nada. Probá de nuevo','audio-capture':'No se encontró un micrófono','network':'El dictado necesita conexión a internet'};
 function startVoice(){
@@ -3188,7 +3379,7 @@ function scheduleFabs(){if(!COARSE||fabTimer)return;fabTimer=setTimeout(()=>{fab
 function renderFabs(){
   const a=document.activeElement,typing=!!a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)&&!listening&&!autoSave;
   const show=!menuId&&!overlayOpen()&&!typing;
-  $('fabs').classList.toggle('hidden',!show);document.body.classList.toggle('fabbed',show);
+  $('fabs').classList.toggle('hidden',!show);document.body.classList.toggle('fabbed',show);document.body.classList.toggle('typing',typing);
   const b=$('fabMic');b.classList.toggle('hidden',!SR);
   const st=listening?'listening':autoSave?'saving':'idle';
   b.classList.toggle('listening',st==='listening');
@@ -3197,23 +3388,67 @@ function renderFabs(){
   else if(st==='saving'){b.textContent=String(autoSave.n);b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora'}
   else{b.innerHTML=MIC_SVG;b.setAttribute('aria-label','Dictar tarea');b.title='Dictar tarea'}
 }
-$('fabAdd').onclick=()=>{closeMenu();if(searchOpen&&!$('search').value.trim())closeSearch();window.scrollTo(0,0);$('title').focus()};
+// (en Buscar no está el campo para anotar: llevan a Hoy)
+$('fabAdd').onclick=()=>{closeMenu();if(scr==='buscar')goScreen('hoy');window.scrollTo(0,0);$('title').focus()};
 // Hace lo mismo que el botón de arriba: dicta solo si arriba está el micrófono (campo vacío o un "recordame mañana"
 // dictado, que se sigue dictando). Con algo escrito no lo mezcla con lo que digas: avisa que primero lo agregues o borres.
 $('fabMic').onclick=()=>{
   if(listening){stopVoice();return}
   if(autoSave){saveNow();return}
-  closeMenu();window.scrollTo(0,0);
+  closeMenu();if(scr==='buscar')goScreen('hoy');window.scrollTo(0,0);
   if($('addBtn').dataset.mode!=='mic'){toast('Arriba hay algo escrito: agregalo o borralo y después dictá',null,null,6000);return}
   startVoice();
 };
 document.addEventListener('focusin',scheduleFabs);document.addEventListener('focusout',scheduleFabs);
 
+// ---- Pantallas ----
+const SCR_TITLE={hoy:'Hoy',tareas:'Tareas',notas:'Notas',buscar:'Buscar'};
+function applyScreen(){
+  const b=document.body;
+  Object.keys(SCR_TITLE).forEach(x=>b.classList.toggle('scr-'+x,x===scr));
+  b.dataset.screen=scr;searchOpen=scr==='buscar';
+  document.querySelectorAll('#nav .nb').forEach(x=>{if(x.dataset.s===scr)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+  $('scrTitle').textContent=SCR_TITLE[scr];
+  $('searchBar').classList.toggle('hidden',!searchOpen);
+}
+// Pasar a otra pantalla. tap: lo pidió un toque (o una tecla), así la entrada del historial para el botón Atrás se puede
+// crear (Chrome saltea las que se crean sin que hayas tocado nada). Tareas y Notas vuelven a donde estabas; Hoy y
+// Buscar, arriba.
+function goScreen(s,o={}){
+  if(s===scr)return;
+  closeMenu();
+  const from=scr;scrollPos[from]=scrollY;
+  if(from==='buscar')$('search').value='';else scrPrev=from;
+  if(personFilter&&s!=='tareas')personFilter=null;   // el filtro por persona es de Tareas
+  // En Notas, lo que anotás arranca como nota (si el campo está vacío)
+  if(!$('title').value.trim()&&(s==='notas'||from==='notas'))asNote=s==='notas';
+  scr=s;applyScreen();
+  if(o.tap)tapHistory();
+  renderHeader();renderAdd();renderList();
+  window.scrollTo(0,s==='tareas'||s==='notas'?scrollPos[s]||0:0);
+}
+// La entrada de Tareas o Notas en el historial (Atrás desde ahí vuelve a Hoy; ver "Botón Atrás")
+const layerOf=x=>x==='tareas'||x==='notas'?x:null;
+function scrLayer(){return layerOf(scr==='buscar'?scrPrev:scr)}
+function tapHistory(){
+  const want=scrLayer(),st=history.state,cur=st&&st.pantalla||null;
+  if(!want||navPending)return;   // a Hoy: se vuelve atrás solo (syncBack)
+  if(onGuard()){if(!backable())history.replaceState({pantalla:want},'')}   // Buscar recién cerrado: su entrada pasa a ser la de la pantalla
+  else if(cur)history.replaceState({pantalla:want},'');
+  else history.pushState({pantalla:want},'');
+}
+document.querySelectorAll('#nav .nb').forEach(b=>b.addEventListener('click',()=>{
+  const s=b.dataset.s;
+  if(s==='buscar'){openSearch();return}
+  if(s===scr){window.scrollTo({top:0,behavior:'smooth'});return}   // la pestaña de la pantalla en la que estás: arriba
+  goScreen(s,{tap:true});
+}));
+
 // ---- Buscar ----
-function openSearch(){searchOpen=true;$('searchBar').classList.remove('hidden');$('search').focus()}
-function closeSearch(){searchOpen=false;$('search').value='';$('searchBar').classList.add('hidden');renderList()}
-$('searchBtn').onclick=()=>searchOpen?closeSearch():openSearch();
-$('searchClose').onclick=closeSearch;
+function openSearch(){goScreen('buscar');$('search').focus()}
+// Cerrar o Esc: a la pantalla de antes; el botón Atrás, a Hoy
+function closeSearch(to){if(scr==='buscar')goScreen(to||scrPrev)}
+$('searchClose').onclick=()=>closeSearch();
 $('search').addEventListener('input',renderList);
 
 // ---- Filtro por persona ----
@@ -3420,7 +3655,7 @@ $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
 // ---- Menú y aviso ----
 $('menuBackdrop').onclick=closeMenu;
 window.addEventListener('resize',()=>{if(menuId)closeMenu()});
-$('toastUndo').onclick=()=>{const a=toastAction;clearTimeout(toastTimer);hideToast();if(a)a()};
+$('toastUndo').onclick=()=>{if(proc){procUndo();return}const a=toastAction;clearTimeout(toastTimer);hideToast();if(a)a()};
 ['toastB2','toastB3'].forEach((id,i)=>$(id).onclick=()=>{const m=toastMore[i];clearTimeout(toastTimer);hideToast();if(m)m[1]()});
 
 // ---- Editar ----
@@ -3573,6 +3808,10 @@ function renderSync(st){
   $('clearCfg').textContent=confirmClear?(n?'Hay '+cambios(n)+' sin subir que se van a perder. Tocá de nuevo para borrar.':'Tocá de nuevo para confirmar'):'Borrar conexión y datos de este dispositivo';
 }
 $('statusBtn').onclick=openSettings;
+$('setBtn').onclick=openSettings;
+// Herramientas (también al final de Tareas, junto a Terminadas)
+$('setRep').onclick=()=>{closeSettings();openReport()};
+$('setRev').onclick=()=>{closeSettings();openProc(true)};
 $('syncX').onclick=closeSettings;
 $('syncOv').addEventListener('click',e=>{if(e.target===$('syncOv')&&downOn===e.target)closeSettings()});
 $('saveCfg').onclick=()=>{
@@ -3664,7 +3903,7 @@ document.addEventListener('keydown',e=>{
   }
   // Con la hoja de posponer abierta, las teclas son para sus botones (no para la lista de atrás)
   if(pos)return;
-  // Procesar tiene sus propias teclas
+  // Ordenar tiene sus propias teclas
   // (Espacio/Enter sobre un botón con foco lo activan a él)
   if(proc&&!ask&&!waitFor&&!edit){if(!typing&&!e.metaKey&&!e.ctrlKey&&!((tag==='button'||tag==='a')&&(e.key===' '||e.key==='Enter')))procKey(e);return}
   // En el menú ⋯: flechas para moverse
@@ -3691,7 +3930,7 @@ document.addEventListener('keydown',e=>{
   const move=v=>{if(!t||(t.due||null)===dueFor(v)&&!t.inbox)return;sel=next();reschedule(t,v)};
   const select=id=>{const a=document.activeElement;if(a&&(a.tagName==='BUTTON'||a.tagName==='A'))a.blur();sel=id;renderList();const r=document.querySelector('.task.sel');if(r)r.scrollIntoView({block:'nearest'})};
   switch(e.key.toLowerCase()){
-    case 'n':e.preventDefault();$('title').focus();break;
+    case 'n':e.preventDefault();if(scr==='buscar')goScreen('hoy');$('title').focus();break;
     case '/':e.preventDefault();openSearch();break;
     case 'arrowdown':case 'j':if(ids.length){e.preventDefault();select(ids[Math.min(ids.length-1,i+1)])}break;
     case 'arrowup':case 'k':if(ids.length){e.preventDefault();select(ids[Math.max(0,i-1)])}break;
@@ -3712,10 +3951,13 @@ document.addEventListener('keydown',e=>{
     case 'delete':case 'backspace':if(any){e.preventDefault();const nx=next();sel=nx;del(any)}break;
   }
 });
+// Al pie de la barra lateral: N, / y . a la vista; "Atajos" muestra el resto
 if(FINE){
   const sc=$('shortcuts');
-  SHORTCUTS.forEach(([k,d])=>{const s=el('span');s.append(el('kbd',null,k),d);sc.append(s)});
-  sc.classList.remove('hidden');
+  SHORTCUTS.forEach(([k,d])=>{const s=el('span',['N','/','.'].includes(k)?null:'more');s.append(el('kbd',null,k),d);sc.append(s)});
+  const b=el('button','scbtn','Todos los atajos');b.type='button';b.setAttribute('aria-expanded','false');
+  b.onclick=()=>{const on=sc.classList.toggle('open');b.textContent=on?'Menos atajos':'Todos los atajos';b.setAttribute('aria-expanded',String(on))};
+  sc.append(b);sc.classList.remove('hidden');
 }
 
 // ---- Compartido desde WhatsApp o el mail ----
@@ -3752,6 +3994,8 @@ function splitLong(s){
 // Con una ventana abierta (una tarea, Sincronización, el informe, el menú ⋯, la búsqueda…), Atrás la cierra y
 // vuelve a la lista en lugar de salir de la app. Mientras haya algo abierto queda una sola entrada "guarda" en el
 // historial, encima de la de la app; se reconoce por su estado, así que también sirve después de recargar.
+// En Tareas o Notas hay además una entrada de la pantalla ({pantalla}) debajo de la guarda: Atrás desde ahí (o desde
+// Buscar) vuelve a Hoy, y recién desde Hoy sale de la app.
 const BACKABLE=['askOv','posOv','waitOv','editOv','textOv','repOv','procOv','bulkOv','syncOv','menu','voiceDock','searchBar','filterBar'];
 let navPending=0,navTimer=null,afterPop=false,backTimer=null;
 // Volver en el historial no tiene que mover la pantalla (lo maneja la app)
@@ -3771,7 +4015,7 @@ function backClose(){
   if(settingsOpen)return closeSettings();
   if(menuId)return closeMenu();
   if(dock){if(listening)stopVoice(true);return closeDock()}
-  if(searchOpen)return closeSearch();
+  if(searchOpen)return closeSearch('hoy');
   if(personFilter)return setPersonFilter(null);
 }
 // Moverse en el historial desde acá: hasta que llegue su popstate no se vuelve a decidir
@@ -3780,25 +4024,45 @@ function traverse(n){navPending++;clearTimeout(navTimer);navTimer=setTimeout(()=
 function syncBack(){
   if(navPending)return;
   const open=backable(),ap=afterPop;afterPop=false;
-  if(open&&!onGuard()){
+  const want=scrLayer(),st=history.state,cur=st&&st.pantalla||null;
+  if(onGuard()){
+    if(!open)traverse(-1);   // se cerró con ✕, Esc o Guardar (o se recargó con la guarda puesta)
+    else if(cur!==want)history.replaceState({tareas:'atras',pantalla:want},'');   // (para recargar en la pantalla)
+    return;
+  }
+  // La entrada de una pantalla que ya no está (se volvió a Hoy): atrás hasta la de Hoy
+  if(cur&&!want){traverse(-1);return}
+  if(want&&cur!==want){
+    if(cur)history.replaceState({pantalla:want},'');
+    else if(!ap)history.pushState({pantalla:want},'');
+  }
+  if(open){
     // Después de un Atrás que dejó otra ventana abierta debajo se vuelve a la guarda que ya existe (está adelante).
     // Crear una nueva sin que hayas tocado nada haría que Chrome saltee esta entrada, y el Atrás siguiente
     // cerraría la app.
-    if(ap)traverse(1);else history.pushState({tareas:'atras'},'');
+    if(ap)traverse(1);else history.pushState({tareas:'atras',pantalla:want},'');
   }
-  else if(!open&&onGuard())traverse(-1);   // se cerró con ✕, Esc o Guardar (o se recargó con la guarda puesta)
 }
 function scheduleBack(){clearTimeout(backTimer);backTimer=setTimeout(syncBack,0)}
 window.addEventListener('popstate',()=>{
   if(navPending){if(!--navPending)clearTimeout(navTimer);scheduleBack();return}   // el que pedimos recién
-  // Atrás desde la guarda: se cierra la de más arriba; si queda otra abierta, el próximo Atrás la cierra
-  if(!onGuard()){backClose();afterPop=true}
+  // Atrás desde la guarda: se cierra la de más arriba; si queda otra abierta, el próximo Atrás la cierra.
+  // Sin nada abierto, Atrás desde Tareas o Notas vuelve a Hoy.
+  if(!onGuard()){
+    if(backable()){backClose();afterPop=true}
+    else if(scr!=='hoy'&&(history.state&&history.state.pantalla||null)!==scr)goScreen('hoy');
+  }
   scheduleBack();
 });
 new MutationObserver(()=>{scheduleBack();scheduleFabs()}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
 scheduleBack();
 
 // ---- Inicio ----
+// Desde 900 px el estado y Ajustes van al pie de la barra lateral; en el celular, en el encabezado
+const SIDEBAR=window.matchMedia?matchMedia('(min-width:900px)'):{matches:false,addEventListener(){}};
+function placeHbtns(){const h=$('hbtns'),to=SIDEBAR.matches?$('navFoot'):document.querySelector('.top');if(h.parentNode!==to)to.insertBefore(h,SIDEBAR.matches?to.firstChild:null)}
+SIDEBAR.addEventListener('change',placeHbtns);placeHbtns();
+applyScreen();
 cfg=load(K_CFG,{})||{};
 {const g=load(K_GUARD,null);fileGuard=g&&g.repo===cfg.owner+'/'+cfg.repo?{kind:g.kind,sha:g.sha||null}:null}
 loadCache();
@@ -3807,12 +4071,12 @@ const firstSync=sync();        // y después trae lo último de GitHub
 // Lo que pide la dirección con que se abrió: "Nueva tarea" (?nueva=1), "Dictar" (?voz=1), lo compartido desde
 // otra app (Chrome arma la dirección con title/text/url) o la revisión de la semana del Telegram (?revisar=1)
 const LAUNCH_URL=location.href,params=new URLSearchParams(location.search);
-if(['nueva','share','title','text','url','voz','revisar','tarea'].some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
+if(LAUNCH_KEYS.some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
 WIDE.addEventListener('change',renderList);
 // La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
-// Algo abierto encima de la lista (una tarea, Sincronización, el informe, Procesar…)
+// Algo abierto encima de la lista (una tarea, Sincronización, el informe, Ordenar…)
 function overlayOpen(){return !!(edit||bulk||waitFor||ask||pos||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))}
 // Lo compartido: en el campo (o, si son varias líneas, la lista para cargarlas). Lo que estaba en el campo queda
 // guardado aparte y vuelve después (como al abrir compartiendo).
@@ -3848,6 +4112,7 @@ function handleLaunch(params,initial){
       else if(revisar)toast('Revisión de la semana',()=>{if(!overlayOpen())openProc(true,true)},'Abrir',15000);
       return;
     }
+    goScreen('hoy');   // lo que se abre desde el ícono o compartiendo va en Hoy (ahí está el campo para anotar)
   }
   // Desde el Telegram de los viernes: la revisión de la semana (al abrir, después de traer lo último)
   if(revisar)(initial?Promise.race([firstSync,new Promise(r=>setTimeout(r,4000))]).catch(()=>{}):Promise.resolve()).then(()=>openProc(true,true));
@@ -3868,7 +4133,7 @@ function handleLaunch(params,initial){
 function loadPendingShare(){
   if(!pendingShare)return;
   if(overlayOpen()){toast('Cerrá lo que tenés abierto y tocá Cargar',loadPendingShare,'Cargar',15000);return}
-  const p=pendingShare;pendingShare=null;$('title').focus();fillShared(p);
+  const p=pendingShare;pendingShare=null;if(scr==='buscar')goScreen('hoy');$('title').focus();fillShared(p);
 }
 handleLaunch(params,true);
 // Con la app ya abierta en la compu, los accesos del ícono llegan acá en lugar de abrir otra ventana
@@ -3882,16 +4147,18 @@ document.addEventListener('visibilitychange',()=>{
   sync();
   checkForUpdate();
   // Volviste después de un rato y hay una versión nueva lista: si no hay nada abierto, se actualiza sola
-  if(newVersion&&hiddenAt&&Date.now()-hiddenAt>120000&&!settingsOpen&&readyForReload()){reloadApp();return}
+  if(newVersion&&hiddenAt&&Date.now()-hiddenAt>120000&&!settingsOpen&&readyForReload()){if(COARSE)try{sessionStorage.setItem('aHoy','1')}catch{}reloadApp();return}
   if(newVersion)offerUpdate(newVersion);
   // Al volver después de un rato, en el celular: arriba de todo y lista para anotar
   if(COARSE&&hiddenAt&&Date.now()-hiddenAt>120000)readyToCapture();
 });
 function readyToCapture(){
   closeMenu();
-  if(searchOpen&&!$('search').value.trim())closeSearch();
+  if(searchOpen&&!$('search').value.trim())closeSearch('hoy');
   if(edit&&!Object.keys(editPatch()).length)closeEdit();
   if(edit||bulk||waitFor||pos||settingsOpen||dock||!$('textOv').classList.contains('hidden')||repOpen())return;
+  // De vuelta en Hoy (salvo una búsqueda con algo escrito u Ordenar abierto)
+  if(scr!=='hoy'&&!searchOpen&&!proc)goScreen('hoy');
   window.scrollTo(0,0);
   if(STANDALONE&&kbdOnOpen())$('title').focus();
   else{const a=document.activeElement;if(a&&$('addForm').contains(a))a.blur();restArmed=true;renderAdd()}

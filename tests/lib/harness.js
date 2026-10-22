@@ -89,6 +89,17 @@ async function launchPersistent(userDataDir,opts={}){
   return setupContext(await launchRaw(o=>chromium.launchPersistentContext(userDataDir,o),{timezoneId:TZ,serviceWorkers:'block',...rest}),clock);
 }
 
+// Ir a una pantalla de la app (Hoy, Tareas, Notas o Buscar) tocando su botón de la barra, como lo haría una persona
+// (el botón Atrás de la app necesita que la entrada del historial la cree un toque). La app abre en Hoy.
+const NAV={hoy:'#navHoy',tareas:'#navTareas',notas:'#navNotas',buscar:'#searchBtn'};
+async function go(p,screen){
+  if(await p.evaluate(()=>document.body.dataset.screen)===screen)return;
+  // Con el teclado del celular abierto la barra no se ve: primero se cierra
+  if(!await p.isVisible(NAV[screen])){await p.evaluate(()=>document.activeElement&&document.activeElement.blur&&document.activeElement.blur());await sleep(80)}
+  await p.click(NAV[screen]);
+  await until(()=>p.evaluate(s=>document.body.dataset.screen===s,screen));
+  await sleep(50);
+}
 // Capturas y otros archivos de salida: tests/artifacts/<prueba>/ (ignorado por git)
 function out(name){
   const suite=path.basename((require.main&&require.main.filename)||'prueba').replace(/\.[cm]?js$/,'');
@@ -99,5 +110,5 @@ function out(name){
 const repoFile=rel=>path.join(ROOT,rel);
 const readRepo=rel=>fs.readFileSync(repoFile(rel),'utf8');
 
-module.exports={chromium,devices,launch,launchPersistent,appUrl,appOrigin,serve,ok,sleep,until,
+module.exports={chromium,devices,launch,launchPersistent,appUrl,appOrigin,serve,ok,sleep,until,go,
   now,date,ago,day,TZ,REF,REF_ISO,DAY,ROOT,out,repoFile,readRepo,get fails(){return fails}};
