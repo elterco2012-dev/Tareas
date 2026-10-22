@@ -137,6 +137,52 @@ ok(await screen(p)==='tareas','reloading keeps Tareas');
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'and Back still goes to Hoy');
 await ctx.close();
+// Salir de Buscar con la pestaña de la pantalla de antes no deja entradas de más: un Atrás va a Hoy
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+for(let i=0;i<2;i++){await go(p,'tareas');await go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());await sleep(100)}
+await go(p,'tareas');
+await p.goBack();await sleep(400);
+ok(await screen(p)==='hoy'&&onApp(p),'Tareas → Buscar → Tareas (twice): one Back goes to Hoy');
+await p.goBack();await sleep(400);
+ok(!onApp(p),'and the next one leaves the app');
+await ctx.close();
+// El filtro puesto en Buscar sigue en Tareas: Atrás lo saca, después va a Hoy y recién ahí sale
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await go(p,'buscar');await p.fill('#search','seguro');await sleep(200);await p.evaluate(()=>document.activeElement.blur());await sleep(100);
+await row(p,'Pagar el seguro').locator('.person').tap();await sleep(200);
+ok(await screen(p)==='buscar'&&await p.isVisible('#filterBar'),'@Laura in a search result: filters right there');
+await go(p,'tareas');
+ok(await p.isVisible('#filterBar'),'to Tareas: still filtered');
+await p.goBack();await sleep(400);
+ok(await screen(p)==='tareas'&&!(await p.isVisible('#filterBar')),'Back: the filter goes, still on Tareas');
+await p.goBack();await sleep(400);
+ok(await screen(p)==='hoy'&&onApp(p),'Back: Hoy');
+await p.goBack();await sleep(400);
+ok(!onApp(p),'Back: leaves the app');
+await ctx.close();
+// Filtro puesto en Buscar y de ahí a Notas: el filtro se va y Atrás vuelve a Hoy
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await go(p,'buscar');await p.fill('#search','seguro');await sleep(200);await p.evaluate(()=>document.activeElement.blur());await sleep(100);
+await row(p,'Pagar el seguro').locator('.person').tap();await sleep(200);
+await go(p,'notas');await sleep(300);
+ok(!(await p.isVisible('#filterBar'))&&await p.evaluate(()=>history.state&&history.state.pantalla==='notas'&&!history.state.tareas),'Buscar (filtered) → Notas: no filter, one Notas entry');
+await p.goBack();await sleep(400);
+ok(await screen(p)==='hoy'&&onApp(p),'Back from Notas: Hoy');
+await ctx.close();
+// Lo escrito en Notas que se lleva a otra pantalla sigue como nota; borrado, el campo vuelve a ser para tareas
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await go(p,'notas');await p.locator('#title').tap();await p.keyboard.type('Comprar');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
+await go(p,'hoy');
+ok(await p.inputValue('#title')==='Comprar'&&await p.getAttribute('#noteChip','aria-pressed')==='true','Notas → Hoy with text: still a note draft');
+await p.locator('#title').tap();await p.fill('#title','');await p.keyboard.type('Llamar a Pedro');await sleep(150);
+ok(await p.getAttribute('#noteChip','aria-pressed')==='false','cleared on Hoy: the field is for tasks again');
+await p.keyboard.press('Enter');await sleep(300);
+ok(gh.items.some(x=>x.title==='Llamar a Pedro'&&!x.kind),'saved as a task');
+await ctx.close();
 // Abierta desde un acceso del ícono: en Hoy
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP+'?nueva=1',SEEN));
@@ -164,9 +210,9 @@ const counts=await p.evaluate(()=>['navHoyN','navTareasN','navNotasN'].map(id=>d
 ok(JSON.stringify(counts)===JSON.stringify(['6','13','1']),'counts: Hoy (vencidas + para hoy), Tareas (pending, without the waiting ones), Notas '+JSON.stringify(counts));
 ok(await p.evaluate(()=>document.getElementById('navFoot').contains(document.getElementById('statusBtn'))&&document.getElementById('navFoot').contains(document.getElementById('setBtn'))),'status and Ajustes at the foot of the sidebar');
 ok(await p.innerText('#statusShort')==='Al día'&&(await box(p,'#statusShort')).w>20,'computer: the status with its text');
-ok(await p.isVisible('#shortcuts')&&!(await p.isVisible('#shortcuts .more'))&&/nueva/.test(await p.innerText('#shortcuts')),'shortcuts line: N, / and . (the rest folded)');
+ok(await p.isVisible('#shortcuts')&&!(await p.isVisible('#shortcuts .scx'))&&/nueva/.test(await p.innerText('#shortcuts')),'shortcuts line: N, / and . (the rest folded)');
 await p.click('#shortcuts .scbtn');await sleep(100);
-ok(await p.isVisible('#shortcuts .more')&&/ordenar/.test(await p.innerText('#shortcuts')),'"Todos los atajos" shows the rest');
+ok(await p.isVisible('#shortcuts .scx')&&/ordenar/.test(await p.innerText('#shortcuts')),'"Todos los atajos" shows the rest');
 ok(!(await box(p,'#side')),'900–1199: no right column');
 ok(await p.isVisible('#hoyLinks button:has-text("Esperando respuesta")'),'900–1199: the Esperando link is there');
 const h1=await p.evaluate(()=>({t:document.querySelector('.top h1').textContent,fs:getComputedStyle(document.querySelector('.top h1')).fontSize}));
@@ -177,6 +223,12 @@ ok(await p.isVisible('#procOv')&&await p.textContent('#procH')==='Ordenar'&&awai
 await p.keyboard.press('h');await sleep(300);
 await p.click('#toastUndo');await sleep(300);
 ok(await p.textContent('#procN')==='1 de 5','"Deshacer" in the toast goes back to that card');
+// Un aviso que no es un Deshacer (por ejemplo "1 nueva · Ver") no hace volver la tarjeta
+await p.keyboard.press('ArrowRight');await sleep(200);
+const before=await p.textContent('#procN');
+await p.evaluate(()=>toast('1 nueva',()=>{window.__ver=1},'Ver',6000,null,'llegaron'));await sleep(100);
+await p.click('#toastUndo');await sleep(200);
+ok(await p.evaluate(()=>window.__ver===1)&&await p.textContent('#procN')===before,'"Ver" in Ordenar runs its action and stays on the card ('+before+')');
 await p.keyboard.press('Escape');await sleep(200);
 // / abre Buscar; Esc vuelve; N desde Buscar va a Hoy
 await go(p,'notas');
@@ -217,6 +269,15 @@ for(const s of ['hoy','tareas','notas','buscar']){
   ok(w<=360,'360 px, '+s+': no horizontal scroll ('+w+')');
 }
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+await ctx.close();
+// Compu: recargar en Notas deja el alta como nota; en una ventana angosta los atajos siguen, completos, debajo
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,{viewport:{width:1000,height:800}},APP,SEEN));
+await go(p,'notas');await p.reload();await sleep(600);
+ok(await screen(p)==='notas'&&await p.getAttribute('#noteChip','aria-pressed')==='true'&&await p.getAttribute('#title','placeholder')==='Escribí una nota…','reload on Notas: the field still proposes a note');
+await p.setViewportSize({width:820,height:800});await sleep(200);
+await go(p,'hoy');
+ok(await p.isVisible('#shortcuts')&&await p.isVisible('#shortcuts .scx')&&/ordenar/.test(await p.innerText('#shortcuts')),'computer window under 900 px: the full shortcut list under the list');
 await ctx.close();
 await b.close();console.log('fails',L.fails);
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-cfVBxlic/wyOqMucfqt20GFdbO+dzVLzf4JygYswuWs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-TtnLM/XiAQOHMjNhVp1Tk1Nsa2jx1wULPMJVb/L09h8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -491,8 +491,10 @@ body:not(.scr-hoy) .top .sub{display:none}
 }
 @media (min-width:1200px){.wrap>:not(.nav){max-width:1140px}}
 /* Los atajos al pie de la barra lateral: N, / y . a la vista; "Atajos" despliega el resto */
-.shortcuts .more{display:none}
-.shortcuts.open .more{display:flex}
+.shortcuts .scx{display:none}
+.shortcuts.open .scx{display:flex}
+#wrap>.shortcuts .scx{display:flex}
+#wrap>.shortcuts .scbtn{display:none}
 .shortcuts .scbtn{background:none;border:0;padding:2px 0;color:var(--accent);font-weight:600;font-size:12.5px;text-align:left}
 @media print{.nav{display:none}}
 </style>
@@ -842,7 +844,7 @@ const K_KBD='abrirConTeclado',K_FOLD='gruposPlegados',K_HINT='pistasVistas',K_NO
 // principio, o el botón Nota, las guardan así.
 const NOTE_RE=/^\s*(?:nota|idea)\s*:\s*/i,isNote=t=>!!t&&t.kind==='nota';
 const NOTE_SVG='<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="2.5" width="12" height="13" rx="2"/><line x1="6" y1="6.5" x2="12" y2="6.5"/><line x1="6" y1="9.5" x2="12" y2="9.5"/><line x1="6" y1="12.5" x2="9.5" y2="12.5"/></svg>';
-let asNote=false;   // el botón Nota del alta
+let asNote=false,noteCarry=false;   // el botón Nota del alta (noteCarry: quedó prendido por Notas, con texto, al salir)
 function findLive(id){return tasks.find(x=>x.id===id)||notes.find(x=>x.id===id)}
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
@@ -2591,7 +2593,7 @@ let toastMore=[],toastAt=-1,toastKind=null;
 // kind: 'llegaron' para el aviso de tareas nuevas de otro dispositivo (no tapa un Deshacer pendiente)
 function toast(msg,action,label,ms,more,kind){
   $('toastMsg').textContent=msg;toastAction=action||null;toastMore=more||[];toastKind=kind||null;
-  toastAt=proc?proc.i:-1;   // en Ordenar: sobre qué tarea fue la acción
+  toastAt=proc&&!kind&&(!label||label==='Deshacer')?proc.i:-1;   // en Ordenar: sobre qué tarea fue la acción (si es un Deshacer)
   $('toastUndo').textContent=label||'Deshacer';
   $('toastUndo').classList.toggle('hidden',!action);
   ['toastB2','toastB3'].forEach((id,i)=>{const m=toastMore[i];$(id).classList.toggle('hidden',!m);$(id).textContent=m?m[0]:''});
@@ -3030,7 +3032,7 @@ $('addForm').addEventListener('submit',e=>{
 });
 $('title').addEventListener('input',()=>{
   if(rec){rec.onresult=null;stopVoice(true)}   // escribir mientras escucha corta el dictado
-  if(!$('title').value.trim())voiceFilled=false;
+  if(!$('title').value.trim()){voiceFilled=false;if(noteCarry){noteCarry=false;asNote=scr==='notas'}}
   cancelAutoSave();saveDraft();
   suggSel=-1;renderAdd();renderSuggest();
 });
@@ -3081,7 +3083,7 @@ $('addForm').addEventListener('focusout',()=>{
 // Elegir otra fecha durante la cuenta regresiva la vuelve a empezar
 document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{chip=b.dataset.v;chipTouched=true;asNote=false;if(autoSave)startAutoSave();renderAdd();saveDraft();if(!dock)$('title').focus()}));
 // Nota: lo que escribas (o dictes) se guarda como nota; tocarlo de nuevo, o una fecha, vuelve a tarea
-$('noteChip').addEventListener('click',()=>{asNote=!asNote;if(autoSave)startAutoSave();hideSuggest();renderAdd();saveDraft();if(!dock)$('title').focus()});
+$('noteChip').addEventListener('click',()=>{asNote=!asNote;noteCarry=false;if(autoSave)startAutoSave();hideSuggest();renderAdd();saveDraft();if(!dock)$('title').focus()});
 function setNote(on){
   $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar detalle':'+ Detalle';
   if(!on)$('note').value='';
@@ -3420,9 +3422,10 @@ function goScreen(s,o={}){
   closeMenu();
   const from=scr;scrollPos[from]=scrollY;
   if(from==='buscar')$('search').value='';else scrPrev=from;
-  if(personFilter&&s!=='tareas'&&s!=='buscar')personFilter=null;   // el filtro por persona es de Tareas (y se puede buscar adentro)
-  // En Notas, lo que anotás arranca como nota (si el campo está vacío)
+  if(personFilter&&s!=='tareas'&&s!=='buscar'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
+  // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
   if(!$('title').value.trim()&&(s==='notas'||from==='notas'))asNote=s==='notas';
+  else if(from==='notas'&&asNote)noteCarry=true;
   scr=s;applyScreen();
   if(o.tap)tapHistory();
   renderHeader();renderAdd();renderList();
@@ -3434,7 +3437,12 @@ function scrLayer(){return layerOf(scr==='buscar'?scrPrev:scr)}
 function tapHistory(){
   const want=scrLayer(),st=history.state,cur=st&&st.pantalla||null;
   if(!want||navPending)return;   // a Hoy: se vuelve atrás solo (syncBack)
-  if(onGuard()){if(!backable())history.replaceState({pantalla:want},'')}   // Buscar recién cerrado: su entrada pasa a ser la de la pantalla
+  if(onGuard()){
+    // Con la guarda puesta (Buscar, el filtro o una ventana abierta), su "pantalla" es la de la entrada de abajo
+    if(cur===want)return;   // al cerrar lo que está abierto se vuelve a esa entrada, que ya es esta pantalla
+    history.replaceState({pantalla:want},'');   // la guarda pasa a ser la entrada de la pantalla…
+    if(backable())history.pushState({tareas:'atras',pantalla:want},'');   // …y si queda algo abierto, otra guarda encima
+  }
   else if(cur)history.replaceState({pantalla:want},'');
   else history.pushState({pantalla:want},'');
 }
@@ -3656,7 +3664,7 @@ $('doneAll').onclick=()=>{showAllDone=!showAllDone;renderList()};
 // ---- Menú y aviso ----
 $('menuBackdrop').onclick=closeMenu;
 window.addEventListener('resize',()=>{if(menuId)closeMenu()});
-$('toastUndo').onclick=()=>{if(proc){procUndo();return}const a=toastAction;clearTimeout(toastTimer);hideToast();if(a)a()};
+$('toastUndo').onclick=()=>{if(proc&&toastAt>=0){procUndo();return}const a=toastAction;clearTimeout(toastTimer);hideToast();if(a)a()};
 ['toastB2','toastB3'].forEach((id,i)=>$(id).onclick=()=>{const m=toastMore[i];clearTimeout(toastTimer);hideToast();if(m)m[1]()});
 
 // ---- Editar ----
@@ -3955,7 +3963,7 @@ document.addEventListener('keydown',e=>{
 // Al pie de la barra lateral: N, / y . a la vista; "Atajos" muestra el resto
 if(FINE){
   const sc=$('shortcuts');
-  SHORTCUTS.forEach(([k,d])=>{const s=el('span',['N','/','.'].includes(k)?null:'more');s.append(el('kbd',null,k),d);sc.append(s)});
+  SHORTCUTS.forEach(([k,d])=>{const s=el('span',['N','/','.'].includes(k)?null:'scx');s.append(el('kbd',null,k),d);sc.append(s)});
   const b=el('button','scbtn','Todos los atajos');b.type='button';b.setAttribute('aria-expanded','false');
   b.onclick=()=>{const on=sc.classList.toggle('open');b.textContent=on?'Menos atajos':'Todos los atajos';b.setAttribute('aria-expanded',String(on))};
   sc.append(b);sc.classList.remove('hidden');
@@ -4021,21 +4029,22 @@ function backClose(){
 }
 // Moverse en el historial desde acá: hasta que llegue su popstate no se vuelve a decidir
 // (si no llegara, a los 1,5 s se sigue igual)
-function traverse(n){navPending++;clearTimeout(navTimer);navTimer=setTimeout(()=>{navPending=0;syncBack()},1500);history.go(n)}
+function traverse(n){navPending++;gestured=false;clearTimeout(navTimer);navTimer=setTimeout(()=>{navPending=0;syncBack()},1500);history.go(n)}
+// Chrome saltea con el botón Atrás las entradas creadas sin un toque (o una tecla) desde el último movimiento en el
+// historial: la de una pantalla se crea recién con el próximo toque
+let gestured=false,waitTap=false;
+['pointerdown','keydown'].forEach(t=>document.addEventListener(t,e=>{if(!e.isTrusted)return;gestured=true;if(waitTap){waitTap=false;scheduleBack()}},true));
 function syncBack(){
   if(navPending)return;
   const open=backable(),ap=afterPop;afterPop=false;
   const want=scrLayer(),st=history.state,cur=st&&st.pantalla||null;
-  if(onGuard()){
-    if(!open)traverse(-1);   // se cerró con ✕, Esc o Guardar (o se recargó con la guarda puesta)
-    else if(cur!==want)history.replaceState({tareas:'atras',pantalla:want},'');   // (para recargar en la pantalla)
-    return;
-  }
+  if(onGuard()){if(!open)traverse(-1);return}   // se cerró con ✕, Esc o Guardar (o se recargó con la guarda puesta)
   // La entrada de una pantalla que ya no está (se volvió a Hoy): atrás hasta la de Hoy
   if(cur&&!want){traverse(-1);return}
   if(want&&cur!==want){
     if(cur)history.replaceState({pantalla:want},'');
-    else if(!ap)history.pushState({pantalla:want},'');
+    else if(gestured&&!ap)history.pushState({pantalla:want},'');
+    else{waitTap=true;return}
   }
   if(open){
     // Después de un Atrás que dejó otra ventana abierta debajo se vuelve a la guarda que ya existe (está adelante).
@@ -4046,6 +4055,7 @@ function syncBack(){
 }
 function scheduleBack(){clearTimeout(backTimer);backTimer=setTimeout(syncBack,0)}
 window.addEventListener('popstate',()=>{
+  gestured=false;
   if(navPending){if(!--navPending)clearTimeout(navTimer);scheduleBack();return}   // el que pedimos recién
   // Atrás desde la guarda: se cierra la de más arriba; si queda otra abierta, el próximo Atrás la cierra.
   // Sin nada abierto, Atrás desde Tareas o Notas vuelve a Hoy.
@@ -4061,9 +4071,13 @@ scheduleBack();
 // ---- Inicio ----
 // Desde 900 px el estado y Ajustes van al pie de la barra lateral; en el celular, en el encabezado
 const SIDEBAR=window.matchMedia?matchMedia('(min-width:900px)'):{matches:false,addEventListener(){}};
-function placeHbtns(){const h=$('hbtns'),to=SIDEBAR.matches?$('navFoot'):document.querySelector('.top');if(h.parentNode!==to)to.insertBefore(h,SIDEBAR.matches?to.firstChild:null)}
+// (y los atajos de la compu: al pie de la barra lateral o, en una ventana más angosta, debajo de la lista, completos)
+function placeHbtns(){
+  const h=$('hbtns'),to=SIDEBAR.matches?$('navFoot'):document.querySelector('.top');if(h.parentNode!==to)to.insertBefore(h,SIDEBAR.matches?to.firstChild:null);
+  const sc=$('shortcuts'),sto=SIDEBAR.matches?$('navFoot'):$('wrap');if(sc.parentNode!==sto)sto.append(sc);
+}
 SIDEBAR.addEventListener('change',placeHbtns);placeHbtns();
-applyScreen();
+applyScreen();asNote=scr==='notas';   // (recargando en Notas, el alta también propone una nota)
 cfg=load(K_CFG,{})||{};
 {const g=load(K_GUARD,null);fileGuard=g&&g.repo===cfg.owner+'/'+cfg.repo?{kind:g.kind,sha:g.sha||null}:null}
 loadCache();
