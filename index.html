@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-TtnLM/XiAQOHMjNhVp1Tk1Nsa2jx1wULPMJVb/L09h8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-qOepEjlbaTxZ/f0vvVKdvxiT2V8mcj8sbNg7HykOMOs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -25,7 +25,7 @@
   --text:#141b26;--text2:#3f4b5e;--muted:#5d6879;--faint:#647083;
   --accent:#4f46e5;--accent-h:#4338ca;--accent-soft:#ebecfd;--accent-text:#3f37c9;--on-accent:#fff;--tag-text:#3730a3;--addcard-border:#d9ddf5;
   --red:#b42318;--red-soft:#fdecea;--amber:#a15c07;--amber-dot:#d97706;--green:#16a34a;--green-soft:#e6f5eb;--green-text:#15803d;
-  --hover:#f4f5f8;--hover2:#f8f9fb;--sel:#eef1ff;--statusbox:#f6f7f9;--circle:#8a94a5;--kbd:#dde2e9;--gray-dot:#98a2b3;
+  --hover:#f4f5f8;--hover2:#f8f9fb;--sel:#eef1ff;--statusbox:#f6f7f9;--circle:#7a8496;--kbd:#dde2e9;--gray-dot:#98a2b3;
   --hl:#fff0a3;--blue:#2563eb;
   --n1:#fbf0c9;--n2:#dff0e2;--n3:#e0eafb;--n4:#f7e1ec;--n5:#e9e3f8;--pb1:#fbdcc0;--pb2:#cfeccf;--pb3:#d3e1fb;--pb4:#f6d3e4;--pb5:#e0d6f6;
   --toast-bg:#141b26;--toast-text:#fff;--toast-btn:#b9bdff;--overlay:rgba(20,30,45,.42);--shadow:rgba(20,30,45,.16)}
@@ -451,21 +451,20 @@ body:not(.scr-hoy) .top .sub{display:none}
 .nb .ic svg{display:block}
 .nb .n{font-weight:500;color:var(--faint);font-variant-numeric:tabular-nums}
 .nb kbd,.navfoot,#setBtn .nl{display:none}
-@media (max-width:899px){
+@media (max-width:899.98px){
   .nav{left:0;right:0;bottom:0;height:calc(76px + env(safe-area-inset-bottom));padding:0 4px env(safe-area-inset-bottom);border-top:1px solid var(--border)}
   .nb{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:4px;font-size:12.5px}
   .nb .ic{width:60px;height:32px;border-radius:16px}
   .nb[aria-current="page"]{color:var(--text)}
   .nb[aria-current="page"] .ic{background:var(--accent-soft);color:var(--accent-text)}
   .nb .n{display:none}
-  #searchBtn{order:4}
   /* Escribiendo (con el teclado del celular abierto) o dictando, la barra no ocupa lugar */
   body.typing .nav,body.docked .nav{display:none}
   .wrap{padding-bottom:calc(76px + 110px + env(safe-area-inset-bottom))}
   .fabs{bottom:calc(76px + 16px + env(safe-area-inset-bottom))}
   .toast{bottom:calc(76px + 12px + env(safe-area-inset-bottom))}
   body.fabbed .toast{bottom:calc(76px + 84px + env(safe-area-inset-bottom))}
-  body.typing .toast{bottom:calc(20px + env(safe-area-inset-bottom))}
+  body.typing .toast,body.ovl .toast{bottom:calc(20px + env(safe-area-inset-bottom))}
   html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   /* El estado: solo el punto cuando está todo bien; con texto si hay algo que mirar */
   #statusBtn.quiet{width:40px;padding:0;justify-content:center}
@@ -478,7 +477,8 @@ body:not(.scr-hoy) .top .sub{display:none}
   .nb:hover{background:var(--hover)}
   .nb[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text)}
   .nb[aria-current="page"] .n{color:var(--accent-text)}
-  #searchBtn{order:-1;margin-bottom:10px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-weight:500}
+  #searchBtn{margin-bottom:10px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-weight:500}
+  #searchBtn[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text);border-color:transparent}
   #searchBtn kbd{display:inline-block}
   .navfoot{display:flex;flex-direction:column;gap:12px;margin-top:auto;padding-top:14px}
   .navfoot .hbtns{flex-direction:column;align-items:stretch;gap:6px}
@@ -2216,7 +2216,7 @@ function renderList(){
   const box=$('groups');box.replaceChildren();visibleIds=[];
   // Cada pantalla dibuja solo lo suyo (una tarea nunca tiene dos filas): Tareas, la lista completa; Buscar, lo que
   // coincide (como la lista completa, con las notas, las terminadas y la papelera); Hoy y Notas, lo de ellas
-  const listing=scr==='tareas'||scr==='buscar'&&!!q;
+  const listing=scr==='tareas'||scr==='buscar'&&!!(q||personFilter);
   document.body.classList.toggle('listing',listing);
   // En pantallas anchas, Sin fecha y Esperando van a la columna de la derecha, siempre a la vista
   // (con las flechas se recorren en el orden de la pantalla: la columna principal, Esperando y Sin fecha)
@@ -2226,7 +2226,7 @@ function renderList(){
   const noFold=!!(q||personFilter),folded=noFold?new Set():foldedGroups();
   const hoy=scr==='hoy'?renderHoy(pending,unsynced,folded,noFold):null;
   if(!hoy){$('hoyList').replaceChildren();$('hoyLinks').replaceChildren()}
-  renderSearchHome(scr==='buscar'&&!q);
+  renderSearchHome(scr==='buscar'&&!q&&!personFilter);
   for(const g of GROUPS){
     const items=pending.filter(t=>groupOf(t)===g.id);
     if(!items.length||!listing&&!(wide&&g.id==='none'))continue;
@@ -2277,7 +2277,8 @@ function renderList(){
   // El mensaje cuando no hay nada para mostrar, según la pantalla
   const [emptyOn,emptyTxt]=scr==='hoy'?[!hoy.main,nothing?'Nada pendiente. Buen trabajo.':'Nada para hoy.']:
     scr==='notas'?[!nlist.length,personFilter?'':'Todavía no hay notas. Para guardar una, escribí “nota:” al principio o tocá Nota.']:
-    scr==='buscar'?[!!q&&nothing,'Ninguna tarea pendiente coincide con “'+q+'”.'+(nlist.length?' Hay '+(nlist.length===1?'1 nota':nlist.length+' notas')+' más abajo.':'')+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':'')]:
+    scr==='buscar'&&!q?[!!personFilter&&nothing,'No hay tareas pendientes pedidas por '+personFilter+'.']:
+    scr==='buscar'?[nothing,'Ninguna tarea pendiente coincide con “'+q+'”.'+(nlist.length?' Hay '+(nlist.length===1?'1 nota':nlist.length+' notas')+' más abajo.':'')+(inTrash?' Hay '+inTrash+' en la papelera, más abajo.':'')]:
     [nothing,personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.'];
   $('empty').textContent=emptyTxt;
   $('empty').classList.toggle('hidden',!emptyOn);
@@ -3378,11 +3379,24 @@ $('dockClose').onclick=closeDock;
 // A la vista mientras no haya nada abierto encima ni el teclado (un campo con el foco). El micrófono hace lo mismo
 // que el de arriba: escucha, muestra la cuenta regresiva y se toca para guardar ya; el aviso con Deshacer queda arriba.
 let fabTimer=null;
-function scheduleFabs(){if(!COARSE||fabTimer)return;fabTimer=setTimeout(()=>{fabTimer=null;renderFabs()},0)}
+function scheduleFabs(){if(fabTimer)return;fabTimer=setTimeout(()=>{fabTimer=null;renderFabs()},0)}
+// El teclado del celular está abierto si la parte visible de la página es bastante más baja que la más alta que se vio
+// (con el mismo ancho: al girar el celular se vuelve a medir)
+let vvW=0,vvH=0;
+function keyboardOpen(){
+  const v=window.visualViewport;if(!v)return true;
+  if(Math.round(v.width)!==vvW){vvW=Math.round(v.width);vvH=0}
+  vvH=Math.max(vvH,v.height);return v.height<vvH-120;
+}
+if(window.visualViewport)visualViewport.addEventListener('resize',scheduleFabs);
 function renderFabs(){
+  // Con una ventana abierta encima, el aviso de abajo baja (no tapa sus botones)
+  const ov=overlayOpen();if(document.body.classList.contains('ovl')!==ov)document.body.classList.toggle('ovl',ov);
+  if(!COARSE)return;
   const a=document.activeElement,typing=!!a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)&&!listening&&!autoSave;
-  const show=!menuId&&!overlayOpen()&&!typing;
-  $('fabs').classList.toggle('hidden',!show);document.body.classList.toggle('fabbed',show);document.body.classList.toggle('typing',typing);
+  const show=!menuId&&!overlayOpen()&&!typing,kb=typing&&keyboardOpen();
+  $('fabs').classList.toggle('hidden',!show);document.body.classList.toggle('fabbed',show);
+  if(document.body.classList.contains('typing')!==kb)document.body.classList.toggle('typing',kb);
   const b=$('fabMic');b.classList.toggle('hidden',!SR);
   const st=listening?'listening':autoSave?'saving':'idle';
   b.classList.toggle('listening',st==='listening');
@@ -3439,7 +3453,8 @@ function tapHistory(){
   if(!want||navPending)return;   // a Hoy: se vuelve atrás solo (syncBack)
   if(onGuard()){
     // Con la guarda puesta (Buscar, el filtro o una ventana abierta), su "pantalla" es la de la entrada de abajo
-    if(cur===want)return;   // al cerrar lo que está abierto se vuelve a esa entrada, que ya es esta pantalla
+    // Si abajo ya hay una entrada de pantalla, se vuelve a ella al cerrar lo abierto (y syncBack la cambia a esta)
+    if(cur)return;
     history.replaceState({pantalla:want},'');   // la guarda pasa a ser la entrada de la pantalla…
     if(backable())history.pushState({tareas:'atras',pantalla:want},'');   // …y si queda algo abierto, otra guarda encima
   }
@@ -4075,6 +4090,8 @@ const SIDEBAR=window.matchMedia?matchMedia('(min-width:900px)'):{matches:false,a
 function placeHbtns(){
   const h=$('hbtns'),to=SIDEBAR.matches?$('navFoot'):document.querySelector('.top');if(h.parentNode!==to)to.insertBefore(h,SIDEBAR.matches?to.firstChild:null);
   const sc=$('shortcuts'),sto=SIDEBAR.matches?$('navFoot'):$('wrap');if(sc.parentNode!==sto)sto.append(sc);
+  // Buscar: arriba de todo en la barra lateral, al final en la de abajo (así el orden con Tab es el que se ve)
+  const sb=$('searchBtn'),nav=$('nav');if(SIDEBAR.matches){if(nav.firstElementChild!==sb)nav.prepend(sb)}else if(sb.nextElementSibling!==$('navFoot'))nav.insertBefore(sb,$('navFoot'));
 }
 SIDEBAR.addEventListener('change',placeHbtns);placeHbtns();
 applyScreen();asNote=scr==='notas';   // (recargando en Notas, el alta también propone una nota)

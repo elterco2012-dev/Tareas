@@ -12,7 +12,7 @@ const b=await L.launch();
   const gh=makeGH([T('a','Uno',{due:day(0)})]);
   let {ctx,p}=await device(b,gh,{...DESK,colorScheme:'light'});
   ok(await bg(p)==='rgb(244, 245, 248)'&&await p.evaluate(()=>!document.documentElement.dataset.theme),'auto + light system: light');
-  ok(await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--circle').trim())==='#8a94a5','task circle with 3:1 contrast');
+  ok(await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--circle').trim())==='#7a8496','task circle with 3:1 contrast');
   await p.click('#statusBtn');await sleep(150);
   ok((await p.locator('#themeSeg button[aria-pressed="true"]').innerText())==='Automática','"Automática" selected by default');
   await p.click('#themeSeg button[data-t="dark"]');await sleep(150);

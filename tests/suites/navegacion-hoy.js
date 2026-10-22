@@ -4,13 +4,21 @@
 const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go,ago}=L;
 let APP;
 const PHONE={viewport:{width:384,height:832},isMobile:true,hasTouch:true};
-const SEEN=()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas',JSON.stringify({gestos:1,punto:1}))}};
+// Sin la pista de la primera vez; y cada pushState anota si venía de un toque (Chrome saltea con Atrás las entradas
+// creadas sin uno, y page.goBack() de las pruebas no las saltea: hay que mirarlo aparte)
+const SEEN=()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas',JSON.stringify({gestos:1,punto:1}))}
+  window.__push=[];const o=history.pushState.bind(history);history.pushState=(...a)=>{window.__push.push(navigator.userActivation?navigator.userActivation.isActive:null);return o(...a)}};
+const ENV='recordatorios-enviados.json';
+const AVISOS_ON=()=>{if(!sessionStorage.getItem('av')){sessionStorage.setItem('av','1');localStorage.setItem('avisosTelegram',JSON.stringify({repo:'u/r',last:'2026-10-13T23:50:00.000Z'}))}
+  if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas',JSON.stringify({gestos:1,punto:1}))}};
 const onApp=p=>p.url().startsWith(APP);
 const screen=p=>p.evaluate(()=>document.body.dataset.screen);
 const row=(p,t)=>p.locator('#wrap .task').filter({has:p.locator('.ttext',{hasText:t})}).first();
 const box=(p,s)=>p.evaluate(s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return r.width&&r.height?{x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height),b:Math.round(r.bottom),r:Math.round(r.right)}:null},s);
 const heads=p=>p.evaluate(()=>[...document.querySelectorAll('#hoyList .ghead')].map(h=>h.querySelector('.gfold span,span').textContent));
 const inSec=(p,title)=>p.evaluate(t=>{const g=[...document.querySelectorAll('#hoyList .grp')].find(x=>x.querySelector('.ghead span').textContent===t);return g?[...g.querySelectorAll('.task .ttext')].map(x=>x.textContent):null},title);
+const taps=async(p,l)=>{const pu=await p.evaluate(()=>window.__push||[]);ok(pu.every(x=>x!==false),'every new history entry came from a tap ('+l+') '+JSON.stringify(pu))};
+const noErr=(p,l)=>ok(p.errs.filter(e=>!/sessionStorage/.test(e)).length===0,'no page errors ('+l+') '+JSON.stringify(p.errs));
 const noDup=p=>p.evaluate(()=>{const ids=[...document.querySelectorAll('#wrap .task[data-id]')].map(r=>r.dataset.id);return ids.length===new Set(ids).size});
 (async()=>{
 const b=await L.launch();APP=await L.appUrl();
@@ -66,9 +74,12 @@ ok(await noDup(p),'no task has two rows');
 const fab=await box(p,'#fabAdd');
 ok(fab&&fab.b<=nav.y-8&&fab.b>=nav.y-30,'the + sits just above the bar '+JSON.stringify(fab));
 await p.locator('#title').tap();await sleep(200);
-ok(!(await box(p,'#nav'))&&await p.evaluate(()=>document.body.classList.contains('typing')),'typing: the bar steps aside');
+ok(!!(await box(p,'#nav')),'field chosen, keyboard not open: the bar stays (it is the way to change screens)');
+await p.setViewportSize({width:384,height:500});await sleep(300);   // como cuando sube el teclado
+ok(!(await box(p,'#nav'))&&await p.evaluate(()=>document.body.classList.contains('typing')),'keyboard open: the bar steps aside');
+await p.setViewportSize({width:384,height:832});await sleep(300);
+ok(!!(await box(p,'#nav')),'keyboard closed with the field still chosen: the bar is back');
 await p.evaluate(()=>document.activeElement.blur());await sleep(200);
-ok(!!(await box(p,'#nav')),'done typing: the bar is back');
 // El estado: con todo bien, solo el punto (el texto sigue para el lector de pantalla)
 const st=await p.evaluate(()=>({q:document.getElementById('statusBtn').classList.contains('quiet'),w:Math.round(document.getElementById('statusBtn').getBoundingClientRect().width),t:document.getElementById('statusShort').textContent,a:document.getElementById('statusBtn').getAttribute('aria-label')}));
 ok(st.q&&st.w===40&&st.t==='Al día'&&st.a==='Sincronización: Al día','phone status: only the dot when up to date '+JSON.stringify(st));
@@ -83,10 +94,11 @@ ok(await row(p,'Pagar la luz').isVisible()&&await p.isVisible('#doneToggle'),'Ta
 // Atrás: Tareas → Hoy → afuera
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'Back from Tareas: Hoy');
+await taps(p,'before leaving');
 await p.goBack();await sleep(400);
 ok(!onApp(p),'Back from Hoy: leaves the app ('+p.url()+')');
 ok(p.errs.filter(e=>!/sessionStorage/.test(e)).length===0,'no page errors '+JSON.stringify(p.errs));
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 
 // ===== Celular: Notas, Buscar y Atrás =====
 gh=makeGH(items());
@@ -111,9 +123,10 @@ ok(await screen(p)==='tareas'&&await p.inputValue('#search')==='','Cerrar: back 
 await go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());await sleep(100);
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'Back from Buscar: Hoy');
+await taps(p,'before leaving');
 await p.goBack();await sleep(400);
 ok(!onApp(p),'then Back leaves the app');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 
 // ===== Celular: el + desde Buscar, @persona desde Hoy, volver después de un rato, recargar =====
 gh=makeGH(items());
@@ -136,7 +149,7 @@ await go(p,'tareas');await p.reload();await sleep(600);
 ok(await screen(p)==='tareas','reloading keeps Tareas');
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'and Back still goes to Hoy');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // Salir de Buscar con la pestaña de la pantalla de antes no deja entradas de más: un Atrás va a Hoy
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
@@ -144,9 +157,10 @@ for(let i=0;i<2;i++){await go(p,'tareas');await go(p,'buscar');await p.evaluate(
 await go(p,'tareas');
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'Tareas → Buscar → Tareas (twice): one Back goes to Hoy');
+await taps(p,'before leaving');
 await p.goBack();await sleep(400);
 ok(!onApp(p),'and the next one leaves the app');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // El filtro puesto en Buscar sigue en Tareas: Atrás lo saca, después va a Hoy y recién ahí sale
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
@@ -159,9 +173,10 @@ await p.goBack();await sleep(400);
 ok(await screen(p)==='tareas'&&!(await p.isVisible('#filterBar')),'Back: the filter goes, still on Tareas');
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'Back: Hoy');
+await taps(p,'before leaving');
 await p.goBack();await sleep(400);
 ok(!onApp(p),'Back: leaves the app');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // Filtro puesto en Buscar y de ahí a Notas: el filtro se va y Atrás vuelve a Hoy
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
@@ -171,7 +186,7 @@ await go(p,'notas');await sleep(300);
 ok(!(await p.isVisible('#filterBar'))&&await p.evaluate(()=>history.state&&history.state.pantalla==='notas'&&!history.state.tareas),'Buscar (filtered) → Notas: no filter, one Notas entry');
 await p.goBack();await sleep(400);
 ok(await screen(p)==='hoy'&&onApp(p),'Back from Notas: Hoy');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // Lo escrito en Notas que se lleva a otra pantalla sigue como nota; borrado, el campo vuelve a ser para tareas
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
@@ -182,24 +197,102 @@ await p.locator('#title').tap();await p.fill('#title','');await p.keyboard.type(
 ok(await p.getAttribute('#noteChip','aria-pressed')==='false','cleared on Hoy: the field is for tasks again');
 await p.keyboard.press('Enter');await sleep(300);
 ok(gh.items.some(x=>x.title==='Llamar a Pedro'&&!x.kind),'saved as a task');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+// Cambiar de pestaña con algo abierto encima (el filtro, Buscar) y volver: un Atrás va a Hoy
+for(const [lbl,start] of [['@Laura on Hoy → Notas → Tareas',async p=>{await row(p,'Pagar el seguro').locator('.person').tap();await sleep(200)}],
+  ['Tareas → Buscar → Notas → Tareas',async p=>{await go(p,'tareas');await go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());await sleep(100)}]]){
+  gh=makeGH(items());
+  ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+  await start(p);await go(p,'notas');await go(p,'tareas');
+  await p.goBack();await sleep(400);
+  ok(await screen(p)==='hoy'&&onApp(p),lbl+': one Back goes to Hoy');
+  await taps(p,lbl);
+  await p.goBack();await sleep(400);
+  ok(!onApp(p),lbl+': the next one leaves the app');
+  await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+}
+// Buscar con el filtro puesto y el campo vacío: la lista de esa persona (como antes), no la pantalla de inicio
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await go(p,'tareas');await row(p,'Pagar el seguro').locator('.person').tap();await sleep(200);
+await go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
+ok(await p.isVisible('#filterBar')&&!(await p.isVisible('#searchHome'))&&await row(p,'Pagar el seguro').isVisible()&&!(await row(p,'Revisar presupuesto').count()),'Buscar with the filter and an empty field: that person list');
+// El aviso de abajo no tapa los botones de Ordenar (con una ventana abierta baja, como antes)
+await go(p,'hoy');await p.locator('#procBtn').tap();await sleep(250);
+await p.locator('#procBtns button',{hasText:'Mañana'}).tap();await sleep(250);
+const tb=await box(p,'#toast'),last=await p.evaluate(()=>{const r=[...document.querySelectorAll('#procBtns button')].pop().getBoundingClientRect();return Math.round(r.bottom)});
+ok(tb&&tb.b>=832-22&&(tb.y>=last||tb.b<=last-60),'toast inside Ordenar: down at the bottom, not over its buttons '+JSON.stringify({tb,last}));
+await p.locator('#procBtns button',{hasText:'Siguiente'}).tap();await sleep(250);
+ok(/^3 de /.test(await p.textContent('#procN')),'"Siguiente" still takes the tap ('+await p.textContent('#procN')+')');
+await p.locator('#procX').tap();await sleep(200);
+// Las secciones de Hoy se pliegan aparte de los grupos de Tareas
+await p.locator('#hoyList .gfold[data-g="hoy-today"]').tap();await sleep(200);
+const fold=await p.evaluate(()=>JSON.parse(localStorage.getItem('gruposPlegados')||'[]'));
+ok(fold.includes('hoy-today')&&!fold.includes('today'),'folding Para hoy on Hoy stores hoy-today '+JSON.stringify(fold));
+await go(p,'tareas');
+ok(await p.getAttribute('#groups .gfold[data-g="today"]','aria-expanded')==='true','Hoy in Tareas stays open');
+await p.locator('#groups .gfold[data-g="today"]').tap();await sleep(150);await p.locator('#groups .gfold[data-g="today"]').tap();await sleep(150);
+await go(p,'hoy');
+ok(await p.getAttribute('#hoyList .gfold[data-g="hoy-today"]','aria-expanded')==='false'&&!(await row(p,'Revisar presupuesto').count()),'folding and unfolding it in Tareas leaves Hoy folded');
+await p.reload();await sleep(600);
+ok(await screen(p)==='hoy'&&await p.getAttribute('#hoyList .gfold[data-g="hoy-today"]','aria-expanded')==='false','still folded after reopening');
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+// El estado con un problema (sin señal): con texto también en el celular; Ajustes y Revisión de la semana
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+gh.mode='offline';await p.evaluate(()=>sync());
+ok(await L.until(async()=>await p.textContent('#statusShort')==='Sin señal'),'offline: "Sin señal"');
+const sp=await p.evaluate(()=>({q:document.getElementById('statusBtn').classList.contains('quiet'),w:Math.round(document.getElementById('statusShort').getBoundingClientRect().width)}));
+ok(!sp.q&&sp.w>20,'phone: a problem shows its text '+JSON.stringify(sp));
+gh.mode='ok';
+await p.locator('#setBtn').tap();await sleep(200);
+ok(await p.isVisible('#syncOv'),'phone: the gear opens Ajustes (Sincronización)');
+await p.locator('#setRev').tap();await sleep(250);
+ok(await p.isVisible('#procOv')&&await p.textContent('#procH')==='Revisión de la semana'&&await p.isHidden('#syncOv'),'Revisión de la semana from Ajustes');
+await p.locator('#procX').tap();await sleep(200);
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+// Abierta desde un acceso del ícono o desde un aviso, aunque el historial diga que estaba en Tareas: en Hoy
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+await go(p,'tareas');
+await p.evaluate(()=>history.replaceState({pantalla:'tareas'},'',location.pathname+'?nueva=1'));await p.reload();await sleep(600);
+ok(await screen(p)==='hoy'&&await p.evaluate(()=>document.activeElement.id)==='title','?nueva=1 with Tareas in the history: Hoy, ready to write');
+await p.evaluate(()=>document.activeElement.blur());await go(p,'tareas');
+await p.evaluate(()=>history.replaceState({pantalla:'tareas'},'',location.pathname+'?revisar=1'));await p.reload();
+ok(await L.until(()=>p.isVisible('#procOv'),{timeout:7000})&&await screen(p)==='hoy'&&await p.textContent('#procH')==='Revisión de la semana','?revisar=1 with Tareas in the history: the review, over Hoy');
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // Abierta desde un acceso del ícono: en Hoy
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP+'?nueva=1',SEEN));
 ok(await screen(p)==='hoy'&&await p.evaluate(()=>document.activeElement.id)==='title','?nueva=1: Hoy, ready to write');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 
 // ===== Sin nada para hoy =====
 gh=makeGH([T('m1','Pagar la luz',{due:day(1)})]);
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 ok(await p.innerText('#empty')==='Nada para hoy.'&&await p.isHidden('#procBtn'),'nothing for today: "Nada para hoy.", no Ordenar row');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 gh=makeGH([]);
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 ok(await p.innerText('#empty')==='Nada pendiente. Buen trabajo.','nothing at all: "Nada pendiente. Buen trabajo."');
 await go(p,'notas');
 ok(/Todavía no hay notas/.test(await p.innerText('#empty')),'Notas empty: how to save one');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+
+// ===== Lo que entra en Hoy: hasta 7 días; las notas terminadas no cuentan como hechas; con Telegram, "avisos" =====
+gh=makeGH([T('a','Algo de hoy',{due:day(0)}),T('f','Lejos',{due:day(8),time:'10:00'}),T('d','Hecha hoy',{due:day(0),done:true,completedAt:L.date(-36e5).toISOString()}),
+  T('dn','Nota tildada',{kind:'nota',done:true,completedAt:L.date(-36e5).toISOString()})]);
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+ok(!(await inSec(p,'Próximas con hora'))&&!(await inSec(p,'Próximos avisos')),'a timed task 8 days away is not in Próximos avisos');
+ok(/1 hecha hoy/.test(await p.textContent('#summary')),'"1 hecha hoy": the ticked note does not count ('+await p.textContent('#summary')+')');
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+gh=makeGH(items());gh.files[ENV]={content:JSON.stringify({['x|'+day(-1)+'|09:00']:'2026-10-13T11:50:31.000Z'}),sha:1};
+({ctx,p}=await device(b,gh,{viewport:{width:1000,height:800}},APP,AVISOS_ON));await sleep(500);
+ok(await p.evaluate(()=>avisosOn())&&!!(await inSec(p,'Próximos avisos'))&&/próximo aviso 15:00/.test(await p.innerText('#summary')),'with Telegram avisos: "Próximos avisos" and "próximo aviso 15:00" ('+(await p.innerText('#summary')).replace(/\s+/g,' ')+')');
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
+({ctx,p}=await device(b,gh,PHONE,APP,AVISOS_ON));await sleep(500);
+ok(/aviso 15:00/.test(await p.innerText('#summary')),'phone with Telegram avisos: "aviso 15:00"');
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 
 // ===== Compu: la barra de la izquierda, los cortes de 900 y 1200 =====
 gh=makeGH(items());
@@ -214,6 +307,11 @@ ok(await p.isVisible('#shortcuts')&&!(await p.isVisible('#shortcuts .scx'))&&/nu
 await p.click('#shortcuts .scbtn');await sleep(100);
 ok(await p.isVisible('#shortcuts .scx')&&/ordenar/.test(await p.innerText('#shortcuts')),'"Todos los atajos" shows the rest');
 ok(!(await box(p,'#side')),'900–1199: no right column');
+// Buscar va arriba de todo en la barra lateral, también con Tab; en Buscar se ve elegido
+ok(await p.evaluate(()=>document.getElementById('nav').firstElementChild.id)==='searchBtn','sidebar: Buscar first (also with Tab)');
+await go(p,'buscar');
+ok(await p.evaluate(()=>getComputedStyle(document.getElementById('searchBtn')).backgroundColor)==='rgb(235, 236, 253)','on Buscar, Buscar shows as the current one (--accent-soft)');
+await p.keyboard.press('Escape');await sleep(150);
 ok(await p.isVisible('#hoyLinks button:has-text("Esperando respuesta")'),'900–1199: the Esperando link is there');
 const h1=await p.evaluate(()=>({t:document.querySelector('.top h1').textContent,fs:getComputedStyle(document.querySelector('.top h1')).fontSize}));
 ok(h1.t==='Hoy'&&h1.fs==='30px','computer: "Hoy" as the title (30 px)');
@@ -269,7 +367,7 @@ for(const s of ['hoy','tareas','notas','buscar']){
   ok(w<=360,'360 px, '+s+': no horizontal scroll ('+w+')');
 }
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // Compu: recargar en Notas deja el alta como nota; en una ventana angosta los atajos siguen, completos, debajo
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,{viewport:{width:1000,height:800}},APP,SEEN));
@@ -278,6 +376,6 @@ ok(await screen(p)==='notas'&&await p.getAttribute('#noteChip','aria-pressed')==
 await p.setViewportSize({width:820,height:800});await sleep(200);
 await go(p,'hoy');
 ok(await p.isVisible('#shortcuts')&&await p.isVisible('#shortcuts .scx')&&/ordenar/.test(await p.innerText('#shortcuts')),'computer window under 900 px: the full shortcut list under the list');
-await ctx.close();
+await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 await b.close();console.log('fails',L.fails);
 })().catch(e=>{console.error(e);process.exit(1)});

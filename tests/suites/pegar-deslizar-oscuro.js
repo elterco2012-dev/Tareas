@@ -94,14 +94,19 @@ const contrast=async(pg)=>pg.evaluate(()=>{
     const key=(txt||el.value).slice(0,30);
     if(r<4.5&&!seen.has(key)){seen.add(key);bad.push(key+' '+r.toFixed(2)+' '+fg+' on '+bg)}
   });return bad});
-const gh2=makeGH([T('o','Vencida importante',{due:day(-2),priority:'Alta',requester:'Martín'}),T('t','Para hoy con nota',{due:day(0),notes:'una nota'}),T('w','Más adelante',{due:day(12)}),T('d','Hecha',{done:true,completedAt:L.date().toISOString()})]);
+const gh2=makeGH([T('o','Vencida importante',{due:day(-2),priority:'Alta',requester:'Martín'}),T('t','Para hoy con nota',{due:day(0),notes:'una nota'}),T('w','Más adelante',{due:day(12)}),T('d','Hecha',{done:true,completedAt:L.date().toISOString()}),
+  T('i','Anotada ayer',{due:day(-1),inbox:true}),T('r','Respuesta de Ana',{waiting:true,waitingOn:'Ana',waitingSince:L.ago(4)}),T('m','Turno',{due:day(1),time:'11:00'}),T('n','Una nota guardada',{kind:'nota'})]);
 for(const vp of [{viewport:{width:375,height:800},isMobile:true,hasTouch:true},{viewport:{width:1100,height:900}}]){
   vp.width=vp.viewport.width;
   ({ctx,p}=await device(b,gh2,{viewport:vp.viewport,isMobile:vp.isMobile,hasTouch:vp.hasTouch,colorScheme:'dark'}));
   ok(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(14, 19, 27)','dark background applied');
+  // Hoy (la fila Ordenar, Para reclamar, Próximas con hora, los links), Notas y Buscar también
+  let bad=await contrast(p);ok(bad.length===0,'dark contrast Hoy '+vp.width+': '+JSON.stringify(bad));
+  await L.go(p,'notas');bad=await contrast(p);ok(bad.length===0,'dark contrast Notas '+vp.width+': '+JSON.stringify(bad));
+  await L.go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());bad=await contrast(p);ok(bad.length===0,'dark contrast Buscar '+vp.width+': '+JSON.stringify(bad));
   await L.go(p,'tareas'); // la lista completa (con Terminadas) está en Tareas
   await p.click('#doneToggle');await p.fill('#title','reunión mañana !alta @Juan');await sleep(100);
-  let bad=await contrast(p);ok(bad.length===0,'dark contrast main '+vp.width+': '+JSON.stringify(bad));
+  bad=await contrast(p);ok(bad.length===0,'dark contrast main '+vp.width+': '+JSON.stringify(bad));
   await p.locator('.task .more').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast menu: '+JSON.stringify(bad));await p.keyboard.press('Escape');
   await p.locator('.task .body').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast edit: '+JSON.stringify(bad));await p.click('#editX');
   await p.click('#statusBtn');bad=await contrast(p);ok(bad.length===0,'dark contrast sync: '+JSON.stringify(bad));await p.click('#syncX');

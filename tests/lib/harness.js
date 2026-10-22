@@ -97,7 +97,8 @@ async function go(p,screen){
   // Con el teclado del celular abierto la barra no se ve: primero se cierra
   if(!await p.isVisible(NAV[screen])){await p.evaluate(()=>document.activeElement&&document.activeElement.blur&&document.activeElement.blur());await sleep(80)}
   await p.click(NAV[screen]);
-  await until(()=>p.evaluate(s=>document.body.dataset.screen===s,screen));
+  // Si no llegó, que se note (si no, lo que se controla después pasaría en otra pantalla)
+  if(!await until(()=>p.evaluate(s=>document.body.dataset.screen===s,screen)))throw new Error('go(): no se pudo ir a '+screen);
   await sleep(50);
 }
 // Capturas y otros archivos de salida: tests/artifacts/<prueba>/ (ignorado por git)

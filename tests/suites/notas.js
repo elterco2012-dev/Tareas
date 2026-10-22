@@ -149,11 +149,13 @@ await p.locator('#addBtn').tap();
 ok(await L.until(()=>p.evaluate(()=>!!autoSave)),'dictation with Nota on: countdown');
 await p.locator('#addBtn').tap();
 ok(await L.until(()=>byT(gh,'La llave está en la maceta')?.kind==='nota'),'dictated note saved (capitalized like dictated tasks)');
-// Filtro por persona: sin notas
-await go(p,'notas');
-await p.evaluate(()=>setPersonFilter('Laura'));await sleep(150);
-ok(!(await p.locator('#notesSec .task').count()),'person filter hides notes');
-await p.evaluate(()=>setPersonFilter(null));
+// Filtro por persona: sin notas (se ve en Buscar, que muestra notas y sigue con el filtro puesto en Tareas)
+await go(p,'tareas');await p.evaluate(()=>setPersonFilter('Laura'));await sleep(150);
+await go(p,'buscar');await p.fill('#search','llave');await sleep(200);
+ok(await p.isVisible('#filterBar')&&!(await p.locator('#notesSec .task').count()),'person filter hides notes');
+await p.evaluate(()=>setPersonFilter(null));await sleep(150);
+ok(await p.locator('#notesSec .task').count()===1,'without the filter the same search finds the note');
+await p.click('#searchClose');await sleep(150);
 // Lo que llega del otro dispositivo: una nota no se anuncia como "nueva"
 gh.items.push(T('nn','Nota del celu',{kind:'nota',src:'cel'}));gh.sha++;
 await go(p,'notas');

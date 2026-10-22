@@ -66,14 +66,16 @@ await p.evaluate(()=>reloadApp());await sleep(300);
 ok(await p.evaluate(()=>APP_VERSION)===v2&&await p.isVisible('#editOv'),'does not reload with a task open');
 ok((await p.innerText('#toastMsg')).includes('cerrá lo que tenés abierto'),'says to close it first');
 await p.click('#editX');await sleep(200);
+await H.go(p,'tareas');   // al actualizarse sola después de un rato tiene que quedar en Hoy
 await setVis(p,'hidden');await p.clock.fastForward(3*60e3);
 await Promise.all([p.waitForEvent('load'),setVis(p,'visible')]);await sleep(300);
 ok(await p.evaluate(()=>APP_VERSION)===v3,'back after a while with nothing open: updated by itself ('+await p.evaluate(()=>APP_VERSION)+')');
+ok(await p.evaluate(()=>document.body.dataset.screen)==='hoy','updated by itself after a while: back on Hoy');
 await H.go(p,'tareas');   // la lista completa está en Tareas
 ok((await p.innerText('#groups')).includes('Llamar al banco'),'tasks still there');
 // Con la app abierta, "Nueva tarea" del ícono (launch_handler) enfoca el campo; con algo abierto, no hace nada
 await p.evaluate(()=>{document.activeElement.blur();handleLaunch(new URLSearchParams('nueva=1'),false)});
-ok(await p.evaluate(()=>document.activeElement.id)==='title','launch ?nueva=1 on the open app focuses the field');
+ok(await p.evaluate(()=>document.activeElement.id==='title'&&document.body.dataset.screen==='hoy'),'launch ?nueva=1 on the open app (on Tareas): Hoy, field focused');
 ok(errs.length===0,'no page errors '+errs);
 await ctx.close();
 // Correcciones de la revisión: lo compartido y la fecha elegida sobreviven a la actualización sola; con
