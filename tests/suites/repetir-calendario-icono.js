@@ -12,6 +12,7 @@ const exp={'Revisar mail todos los días':['Revisar mail','daily',null],'Informe
 for(const c of P.cases){const e=exp[c.x];if(!e){ok(c.repeat==='weekly'&&c.due,'"'+c.x+'" → '+JSON.stringify(c));continue}
   ok(c.title===e[0]&&c.repeat===e[1]&&c.due===e[2],'"'+c.x+'" → '+JSON.stringify(c))}
 // fila con ↻
+await L.go(p,'tareas'); // la lista completa (vencidas, de la semana) está en Tareas
 ok((await p.innerText('#groups')).includes('↻ semanal'),'row shows ↻ semanal');
 // Terminar una que se repite → crea la próxima
 await p.locator('.task',{hasText:'Informe semanal'}).locator('.chk').click();await L.until(()=>gh.items.find(x=>x.id==='r')?.done);

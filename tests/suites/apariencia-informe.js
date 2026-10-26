@@ -11,22 +11,22 @@ const b=await L.launch();
 {
   const gh=makeGH([T('a','Uno',{due:day(0)})]);
   let {ctx,p}=await device(b,gh,{...DESK,colorScheme:'light'});
-  ok(await bg(p)==='rgb(244, 246, 249)'&&await p.evaluate(()=>!document.documentElement.dataset.theme),'auto + light system: light');
-  ok(await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--circle').trim())==='#7f8b9d','task circle with 3:1 contrast');
+  ok(await bg(p)==='rgb(244, 245, 248)'&&await p.evaluate(()=>!document.documentElement.dataset.theme),'auto + light system: light');
+  ok(await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--circle').trim())==='#7a8496','task circle with 3:1 contrast');
   await p.click('#statusBtn');await sleep(150);
   ok((await p.locator('#themeSeg button[aria-pressed="true"]').innerText())==='Automática','"Automática" selected by default');
   await p.click('#themeSeg button[data-t="dark"]');await sleep(150);
-  ok(await bg(p)==='rgb(15, 21, 32)'&&await p.evaluate(()=>[...document.querySelectorAll('meta[name="theme-color"]')].every(m=>m.content==='#0f1520')),'"Oscura": dark page and dark title bar');
+  ok(await bg(p)==='rgb(14, 19, 27)'&&await p.evaluate(()=>[...document.querySelectorAll('meta[name="theme-color"]')].every(m=>m.content==='#0e131b')),'"Oscura": dark page and dark title bar');
   await p.reload();await sleep(400);
-  ok(await bg(p)==='rgb(15, 21, 32)'&&await p.evaluate(()=>document.documentElement.dataset.theme)==='dark','remembered after reopening');
+  ok(await bg(p)==='rgb(14, 19, 27)'&&await p.evaluate(()=>document.documentElement.dataset.theme)==='dark','remembered after reopening');
   await p.click('#statusBtn');await sleep(150);await p.click('#themeSeg button[data-t="auto"]');await sleep(150);
-  ok(await bg(p)==='rgb(244, 246, 249)'&&await p.evaluate(()=>localStorage.getItem('tema'))===null,'"Automática" back to the system');
+  ok(await bg(p)==='rgb(244, 245, 248)'&&await p.evaluate(()=>localStorage.getItem('tema'))===null,'"Automática" back to the system');
   ok(p.errs.length===0,'no errors '+p.errs);
   await ctx.close();
   ({ctx,p}=await device(b,gh,{...DESK,colorScheme:'dark'}));
-  ok(await bg(p)==='rgb(15, 21, 32)','auto + dark system: dark');
+  ok(await bg(p)==='rgb(14, 19, 27)','auto + dark system: dark');
   await p.click('#statusBtn');await sleep(150);await p.click('#themeSeg button[data-t="light"]');await sleep(150);
-  ok(await bg(p)==='rgb(244, 246, 249)'&&await p.evaluate(()=>getComputedStyle(document.documentElement).colorScheme)==='light','"Clara" with a dark system: light (and light form controls)');
+  ok(await bg(p)==='rgb(244, 245, 248)'&&await p.evaluate(()=>getComputedStyle(document.documentElement).colorScheme)==='light','"Clara" with a dark system: light (and light form controls)');
   await ctx.close();
 }
 // ===== Informe =====
@@ -42,6 +42,7 @@ const b=await L.launch();
   gh.files['archivo/2026.json']={content:JSON.stringify([T('a1','Archivada vieja',{done:true,createdAt:iso(50),completedAt:iso(45),requester:'German'})]),sha:1};
   let {ctx,p}=await device(b,gh,DESK,undefined,stub);
   await p.route('**/contents/archivo',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{name:'2026.json',path:'archivo/2026.json',type:'file'}])}));
+  await L.go(p,'tareas'); // Informe y Revisión están al pie de Tareas
   await p.click('#repBtn');await sleep(200);
   ok(await p.isVisible('#repOv'),'"Informe" opens');
   const sum=await p.innerText('#repView .repsum');
@@ -94,7 +95,7 @@ const b=await L.launch();
 {
   const gh=makeGH([T('p1','Una tarea pendiente con un título bastante largo para ver cómo corta',{due:day(0),requester:'German'})]);
   let {ctx,p}=await device(b,gh,PHONE,undefined,stub);
-  await p.click('#repBtn');await sleep(200);
+  await L.go(p,'tareas');await p.click('#repBtn');await sleep(200);
   const m=await p.evaluate(()=>({w:document.documentElement.scrollWidth,iw:innerWidth,copy:document.getElementById('repCopy').getBoundingClientRect().width}));
   ok(m.w<=m.iw&&m.copy>300,'phone: no horizontal scroll, "Copiar texto" full width '+JSON.stringify(m));
   await p.screenshot({path:L.out('rep-phone.png')});

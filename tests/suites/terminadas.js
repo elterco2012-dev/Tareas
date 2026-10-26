@@ -18,7 +18,8 @@ const b=await L.launch();
   const pn=await p.locator('.task',{has:p.locator('.ttext',{hasText:'Pendiente con link'})}).locator('.notes').innerText();
   ok(pn==='ver WB-3438','pending row: link shown short: '+pn);
   ok(await p.locator('.task',{has:p.locator('.ttext',{hasText:'Con link común'})}).locator('.notes a').innerText()==='google.com','non-ticket link → site name');
-  // Terminadas
+  // Terminadas (están en Tareas; la app abre en Hoy)
+  await L.go(p,'tareas');
   await p.click('#doneToggle');await sleep(150);
   const meta=await drow(p,'Tickets de Julian').locator('.dmeta').innerText();
   ok(meta==='@Julian · WB-3438 · WB-3439','done row shows who and the tickets: '+meta);
@@ -82,6 +83,7 @@ const b=await L.launch();
 {
   const gh=makeGH([T('d1','Tickets de Julian',{done:true,completedAt:iso(0.01),requester:'Julian',notes:J1})]);
   let {ctx,p}=await device(b,gh,PHONE);
+  await L.go(p,'tareas');
   await p.click('#doneToggle');await sleep(150);
   await drow(p,'Tickets de Julian').locator('.dt').tap();await sleep(200);
   ok(await p.isVisible('#editOv')&&(await p.innerText('#editH'))==='Tarea terminada','phone: tap opens the done task');

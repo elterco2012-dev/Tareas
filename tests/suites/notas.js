@@ -1,6 +1,6 @@
 // Fase 6: notas (kind:'nota'): sin fecha ni aviso, fuera de Hoy, Procesar, la revisión y el resumen; "nota:"/"idea:" o el
-// botón Nota; sección plegada; ⋯ Convertir en tarea / Pasar a notas; "+ Detalle"
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+// botón Nota; su pantalla (Notas, siempre abierta); ⋯ Convertir en tarea / Pasar a notas; "+ Detalle"
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 let APP;
 const PHONE={viewport:{width:384,height:832},isMobile:true,hasTouch:true};
 const DESK={viewport:{width:1100,height:900}};
@@ -17,7 +17,11 @@ let gh=makeGH(items());
 // ===== Alta: "nota:", "idea:" y el botón Nota =====
 let {ctx,p}=await device(b,gh,DESK,APP,SEEN);
 ok(await p.textContent('#noteToggle')==='+ Detalle'&&await p.getAttribute('#note','placeholder')==='Detalle (opcional)','"+ Nota" is now "+ Detalle"');
-ok(await p.locator('.gfold[data-g="notes"]').getAttribute('aria-expanded')==='false'&&/Notas\s*1/.test(await p.locator('#notesSec .ghead').textContent())&&!(await row(p,'Código del portón').count()),'notes section starts folded, with its count');
+// Las notas tienen su pantalla, siempre abierta (sin plegar), con cuántas hay; en Hoy no están
+ok(!(await row(p,'Código del portón').count()),'notes are not on Hoy');
+await go(p,'notas');
+ok(!(await p.locator('.gfold[data-g="notes"]').count())&&/Notas\s*1/.test(await p.locator('#notesSec .ghead').textContent())&&await row(p,'Código del portón').count()===1,'Notas screen: notes always open (no fold button), with its count');
+await go(p,'tareas');
 ok(!/Código/.test(await p.textContent('#groups'))&&/1 para hoy/.test(await p.textContent('#summary')),'a note is not in the groups nor in the header summary');
 await p.fill('#title','nota: reunión el viernes a las 10 con @Laura !alta');await sleep(150);
 ok(/Nota: sin fecha ni aviso/.test(await p.innerText('#detected'))&&!/Vie|10:00|@Laura|Alta/i.test(await p.innerText('#detected'))&&await p.getAttribute('#noteChip','aria-pressed')==='true','"nota:" → Detectado says note; no date, time, person or priority detected');
@@ -26,8 +30,11 @@ let n=byT(gh,'reunión el viernes a las 10 con @Laura !alta');
 ok(n&&n.kind==='nota'&&n.due==null&&!n.time&&!n.inbox&&!n.requester&&n.priority==='Media','saved as a note, text untouched, no date/time/inbox: '+JSON.stringify(n&&{k:n.kind,d:n.due,t:n.time,i:n.inbox}));
 ok(/Nota guardada/.test(await p.innerText('#toastMsg'))&&await p.innerText('#toastB2')==='Ver','toast "Nota guardada · Ver"');
 await p.click('#toastB2');await sleep(400);
-ok(await p.locator('.gfold[data-g="notes"]').getAttribute('aria-expanded')==='true'&&await row(p,'reunión el viernes').count()===1,'"Ver" opens the notes and shows it');
-ok(await p.evaluate(()=>JSON.parse(localStorage.getItem('notasAbiertas')))===true,'notes open is remembered');
+ok(await p.evaluate(()=>document.body.dataset.screen)==='notas'&&await row(p,'reunión el viernes').count()===1,'"Ver" goes to Notas and shows it');
+// En Notas el alta propone una nota; al salir de Notas vuelve a ser una tarea
+const prop=await p.getAttribute('#noteChip','aria-pressed')==='true'&&await p.getAttribute('#title','placeholder')==='Escribí una nota…';
+await go(p,'tareas');
+ok(prop&&await p.getAttribute('#noteChip','aria-pressed')==='false','on Notas the add field proposes a note; leaving Notas resets it');
 await p.fill('#title','Idea : probar el horno nuevo');await p.press('#title','Enter');await sleep(300);
 ok(byT(gh,'probar el horno nuevo')?.kind==='nota','"Idea :" works too (case and spaces)');
 // El botón Nota
@@ -48,20 +55,25 @@ await ctx.close();
 // ===== Convertir: nota ↔ tarea (⋯, Editar, Procesar) =====
 gh.items=items().concat([T('r','Regar plantas',{due:day(0),time:'18:00',repeat:'weekly',priority:'Alta',requester:'Ana'}),T('i','Anotado en el pasillo',{due:day(0),inbox:true,createdAt:L.ago(0)})]);gh.sha++;
 ({ctx,p}=await device(b,gh,DESK,APP,()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas','{"gestos":1,"punto":1}');localStorage.setItem('notasAbiertas','true')}}));
+await go(p,'notas');
 await row(p,'Código del portón').locator('.more').click();await sleep(150);
 const mt=await p.innerText('#menu');
 ok(/Convertir en tarea/.test(mt)&&/Editar/.test(mt)&&/Borrar/.test(mt)&&!/Para mañana|Esperando|calendario/.test(mt),'note menu: Convertir en tarea, Editar, Borrar (no dates)');
 await p.locator('#menu button',{hasText:'Convertir en tarea'}).click();await sleep(400);
 let c=gh.items.find(x=>x.id==='n1');
 ok(c.kind!=='nota'&&c.due===day(0)&&c.inbox===true,'converted: a task for today, marked "anotada al pasar"');
+await go(p,'tareas');
 ok(/Ahora es una tarea/.test(await p.innerText('#toastMsg'))&&await row(p,'Código del portón').evaluate(r=>!!r.closest('#groups')&&!!r.querySelector('.inboxdot')),'shows in Hoy with the blue dot');
 await p.click('#toastUndo');await sleep(400);
+await go(p,'notas');
 c=gh.items.find(x=>x.id==='n1');
 ok(c.kind==='nota'&&c.due==null&&!c.inbox&&await row(p,'Código del portón').evaluate(r=>!!r.closest('#notesSec')),'Undo: back to a note');
+await go(p,'tareas');
 await row(p,'Regar plantas').locator('.more').click();await sleep(150);
 await p.locator('#menu button',{hasText:'Pasar a notas'}).click();await sleep(400);
 c=gh.items.find(x=>x.id==='r');
 ok(c.kind==='nota'&&c.due==null&&c.time==null&&c.repeat==null&&c.priority==='Alta'&&c.requester==='Ana','task → note: date, time and repeat cleared (priority and person kept)');
+await go(p,'notas');
 ok(await row(p,'Regar plantas').evaluate(r=>!!r.closest('#notesSec')),'now in Notas');
 await p.click('#toastUndo');await sleep(400);
 c=gh.items.find(x=>x.id==='r');
@@ -90,6 +102,7 @@ await ctx.close();
 // ===== Fuera de todo lo que cuenta pendientes =====
 gh.items=[T('a','Tarea sin fecha'),T('n1','Nota vieja sin fecha',{kind:'nota',createdAt:L.ago(60)}),T('n2','Nota con fecha rara',{kind:'nota',due:day(-1),time:'09:00'})];gh.sha++;
 ({ctx,p}=await device(b,gh,DESK,APP,SEEN));
+await go(p,'tareas');
 const ex=await p.evaluate(()=>({proc:procQueue(false).length,week:procQueue(true).map(id=>tasks.concat(notes).find(t=>t.id===id).title),groups:document.getElementById('groups').textContent+document.getElementById('side').textContent,sum:document.getElementById('summary').textContent,soon:typeof unsentSoon==='function'?!!unsentSoon():false}));
 ok(ex.proc===0&&ex.week.length===1&&ex.week[0]==='Tarea sin fecha','Procesar and the weekly review leave notes out '+JSON.stringify(ex.week));
 ok(!/Nota/.test(ex.groups)&&/1 pendiente/.test(ex.sum),'notes are not in Vencidas/Sin fecha nor in the summary, even with a stale date: '+ex.sum);
@@ -100,12 +113,14 @@ ok(await row(p,'Nota vieja sin fecha').count()===1&&/Hay 1 nota más abajo/.test
 await p.click('#searchClose');await sleep(150);
 ok(!(await row(p,'Nota vieja sin fecha').count()),'closing the search folds them back');
 // Papelera
-await p.evaluate(()=>setFold('notes',false));await p.evaluate(()=>renderList());
+await go(p,'notas');
 await row(p,'Nota vieja sin fecha').locator('.more').click();await p.locator('#menu button',{hasText:'Borrar'}).click();await sleep(400);
 ok(gh.items.find(x=>x.id==='n1').deletedAt,'a note goes to the trash');
+await go(p,'tareas');
 await p.click('#trashToggle');await p.locator('#trashList .trow',{hasText:'Nota vieja'}).locator('button').click();await sleep(400);
 ok(!gh.items.find(x=>x.id==='n1').deletedAt&&/Nota recuperada/.test(await p.innerText('#toastMsg')),'and comes back: "Nota recuperada"');
 // Teclado: sobre una nota, E edita y Espacio no hace nada
+await go(p,'notas');
 await p.evaluate(()=>{hideToast();document.activeElement.blur();sel=null;renderList()});
 for(let k=0;k<6&&await p.evaluate(()=>!notes.some(n=>n.id===sel));k++)await p.keyboard.press('ArrowDown');
 const selId=await p.evaluate(()=>sel);
@@ -134,12 +149,16 @@ await p.locator('#addBtn').tap();
 ok(await L.until(()=>p.evaluate(()=>!!autoSave)),'dictation with Nota on: countdown');
 await p.locator('#addBtn').tap();
 ok(await L.until(()=>byT(gh,'La llave está en la maceta')?.kind==='nota'),'dictated note saved (capitalized like dictated tasks)');
-// Filtro por persona: sin notas
-await p.evaluate(()=>{setFold('notes',false);setPersonFilter('Laura')});await sleep(150);
-ok(!(await p.locator('#notesSec .task').count()),'person filter hides notes');
-await p.evaluate(()=>setPersonFilter(null));
+// Filtro por persona: sin notas (se ve en Buscar, que muestra notas y sigue con el filtro puesto en Tareas)
+await go(p,'tareas');await p.evaluate(()=>setPersonFilter('Laura'));await sleep(150);
+await go(p,'buscar');await p.fill('#search','llave');await sleep(200);
+ok(await p.isVisible('#filterBar')&&!(await p.locator('#notesSec .task').count()),'person filter hides notes');
+await p.evaluate(()=>setPersonFilter(null));await sleep(150);
+ok(await p.locator('#notesSec .task').count()===1,'without the filter the same search finds the note');
+await p.click('#searchClose');await sleep(150);
 // Lo que llega del otro dispositivo: una nota no se anuncia como "nueva"
 gh.items.push(T('nn','Nota del celu',{kind:'nota',src:'cel'}));gh.sha++;
+await go(p,'notas');
 await p.evaluate(()=>{hideToast();sync()});await sleep(800);
 ok(!/nueva/.test(await p.innerText('#toastMsg').catch(()=>''))&&await row(p,'Nota del celu').count()===1,'a note from the other device arrives without a "nueva" toast');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
@@ -155,7 +174,9 @@ gh.items=[T('t1','Uno',{due:day(0),order:0}),T('t2','Dos',{due:day(0),order:1}),
   T('w','Respuesta de Juan',{waiting:true,waitingOn:'Juan',waitingSince:L.ago(1)}),T('sf','Sin fecha uno')];gh.sha++;
 ({ctx,p}=await device(b,gh,{viewport:{width:1300,height:900}},APP,()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas','{"gestos":1,"punto":1}');localStorage.setItem('notasAbiertas','true')}}));
 // Una nota con una hora en el texto: al convertirla no queda con esa hora (ni manda un aviso)
+await go(p,'notas');
 await row(p,'reunión de consorcio').locator('.more').click();await p.locator('#menu button',{hasText:'Convertir en tarea'}).click();await sleep(600);
+await go(p,'tareas');
 c=gh.items.find(x=>x.id==='nh');
 ok(c.kind!=='nota'&&c.due===day(0)&&c.time==null&&!(await row(p,'reunión de consorcio').locator('.time').count()),'converted note does not pick up "a las 19" from its text: time '+c.time);
 const order=await p.evaluate(()=>[...[...document.querySelectorAll('#groups .grp')].find(g=>/^Hoy/.test(g.querySelector('.ghead').textContent)).querySelectorAll('.task .ttext')].map(x=>x.textContent.trim()));
@@ -163,18 +184,23 @@ ok(order[order.length-1]==='reunión de consorcio el jueves a las 19','it lands 
 await p.click('#toastUndo');await sleep(400);
 c=gh.items.find(x=>x.id==='nh');
 ok(c.kind==='nota'&&c.time==null&&c.due==null,'Undo: a note again, still without a time');
+await go(p,'notas');
 // Una nota tildada (versión anterior en el otro dispositivo) está en Terminadas y "Volver a pendientes" la devuelve a Notas
 ok(!(await row(p,'Nota tildada').count())||await row(p,'Nota tildada').evaluate(r=>!r.closest('#notesSec')),'a done note is not shown as a live note');
+await go(p,'tareas');
 await p.click('#doneToggle');await sleep(150);
 await p.locator('.drow',{hasText:'Nota tildada'}).locator('.dbody').click();await sleep(200);
 ok(await p.textContent('#editH')==='Nota terminada'&&await p.isVisible('#eReopen')&&!(await p.isVisible('#eNoteRow')),'opening it says "Nota terminada" and offers Volver a pendientes');
 await p.click('#eReopen');await sleep(400);
+await go(p,'notas');
 ok(gh.items.find(x=>x.id==='nd').done===false&&await row(p,'Nota tildada').evaluate(r=>!!r.closest('#notesSec')),'reopened: back in Notas');
 // Pasar a notas saca a la tarea de su serie (la próxima se puede volver a crear)
+await go(p,'tareas');
 await row(p,'Regar').locator('.more').click();await p.locator('#menu button',{hasText:'Pasar a notas'}).click();await sleep(400);
 ok(gh.items.find(x=>x.id==='rs').repeatOf==null&&gh.items.find(x=>x.id==='rs').kind==='nota','toNote clears repeatOf');
 await p.evaluate(()=>hideToast());
 // Teclado en pantalla ancha: la columna principal (con las notas) antes que Esperando y Sin fecha de la derecha
+await go(p,'notas');
 const ord=await p.evaluate(()=>visibleIds.map(id=>(tasks.concat(notes).find(t=>t.id===id)||{}).title));
 const iN=ord.indexOf('Nota tildada en el otro celu'),iW=ord.indexOf('Respuesta de Juan'),iS=ord.indexOf('Sin fecha uno');
 ok(iN>=0&&iN<iW&&iW<iS,'wide: arrows go main column (notes), then Esperando, then Sin fecha '+JSON.stringify(ord));
@@ -185,7 +211,8 @@ ok(/ahora es una nota/.test(await p.innerText('#toastMsg')),'Telegram link to a 
 await p.evaluate(()=>{hideToast();setPersonFilter('Juan')});await p.fill('#title','nota: Juan prefiere mail');await p.press('#title','Enter');await sleep(300);
 await p.click('#toastB2');await sleep(300);
 ok(!(await p.isVisible('#filterBar'))&&await row(p,'Juan prefiere mail').count()===1,'"Ver" clears the person filter and shows the new note');
-// Lista pegada mezclada: el título cuenta tareas y notas
+// Lista pegada mezclada: el título cuenta tareas y notas (fuera de Notas, donde el alta propone notas)
+await go(p,'tareas');
 await p.evaluate(()=>openBulk(['nota: a','Comprar pan','idea: b']));await sleep(150);
 ok(await p.textContent('#bulkH')==='¿Cargar 1 tarea y 2 notas?','bulk heading counts both: '+await p.textContent('#bulkH'));
 await p.click('#bulkCancel');

@@ -15,7 +15,8 @@ const b=await L.launch();APP=await L.appUrl();
   let {ctx,p}=await device(b,gh,DESK);
   await p.route('**/contents/archivo',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{name:'2026.json',path:'archivo/2026.json',type:'file'}])}));
   const g=id=>gh.items.find(x=>x.id===id);
-  // Reabrir guarda lo escrito
+  // Reabrir guarda lo escrito (Terminadas está en Tareas; la app abre en Hoy)
+  await L.go(p,'tareas');
   await p.click('#doneToggle');await sleep(150);
   await drow(p,'Tickets de Julian').locator('.dt').click();await sleep(150);
   await p.fill('#eNotes','volvió a fallar, WB-5555');await p.click('#eReopen');await sleep(600);
@@ -66,6 +67,7 @@ const b=await L.launch();APP=await L.appUrl();
   await row.locator('.notes .nlink').tap();await sleep(200);
   ok(await p.isVisible('#editOv')&&(await p.locator('#eLinks a').innerText())==='WB-3438 ↗','tap on the label opens the task, with the link as a button');
   await p.click('#editX');await sleep(100);
+  await L.go(p,'tareas');
   await p.click('#doneToggle');await sleep(150);
   ok(await drow(p,'Cambiar toner').locator('.dmeta a').count()===0,'phone done row: no link in the row');
   ok(p.errs.length===0,'no page errors '+p.errs);

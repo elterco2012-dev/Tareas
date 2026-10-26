@@ -1,5 +1,5 @@
 // Correcciones de la revisión de las tandas 2 y 3
-const L=require('../lib/gh');const {sleep,ok,mock,device,makeGH,day,T,TZ}=L;
+const L=require('../lib/gh');const {sleep,ok,mock,device,makeGH,day,T,TZ,go}=L;
 let APP;   // la app servida por http (L.appUrl)
 const crypto=require('crypto');
 const iso=L.ago;
@@ -140,6 +140,8 @@ const b=await L.launch();APP=await L.appUrl();
   ok(await p.evaluate(()=>!waitingLate(tasks.find(t=>t.id==='w1'))),'not late right away');
   await p.click('#toastUndo');await sleep(500);
   ok(!g('w1').waiting&&g('w1').lastNudge&&g('w1').nudges===2,'Deshacer restores the nudges');
+  // (la lista completa y el botón Revisión de la semana están en Tareas)
+  await go(p,'tareas');
   // 16: en pantalla ancha, ↓ sigue el orden de la pantalla
   await p.setViewportSize({width:1366,height:900});await sleep(300);
   const ids=await p.evaluate(()=>visibleIds.map(id=>tasks.find(t=>t.id===id).title));
@@ -172,6 +174,7 @@ const b=await L.launch();APP=await L.appUrl();
 {
   const gh=makeGH([T('s1','Algún día',{due:null})]);
   let {ctx,p}=await device(b,gh,PHONE);
+  await go(p,'tareas');
   ok(await p.isVisible('#revBtn'),'phone: "Revisión de la semana" visible');
   const box=await p.evaluate(()=>{const r=document.getElementById('revBtn').getBoundingClientRect();return {r:r.right,w:innerWidth,h:r.height}});
   ok(box.r<=box.w&&box.h>=44,'phone: button fits and is 44 px tall '+JSON.stringify(box));
@@ -199,7 +202,7 @@ const b=await L.launch();APP=await L.appUrl();
   const ctx2=await b.newContext({timezoneId:TZ});const p2=await ctx2.newPage();await p2.goto(APP+'?revisar=1');await sleep(600);
   ok((await p2.innerText('#procCard')).includes('Este navegador no está conectado'),'unconnected browser: says so');
   // Sin GitHub ("Solo acá"), abriendo la revisión desde el botón: sin ese aviso
-  await p2.goto(APP);await sleep(400);await p2.click('#revBtn');await sleep(200);
+  await p2.goto(APP);await sleep(400);await go(p2,'tareas');await p2.click('#revBtn');await sleep(200);
   ok(!(await p2.innerText('#procCard')).includes('no está conectado'),'local-only user via the button: no link message');
   await ctx2.close();
 }

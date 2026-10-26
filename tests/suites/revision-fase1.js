@@ -1,7 +1,7 @@
 // Correcciones de la revisión de la fase 1: Deshacer vuelve la tarea a su lugar; abrir una vieja con la hora en el
 // título y cerrar no guarda; tarea borrada en otro dispositivo; Z en Procesar; Deshacer de Vaciar papelera con
 // repetidas; fecha u hora a medio escribir; el aviso de nuevas no tapa Recuperar; mensaje compartido largo.
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 const H=L;
 (async()=>{
 // ---- r1-order.js ----
@@ -46,6 +46,7 @@ const b=await L.launch();
   const {ctx,p}=await device(b,gh,PHONE);await sleep(1500);
   const puts0=gh.sha;
   console.log('remote d before:',JSON.stringify(gh.items.find(x=>x.id==='d')));
+  await go(p,'tareas');   // Terminadas está en Tareas
   await p.click('#doneToggle');await sleep(200);
   await p.locator('#doneList .drow .dt',{hasText:'Turno dentista'}).tap();await sleep(300);
   console.log('editH:',await p.innerText('#editH'),'eTime:',await p.inputValue('#eTime'),'patch:',JSON.stringify(await p.evaluate(()=>editPatch())));
@@ -135,6 +136,7 @@ const gh=makeGH([T('A','Pagar sueldos',{repeat:'weekly',done:true,completedAt:L.
   T('X','Nota borrada',{deletedAt:del})]);
 const {ctx,p}=await device(b,gh,DESK);await sleep(1000);
 console.log('trash before:',await p.evaluate(()=>trash.map(t=>t.id).join()));
+await go(p,'tareas');   // la papelera está en Tareas
 await p.click('#trashToggle');await sleep(150);
 await p.click('#trashEmpty');await sleep(800);await p.click('#trashEmpty');await sleep(1500);
 console.log('trash after empty:',await p.evaluate(()=>trash.map(t=>t.id).join()),'remote:',gh.items.map(t=>t.id).join());

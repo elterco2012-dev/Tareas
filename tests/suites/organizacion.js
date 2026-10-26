@@ -1,5 +1,5 @@
 // Tanda 3: organización en la compu
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 let APP;   // la app servida por http (L.appUrl)
 const row=(p,t)=>p.locator('.task').filter({has:p.locator('.ttext',{hasText:t})}).first();
 const iso=L.ago;
@@ -10,6 +10,7 @@ const b=await L.launch();APP=await L.appUrl();
 // ===== Teclas en la lista =====
 let gh=makeGH([T('o1','Vencida uno',{due:day(-2),order:0}),T('o2','Vencida dos',{due:day(-1),order:1}),T('t1','Hoy uno',{due:day(0),order:2}),T('n1','Sin fecha uno',{order:3})]);
 let {ctx,p}=await device(b,gh,DESK);
+await go(p,'tareas');   // las teclas en la lista completa (la app abre en Hoy)
 const g=id=>gh.items.find(x=>x.id===id);
 await p.focus('#title');await p.keyboard.press('ArrowDown');
 ok(await sel(p)==='Vencida uno'&&await p.evaluate(()=>document.activeElement.id)!=='title','↓ from the empty field selects the first task');
@@ -64,10 +65,10 @@ await ctx.close();
 await p.fill('#title','Desde la compu');await p.press('#title','Enter');await sleep(400);
 // En la compu también: sin fecha en el texto ni en los chips, queda marcada para procesar
 ok(ib('Desde la compu').inbox===true&&ib('Desde la compu').due===day(0),'desktop add without a date → inbox too, still today');
-ok(await p.isVisible('#procBtn')&&(await p.innerText('#procCount'))==='2','"Procesar (2)" on desktop: the phone one and this one');
+ok(await p.isVisible('#procBtn')&&(await p.innerText('#procCount'))==='2','Ordenar row on Hoy with 2 on desktop: the phone one and this one');
 // (se deshace, así lo que sigue cuenta como antes)
 await p.click('#toastUndo');await sleep(400);
-ok(!ib('Desde la compu')&&(await p.innerText('#procCount'))==='1','undo removes it: "Procesar (1)"');
+ok(!ib('Desde la compu')&&(await p.innerText('#procCount'))==='1','undo removes it: Ordenar row with 1');
 // ===== Procesar =====
 gh.items.push(T('ov','Vencida vieja',{due:day(-4),postponed:2}),T('ov2','Vencida nueva',{due:day(-1)}),T('wt','Respuesta de Juan',{waiting:true,waitingOn:'Juan',waitingSince:iso(5)}),T('wt2','Respuesta reciente',{waiting:true,waitingOn:'Ana',waitingSince:iso(1)}));gh.sha++;
 await p.evaluate(()=>sync());await sleep(600);
@@ -86,8 +87,10 @@ await p.evaluate(()=>{window.__opened=[];window.open=u=>{window.__opened.push(u)
 await p.keyboard.press('n');await sleep(400);
 const wt=gh.items.find(x=>x.id==='wt');
 ok(wt.nudges===1&&!!wt.lastNudge&&(await p.evaluate(()=>window.__opened[0]||'')).startsWith('https://wa.me/?text=Hola%20Juan'),'N: nudge via WhatsApp, recorded');
-ok((await p.innerText('#procCard')).includes('Listo')&&(await p.innerText('#procCard')).includes('4 procesadas'),'end screen: '+(await p.innerText('#procCard')).replace(/\n/g,' | '));
+ok((await p.innerText('#procCard')).includes('Listo')&&(await p.innerText('#procCard')).includes('4 ordenadas'),'end screen: '+(await p.innerText('#procCard')).replace(/\n/g,' | '));
 await p.keyboard.press('Escape');ok(!(await p.isVisible('#procOv')),'Esc closes');
+// (ya reclamada no está tarde: deja Hoy y se ve en Esperando, en Tareas)
+await go(p,'tareas');
 ok((await row(p,'Respuesta de Juan').innerText()).includes('reclamado hoy'),'row: "Juan · reclamado hoy"');
 // Volver a mirar el…
 await row(p,'Respuesta reciente').locator('.more').click();await p.click('#menu button:has-text("Volver a mirar el…")');
@@ -107,6 +110,7 @@ await ctx.close();
 // ===== Dos columnas =====
 gh=makeGH([T('a','Con fecha',{due:day(0)}),T('n','Sin fecha X'),T('w','Esperando X',{waiting:true,waitingOn:'Ana',waitingSince:iso(1)})]);
 ({ctx,p}=await device(b,gh,{viewport:{width:1366,height:768}}));
+await go(p,'tareas');
 ok((await p.innerText('#sideNone')).includes('Sin fecha X')&&(await p.innerText('#sideWait')).includes('Esperando X')&&!(await p.innerText('#groups')).includes('Sin fecha X'),'1366 px: Sin fecha and Esperando on the right column');
 await p.screenshot({path:L.out('wide-1366.png')});
 await p.setViewportSize({width:1000,height:768});await sleep(200);

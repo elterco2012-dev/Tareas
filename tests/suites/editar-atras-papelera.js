@@ -1,7 +1,7 @@
 // Editar guarda al cerrar con Atrás, afuera o Esc (con Deshacer); la ✕ descarta; lista pegada recuperable;
 // Atrás con dos capas vuelve a la guarda que existe (sin pushState sin un toque); recargar con la guarda puesta;
 // Vaciar papelera: un doble clic no la vacía y hay Deshacer.
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 const PHONE={viewport:{width:384,height:832},isMobile:true,hasTouch:true},DESK={viewport:{width:1000,height:900}};
 let APP;const onApp=p=>p.url().startsWith(APP);
 const spy=()=>{window.__push=[];const o=history.pushState.bind(history);history.pushState=(...a)=>{window.__push.push(navigator.userActivation?navigator.userActivation.isActive:null);return o(...a)}};
@@ -11,6 +11,7 @@ const b=await L.launch();APP=await L.appUrl();
 {
   const gh=makeGH([T('a','Llamar al banco',{due:day(1)}),T('b','Otra',{due:day(0)})]);
   let {ctx,p}=await device(b,gh,PHONE,undefined,spy);
+  await go(p,'tareas');   // la de mañana está en Tareas (la app abre en Hoy)
   await p.locator('.task .ttext',{hasText:'Llamar al banco'}).tap();await sleep(200);
   await p.fill('#eNotes','Cuenta 4471');
   await p.goBack();await sleep(400);
@@ -46,6 +47,7 @@ const b=await L.launch();APP=await L.appUrl();
   const gh=makeGH([T('a','Probar tickets',{due:day(1)}),T('b','Otra',{due:day(0)})]);
   let {ctx,p}=await device(b,gh,PHONE,undefined,spy);
   await p.click('#searchBtn');await sleep(200);
+  await p.fill('#search','Probar');await sleep(200);   // con el campo vacío Buscar no muestra la lista
   await p.locator('.task .ttext',{hasText:'Probar tickets'}).tap();await sleep(300);
   const pushes0=await p.evaluate(()=>window.__push.length);
   const len0=await p.evaluate(()=>history.length);
@@ -90,8 +92,8 @@ const b=await L.launch();APP=await L.appUrl();
   await p.click('#toastUndo');await sleep(200);
   ok(await p.isVisible('#bulkOv')&&await p.evaluate(()=>bulkItems().join('|'))==='comprar pan|pagar luz','Recuperar brings it back with the unchecked line');
   await p.click('#bulkX');await sleep(200);ok(await p.isHidden('#bulkOv')&&await p.isHidden('#toast'),'✕ discards silently');
-  // papelera
-  await p.click('#trashToggle');await sleep(150);
+  // papelera (está en Tareas)
+  await go(p,'tareas');await p.click('#trashToggle');await sleep(150);
   await p.dblclick('#trashEmpty');await sleep(300);
   ok(await p.isVisible('#trashSec')&&await p.evaluate(()=>trash.length)===2,'double click does not empty');
   await sleep(800);await p.click('#trashEmpty');await sleep(1500);

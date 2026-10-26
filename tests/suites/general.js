@@ -43,15 +43,17 @@ gh.items=[
 const seed={githubTasksConfig:{owner:'u',repo:'r',token:'x'},tareasCache:{owner:'u',repo:'r',items:gh.items},
   tareasPendientes:[{type:'move',id:'v7',ids:['v7','v6'],opId:'o1'},{type:'edit',id:'v1',patch:{notes:'nota vieja'},opId:'o2'}]};
 let {ctx:c1,p}=await device(b,{viewport:{width:1100,height:900}},seed);
+const af=await p.evaluate(()=>document.activeElement.id);   // el foco al abrir (tocar la barra lo mueve)
+await H.go(p,'tareas');   // la lista completa está en Tareas
 const pend=await p.innerText('#groups');
 ok(pend.includes('Tarea vieja sin campos nuevos')&&pend.includes('Vieja con fecha vencida'),'old tasks visible without migration');
-ok(pend.includes('Venció hace 3 días')&&pend.includes('@Juan')&&pend.includes('ALTA'),'old task meta rendered (due/ALTA/@)');
+ok(pend.includes('Venció hace 3 días')&&pend.includes('@Juan')&&pend.includes('Alta'),'old task meta rendered (due/Alta/@)');
 await sleep(400);
 const o6=gh.items.find(x=>x.id==='v6').order,o7=gh.items.find(x=>x.id==='v7').order;
 ok(o7<o6,'old pending move op still uploaded');
 ok(gh.items.find(x=>x.id==='v1').notes==='nota vieja','old pending edit op uploaded');
 ok((await p.innerText('#statusShort'))==='Al día','status pill Al día');
-ok(await p.evaluate(()=>document.activeElement.id)==='title','desktop autofocus on title');
+ok(af==='title','desktop autofocus on title');
 // Terminadas 7 días
 await p.click('#doneToggle');
 let done=await p.innerText('#doneWrap');
@@ -61,8 +63,8 @@ ok(done.includes('ayer'),'done "ayer" label');
 await p.click('#doneAll');done=await p.innerText('#doneWrap');
 ok(done.includes('hace 20 días')&&done.includes('sin completedAt')&&done.includes('Ver solo últimos 7 días'),'Ver todas shows all');
 await p.click('#doneAll');
-// Header summary
-const sub=await p.innerText('.sub');
+// Header summary (se ve solo en Hoy)
+await H.go(p,'hoy');const sub=await p.innerText('.sub');await H.go(p,'tareas');
 ok(/1 vencida/.test(sub)&&/2 para hoy/.test(sub),'header summary: '+sub.replace(/\n/g,' | '));
 // Dates only in over/week/later
 ok(!(await row(p,'Para hoy A').innerText()).includes('Hoy'),'no due label in Hoy group');
@@ -140,7 +142,7 @@ ok(gh.items.find(x=>x.id==='v2').deletedAt&&!(await p.isVisible('#editOv')),'Bor
 await p.click('#toastUndo');await sleep(300);
 
 // ===== Buscar =====
-await p.keyboard.press('Escape');await p.click('body',{position:{x:5,y:5}});
+await p.keyboard.press('Escape');await p.click('.top h1');
 await p.keyboard.press('/');ok(await p.isVisible('#searchBar')&&await p.evaluate(()=>document.activeElement.id)==='search','/ opens search');
 await p.fill('#search','@juan');let g=await p.innerText('#groups');
 ok(g.includes('Llamar proveedor')&&!g.includes('Pagar luz'),'search @persona');
@@ -193,6 +195,7 @@ await c1.close();
 
 // ===== Criterio 2: sin conexión (agregar, terminar, deshacer, borrar) y sincroniza al volver =====
 ({ctx:c1,p}=await device(b,{viewport:{width:390,height:844}}));
+await H.go(p,'tareas');   // la lista completa está en Tareas
 gh.mode='offline';await sleep(100);
 await p.fill('#title','Off agregar');await p.press('#title','Enter');
 await row(p,'Para hoy A').locator('.chk').click();await H.until(()=>p.evaluate(()=>tasks.find(t=>t.title==='Para hoy A')?.done));
@@ -204,7 +207,7 @@ await row(p,'Off borrar y deshacer').locator('.more').click();await p.click('#me
 await sleep(200);
 const offOps=await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')).length);
 ok(offOps>=7,'offline ops queued: '+offOps);
-await p.reload();await sleep(400);
+await p.reload();await sleep(400);await H.go(p,'tareas');
 ok((await p.innerText('#groups')).includes('Off agregar')&&!(await p.innerText('#groups')).includes('Tarea vieja sin campos'),'offline state survives reopen');
 gh.mode='ok';await p.evaluate(()=>window.dispatchEvent(new Event('online')));await sleep(600);
 ok(byTitle('Off agregar')&&gh.items.find(x=>x.id==='v6').done===true,'offline add + done synced');
@@ -216,6 +219,7 @@ await c1.close();
 
 // ===== Criterio 3: editar desde dos dispositivos a la vez =====
 const A=await device(b,{viewport:{width:1000,height:800}}),B=await device(b,{...devices['iPhone 13'],timezoneId:TZ});
+await H.go(A.p,'tareas');await H.go(B.p,'tareas');   // Pagar luz es de mañana: está en Tareas
 gh.delay=200;
 const target='Pagar luz';
 await A.p.locator('.task',{hasText:target}).locator('.body').click();await A.p.fill('#eNotes','nota desde compu');
@@ -235,6 +239,7 @@ const M=await device(b,{viewport:{width:375,height:740},hasTouch:true,isMobile:t
 ok(await M.p.evaluate(()=>matchMedia('(pointer:fine)').matches)===false,'mobile emulation is coarse pointer');
 ok(await M.p.evaluate(()=>document.activeElement===document.body),'no autofocus on mobile (keyboard stays closed)');
 ok(!(await M.p.isVisible('#shortcuts')),'no shortcut legend on mobile');
+await H.go(M.p,'tareas');   // todas las filas: la lista completa está en Tareas
 const lines=await M.p.evaluate(()=>[...document.querySelectorAll('.task')].filter(r=>!r.querySelector('.notes')).map(r=>{
   const tt=r.querySelector('.ttext'),lh=parseFloat(getComputedStyle(tt).lineHeight);
   const tl=Math.round(tt.getBoundingClientRect().height/lh),meta=r.querySelector('.meta');
@@ -261,6 +266,7 @@ let R=await device(b,{viewport:{width:390,height:800}});
 gh.delay=1500;await R.p.fill('#title','Agregada y cerré');await R.p.press('#title','Enter');await sleep(100);
 await R.p.reload();gh.delay=0;await sleep(3500);
 ok(gh.items.filter(x=>x.title==='Agregada y cerré').length===1,'close right after add: reaches GitHub once');
+await H.go(R.p,'tareas');   // la lista completa está en Tareas
 gh.delay=1200;await R.p.click('#statusBtn');await R.p.click('#syncNow');await sleep(150);
 await R.p.click('#clearCfg');await R.p.click('#clearCfg');await sleep(1800);gh.delay=0;
 ok(await R.p.evaluate(()=>localStorage.getItem('tareasCache'))===null&&!(await R.p.innerText('#groups')).includes('Para hoy'),'clear during sync stays cleared');

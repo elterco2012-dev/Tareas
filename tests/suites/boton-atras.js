@@ -1,5 +1,5 @@
 // Botón Atrás: cierra lo que esté abierto y vuelve a la lista (no sale de la app)
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 let APP;   // la app servida por http (L.appUrl)
 const PHONE={viewport:{width:384,height:832},isMobile:true,hasTouch:true},DESK={viewport:{width:1000,height:900}};
 const onApp=p=>p.url().startsWith(APP);
@@ -8,6 +8,7 @@ const b=await L.launch();APP=await L.appUrl();
 {
   const gh=makeGH([T('a','Probar tickets Jira',{due:day(1),requester:'Baldino'}),T('b','Otra',{due:day(0)})]);
   let {ctx,p}=await device(b,gh,PHONE);
+  await go(p,'tareas');   // la de mañana está en Tareas (la app abre en Hoy)
   // Editar → Atrás
   await p.locator('.task .ttext',{hasText:'Probar tickets Jira'}).tap();await sleep(200);
   ok(await p.isVisible('#editOv'),'edit open');
@@ -22,9 +23,12 @@ const b=await L.launch();APP=await L.appUrl();
   await p.goBack();await sleep(300);ok(await p.isHidden('#menu')&&onApp(p),'Back closes the ⋯ menu');
   await p.click('#searchBtn');await sleep(150);await p.goBack();await sleep(300);ok(await p.isHidden('#searchBar')&&onApp(p),'Back closes the search');
   await p.click('#statusBtn');await sleep(150);await p.goBack();await sleep(300);ok(await p.isHidden('#syncOv')&&onApp(p),'Back closes Sincronización');
-  await p.click('#doneToggle');await p.click('#repBtn');await sleep(150);await p.goBack();await sleep(300);ok(await p.isHidden('#repOv')&&onApp(p),'Back closes the report');
+  // (Atrás desde Buscar volvió a Hoy; Terminadas e Informe están en Tareas)
+  await go(p,'tareas');await p.click('#doneToggle');await p.click('#repBtn');await sleep(150);await p.goBack();await sleep(300);ok(await p.isHidden('#repOv')&&onApp(p),'Back closes the report');
   ok(p.errs.length===0,'no errors '+p.errs);
-  // Con todo cerrado, Atrás sale de la app (no queda trabado). (El error de sessionStorage en about:blank es de la prueba.)
+  // Con todo cerrado, Atrás desde Tareas vuelve a Hoy y desde Hoy sale de la app (no queda trabado). (El error de sessionStorage en about:blank es de la prueba.)
+  await p.goBack();await sleep(300);
+  ok(onApp(p)&&await p.evaluate(()=>document.body.dataset.screen)==='hoy','nothing open: Back from Tareas goes to Hoy');
   await p.goBack();await sleep(300);
   ok(!onApp(p),'nothing open: Back leaves the app ('+p.url()+')');
   await ctx.close();

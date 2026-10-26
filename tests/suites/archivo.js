@@ -1,5 +1,5 @@
 // Archivo anual: las terminadas viejas pasan a archivo/AAAA.json
-const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T}=L;
+const L=require('../lib/gh');const {sleep,ok,device,makeGH,day,T,go}=L;
 (async()=>{
 const b=await L.launch();
 const ago=L.ago;
@@ -22,7 +22,7 @@ const f1=JSON.parse(gh.files['archivo/'+yr(100)+'.json'].content),f2=JSON.parse(
 ok(f1.filter(x=>x.id==='o3').length===1&&f1.some(x=>x.id==='o1')&&f1.some(x=>x.id==='zz'),'year file merged without duplicates: '+f1.map(x=>x.id).join(','));
 ok(f2.some(x=>x.id==='o2'),'other year in its own file');
 ok(await p.evaluate(()=>JSON.parse(localStorage.getItem('ultimoArchivo')))===await p.evaluate(()=>ymd(new Date())),'ultimoArchivo = today');
-await p.click('#doneToggle');ok(await p.isVisible('#archiveNote'),'note shown in Terminadas');
+await go(p,'tareas');await p.click('#doneToggle');ok(await p.isVisible('#archiveNote'),'note shown in Terminadas');
 // no se vuelve a archivar el mismo día
 gh.items.push(T('o4','Otra vieja',{done:true,completedAt:ago(200)}));gh.sha++;
 await p.evaluate(()=>sync());await sleep(800);
