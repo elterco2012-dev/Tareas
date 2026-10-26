@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-qOepEjlbaTxZ/f0vvVKdvxiT2V8mcj8sbNg7HykOMOs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-Mdzo951m+/HaF54LqKK9+phOmSEb76IOoDgYI/v+SFY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -464,7 +464,7 @@ body:not(.scr-hoy) .top .sub{display:none}
   .fabs{bottom:calc(76px + 16px + env(safe-area-inset-bottom))}
   .toast{bottom:calc(76px + 12px + env(safe-area-inset-bottom))}
   body.fabbed .toast{bottom:calc(76px + 84px + env(safe-area-inset-bottom))}
-  body.typing .toast,body.ovl .toast{bottom:calc(20px + env(safe-area-inset-bottom))}
+  body.typing:not(.docked) .toast,body.ovl:not(.docked) .toast{bottom:calc(20px + env(safe-area-inset-bottom))}
   html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom))}
   /* El estado: solo el punto cuando está todo bien; con texto si hay algo que mirar */
   #statusBtn.quiet{width:40px;padding:0;justify-content:center}
@@ -802,11 +802,11 @@ body:not(.scr-hoy) .top .sub{display:none}
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.21-11"></script>
+<script src="sync-core.js?v=2026.10.26-1"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.21-11';
+const APP_VERSION='2026.10.26-1';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
