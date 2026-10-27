@@ -11,8 +11,8 @@ ORGANIZADOR PERSONAL - SOLO GITHUB
    - Define una caducidad razonable; deberas renovarlo cuando venza.
    - NO compartas el token, ni lo subas al repositorio publico, ni lo pegues en conversaciones.
 6) Abre la URL de GitHub Pages (https://TU_USUARIO.github.io/organizador-web/).
-7) Toca Ajustes (la rueda: arriba a la derecha en el celular, abajo a la izquierda en la compu) para abrir
-   Sincronizacion; escribe usuario, nombre del repo PRIVADO
+7) Toca Ajustes (la rueda: arriba a la derecha en el celular, abajo a la izquierda en la compu) y, en Cuenta,
+   abri "Cuenta de GitHub y token"; escribe usuario, nombre del repo PRIVADO
    y token, y pulsa Guardar conexion. Opcional: carga tambien la fecha en que vence el token (la ves en GitHub, en la
    lista de tus tokens): una semana antes la app te avisa para que lo renueves (y el Telegram de la mañana tambien, con el resumen.yml nuevo).
    La fecha se guarda en ajustes.json del repositorio privado: la cargas una vez y la ven tus dos dispositivos.
@@ -26,16 +26,16 @@ INSTALAR COMO APLICACION
 - iPhone (Safari): abri la URL > boton Compartir > "Agregar a inicio".
 - Compu (Chrome/Edge): icono de instalar en la barra de direcciones, o menu > "Instalar Mis tareas".
 - En iPhone la app instalada no comparte datos con Safari: al abrirla por primera vez desde el icono,
-  carga de nuevo usuario, repositorio y token en Sincronizacion. Usa siempre la app instalada (no Safari)
+  carga de nuevo usuario, repositorio y token en Ajustes > Cuenta. Usa siempre la app instalada (no Safari)
   para cargar tareas: lo que cargues en Safari sin conexion a GitHub no aparece en la app.
 - Desinstalar de verdad (Android): mantene apretado el icono > Desinstalar (o Ajustes > Aplicaciones > Tareas >
   Desinstalar). Para confirmar que no quedo escondida, en Chrome escribi about://webapks: no tiene que aparecer
   "Mis tareas". Si Chrome dice "ya esta instalada" pero no la ves, buscala ahi.
-- Antes de desinstalar o de borrar los datos del sitio, mira que el punto de estado este verde (en Sincronizacion
+- Antes de desinstalar o de borrar los datos del sitio, mira que el punto de estado este verde (en Ajustes > Sincronizacion
   dice "Al dia"): lo que todavia no subio se pierde.
 
 VERSION Y ACTUALIZACIONES
-- En Sincronizacion > Este dispositivo se ve la version de la app y si esta abierta como app instalada.
+- En Ajustes > Este dispositivo se ve la version de la app y si esta abierta como app instalada.
 - Cuando se publica una version nueva, la app la baja sola y avisa "Hay una version nueva · Actualizar".
   Si volves a la app despues de un rato y no tenes nada abierto, se actualiza sola ("App actualizada").
   Con una tarea abierta no se actualiza: guardala o cerrala y toca Actualizar.
@@ -44,7 +44,7 @@ ABRIR MAS RAPIDO (celular)
 - La app instalada abre en Hoy, sin el teclado. Para anotar, toca el "+" de abajo a la derecha: se abre la hoja para
   anotar (ver "La hoja para anotar"); para dictar, el microfono que esta al lado del "+". Si volves a ella despues de un rato, vuelve a Hoy,
   arriba (salvo que tengas algo abierto). Si preferis que abra con el teclado listo para escribir (como antes):
-  Sincronizacion > Este dispositivo > "Abrir la app con el teclado listo para anotar".
+  Ajustes > Este dispositivo > "Abrir la app con el teclado listo para anotar".
 - Atajos: mantene apretado el icono de Tareas y vas a ver "Nueva tarea" (abre para escribir) y "Dictar tarea"
   (abre con un microfono grande abajo, para hablar con una mano). Para tenerlos a un toque: mantene apretado el
   atajo y arrastralo a la pantalla de inicio, en la fila de abajo, donde llega el pulgar.
@@ -66,11 +66,15 @@ PANTALLAS
   por Telegram). Al final, "Mañana · N" y "Esperando respuesta · N" llevan a esa parte de Tareas.
 - Tareas: la lista completa, con todos los grupos, Esperando, Terminadas (con Informe y Revision de la semana) y la
   Papelera.
-- Notas: las notas, las fijadas y despues las mas nuevas primero. Estando ahi, lo que anotas arranca como nota.
+- Notas: las notas en tarjetas (2 columnas en el celular): Fijadas arriba y Otras (o Recientes si no fijaste
+  ninguna), las mas nuevas primero. Arriba, chips para ver Todas, solo las Ideas o las de un color. Estando ahi, lo que anotas arranca como nota.
 - Buscar: el campo de busqueda (ver "Buscar" mas abajo). Con el campo vacio muestra las personas: un toque busca
   todo lo de esa persona. "Cerrar" (o Esc) vuelve a la pantalla de antes.
-- Ajustes (la rueda, al lado del punto de estado) abre Sincronizacion, que ahora tambien tiene Herramientas:
-  Informe y Revision de la semana.
+- Ajustes (la rueda, al lado del punto de estado; el punto tambien la abre) es una pantalla con cuatro grupos:
+  Sincronizacion (el estado, "Sincronizar ahora", "Ver historial en GitHub", "Descargar copia", el control de los
+  avisos y lo que falta subir), Este dispositivo (Apariencia, el teclado al abrir, el numero en el icono y la
+  version con "Actualizar"), Herramientas (Informe, Revision de la semana y Papelera) y Cuenta (GitHub y el token, y
+  "Borrar conexion y datos de este dispositivo"). "Cerrar" vuelve a la pantalla de antes; Atras, a Hoy.
 
 USO DIARIO
 LA HOJA PARA ANOTAR
@@ -174,12 +178,12 @@ USO DIARIO
   Se sube a GitHub sola; si no habia señal, Chrome la sube cuando vuelve la conexion, aunque hayas cerrado la app
   (en Android, con la app instalada).
   El punto de estado (arriba a la derecha en el celular; abajo a la izquierda en la compu, con su texto) abre
-  Sincronizacion. En el celular, con todo bien se ve solo el punto; si hay algo para mirar, tambien el texto:
+  Ajustes, en Sincronizacion. En el celular, con todo bien se ve solo el punto; si hay algo para mirar, tambien el texto:
     verde "Al dia": tenes lo ultimo de GitHub;
     ambar "Pendiente", "Sin señal" o "Reintentando": hay algo sin subir, pero esta guardado y se sube solo
     ("Pendiente" y "Subiendo…", que duran un segundo despues de cada cambio, en el celular quedan solo como punto);
     rojo: hay que hacer algo (token vencido, permisos) o algo no sube hace mas de 30 minutos.
-  En Sincronizacion se ve que falta subir, "Sincronizar ahora", "Ver historial en GitHub" (cada cambio queda con
+  En Ajustes > Sincronizacion se ve que falta subir, "Sincronizar ahora", "Ver historial en GitHub" (cada cambio queda con
   un mensaje como "+ Llamar al banco · cel") y, plegada, la cuenta de GitHub y el token.
 - Lo que llega del otro dispositivo (por ejemplo, lo que anotaste en el celular) se resalta en la compu hasta
   que la mires, con un aviso "2 nuevas desde el celular · Ver".
@@ -238,10 +242,10 @@ USO DIARIO
   "· 1 nueva" y "Ver" en el aviso lo despliega. Las secciones de Hoy se pliegan aparte: plegar "Hoy" en Tareas no
   esconde "Para hoy".
 - Sin conectar: un dispositivo nuevo, sin tareas, muestra "Conectar" para traer las del otro dispositivo (abre la
-  cuenta de GitHub en Sincronizacion).
+  cuenta de GitHub en Ajustes > Cuenta).
 - Boton Atras (celular) o Atras del navegador: cierra lo que este abierto (una tarea, el menu, la busqueda,
-  Sincronizacion, el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
-  cierra de a una. Con todo cerrado, desde Tareas, Notas o Buscar vuelve a Hoy, y desde Hoy sale de la app. Una lista pegada o compartida que se cierra con Atras se
+  el informe) y vuelve a la lista. Si hay dos abiertas (por ejemplo, la busqueda y una tarea),
+  cierra de a una. Con todo cerrado, desde Tareas, Notas, Buscar o Ajustes vuelve a Hoy, y desde Hoy sale de la app. Una lista pegada o compartida que se cierra con Atras se
   puede recuperar con "Recuperar" en el aviso.
 - Orden: en cada grupo (Hoy, Mañana, Sin fecha...) van primero las de prioridad Alta, despues Media y abajo las
   Baja (en Hoy, antes las que tienen hora). Dentro de la misma prioridad, el orden lo elegis vos: en la compu,
@@ -249,7 +253,7 @@ USO DIARIO
   Para pasar una tarea por encima de las de mas prioridad, subile la prioridad (en el detalle o "!").
 - Vencidas: si hay dos o mas, "Todas a hoy" (a la derecha del titulo) las pasa todas a hoy de un toque, con Deshacer.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
-  ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
+  ("Esperando · hace 3 dias", en ambar desde los 3 dias, y quien). Cuando te responden, "Ya respondio" la vuelve a pendientes.
   "Reclamar…" arma el mensaje ("Hola Juan, ¿pudiste ver lo de …?") para WhatsApp o lo que elijas, y queda anotado
   ("Juan · reclamado hace 1 dia (2º)"). "Volver a mirar el…" le pone una fecha: hasta ese dia no se pone en ambar.
   Tambien se puede escribir "#esperando @Juan" o decir "esperando respuesta de Juan".
@@ -261,7 +265,7 @@ USO DIARIO
   (si no, no llegan la revision, el aviso del token ni la marca de pateadas).
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
   (o en el detalle → "Se repite"). Al terminarla se crea sola la proxima.
-- Filtrar por persona: toca "@Laura" en una tarea para ver, en Tareas, solo las que te pidio. La ✕ (o Esc, o Atras)
+- Filtrar por persona: toca el nombre (con su inicial en un circulo de color) en una tarea para ver, en Tareas, solo las que te pidio. La ✕ (o Esc, o Atras)
   quita el filtro.
 - Informe: en Tareas, junto a Terminadas, o en Ajustes > Herramientas, "Informe" arma un control de tus tareas para mostrar como venis. Elegis el periodo
   (esta semana, la pasada, este mes, el pasado, 30 dias o todo) y quien las pidio (por ejemplo, solo las de German).
@@ -270,8 +274,8 @@ USO DIARIO
   y lo que esta en espera. Con los botones de abajo lo copias como texto para un mail o WhatsApp, lo bajas para
   Excel o lo imprimis / guardas en PDF. Si el periodo llega a mas de un mes, trae tambien las del archivo.
 - Numero en el icono: en la compu (app instalada) muestra cuantas vencidas y para hoy hay. En Android, Chrome
-  no muestra numeros en el icono. Se apaga en Sincronizacion.
-- Modo oscuro: sigue al del celular o la compu. Para elegirlo a mano: Sincronizacion > Este dispositivo >
+  no muestra numeros en el icono. Se apaga en Ajustes > Este dispositivo.
+- Modo oscuro: sigue al del celular o la compu. Para elegirlo a mano: Ajustes > Este dispositivo >
   Apariencia (Automatica, Clara u Oscura). Se elige en cada dispositivo.
 - Archivo: las tareas terminadas hace mas de un mes se mueven solas a archivo/AAAA.json en tu repositorio de
   datos, para que la lista no crezca sin fin.
@@ -284,7 +288,7 @@ USO DIARIO
   En 1 hora, Hoy 18:00, Mañana 9:00, Hecha o Abrir. Para que abra la app instalada (y no una pagina adentro de
   Telegram): en Telegram, Ajustes > Ajustes de chat > desactivar "Navegador integrado" (o "Abrir enlaces en la app").
   "En 1 hora" tambien esta en el menu "⋯" de cada tarea.
-- Control de los avisos: en Sincronizacion dice cuando salio el ultimo aviso por Telegram. Si hoy tenia que salir
+- Control de los avisos: en Ajustes > Sincronizacion dice cuando salio el ultimo aviso por Telegram. Si hoy tenia que salir
   uno hace mas de 20 minutos y no salio ninguno desde entonces, arriba aparece un aviso en rojo (revisa que
   cron-job.org siga andando). Si una tarea con hora en menos de 45 minutos todavia no subio a GitHub (sin señal),
   tambien avisa, con "Al calendario" para que te avise el telefono. El resumen de la mañana dice si el dia anterior
@@ -304,33 +308,33 @@ SEGURIDAD Y LIMITACIONES
 - La pagina HTML es PUBLICA. El repositorio de datos es PRIVADO.
 - El token se guarda en localStorage en CADA navegador para evitar volver a ingresarlo. No es adecuado para dispositivos compartidos ni informacion confidencial empresarial. Un script malicioso, extension comprometida o persona con acceso al navegador podria extraerlo.
 - NO pongas el token en index.html ni en commits de GitHub.
-- En Sincronizacion el token guardado no se muestra (solo sus ultimas 4 letras). Para cambiarlo, pega uno nuevo;
+- En Ajustes > Cuenta el token guardado no se muestra (solo sus ultimas 4 letras). Para cambiarlo, pega uno nuevo;
   si dejas el campo vacio, sigue el de antes.
 - La app comprueba que el repositorio de datos sea privado: si es publico, no sube nada y lo avisa en rojo.
 - La pagina tiene una politica de seguridad (CSP): solo corren los scripts de la propia app y solo habla con GitHub.
   Al publicar una version nueva, "npm run nueva-version" recalcula lo que esa politica permite (una prueba lo exige).
 - Si tareas.json desaparece de GitHub, queda vacio o se daña, la app NO lo toma como "no hay tareas": deja de
-  sincronizar en ese dispositivo, avisa arriba en rojo y en Sincronizacion ofrece "Volver a subir la copia de este
+  sincronizar en ese dispositivo, avisa arriba en rojo y en Ajustes > Sincronizacion ofrece "Volver a subir la copia de este
   dispositivo" (o "Fue a proposito: dejarlo asi", con un segundo toque). Volver a subir usa la ultima version buena
   que haya en el historial de GitHub si es mas nueva que la copia del dispositivo (por si el otro subio cosas despues),
   mas lo que falte subir; nunca sube una lista vacia. Si lo arregla el otro dispositivo, sigue sola.
 - Si tareas.json tiene datos que no son tareas o campos invalidos (por ejemplo, editado a mano), la app los arregla
   al leerlo, avisa, y se guarda arreglado en la proxima subida.
-- "Descargar copia" (en Sincronizacion) baja un archivo .json con todas las tareas (papelera y cambios sin subir
+- "Descargar copia" (en Ajustes > Sincronizacion) baja un archivo .json con todas las tareas (papelera y cambios sin subir
   incluidos) y el archivo de terminadas. Sirve para guardar una copia donde quieras.
 - Si un cambio hecho sin señal en un dispositivo choca con otro mas nuevo del otro dispositivo en el mismo campo
   (por ejemplo, el titulo), gana el mas nuevo y la app avisa "No se aplico tu cambio en ...". Los cambios en campos
   distintos se aplican los dos.
 - Si el token se filtra, revocalo inmediatamente en GitHub.
 - Si el token vence o GitHub lo rechaza, arriba aparece un aviso en rojo con "Renovar": genera uno nuevo en GitHub
-  (mismos permisos), pegalo en Sincronizacion y carga su nueva fecha de vencimiento (asi la proxima vez tambien te
+  (mismos permisos), pegalo en Ajustes > Cuenta y carga su nueva fecha de vencimiento (asi la proxima vez tambien te
   avisa antes). Las tareas no se pierden: quedan en el dispositivo hasta que se suben.
 - GitHub Pages no es una plataforma de autenticacion privada; la seguridad de los datos depende de los permisos del repositorio y del token.
 - La aplicacion pregunta si hay cambios cada 5 segundos mientras la estas usando (cada 20 si esta quieta y cada
   minuto si no la tocas hace rato); si no hay cambios, GitHub no manda nada. Sin Internet se puede abrir y cargar tareas;
   los cambios quedan guardados en el dispositivo hasta que vuelva la conexion.
 - Cada cambio crea un commit en el repositorio privado. Si dos dispositivos guardan al mismo tiempo, se reintenta solo.
-- "Borrar conexion y datos de este dispositivo" (en Sincronizacion, pide confirmar con un segundo toque) borra la copia local de las tareas (avisa si habia cambios sin subir).
+- "Borrar conexion y datos de este dispositivo" (en Ajustes > Cuenta, pide confirmar con un segundo toque) borra la copia local de las tareas (avisa si habia cambios sin subir).
 - Borrar una tarea la pasa a la Papelera: sigue en tareas.json con la fecha de borrado. A los 30 dias (o al vaciar la
   papelera) se saca de tareas.json; despues de eso sigue en el historial de commits del repositorio privado.
 - En Terminadas se ven las de los ultimos 7 dias; "Ver todas" muestra el resto.

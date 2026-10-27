@@ -20,7 +20,7 @@ ok(await p.textContent('#noteToggle')==='+ Detalle'&&await p.getAttribute('#note
 // Las notas tienen su pantalla, siempre abierta (sin plegar), con cuántas hay; en Hoy no están
 ok(!(await row(p,'Código del portón').count()),'notes are not on Hoy');
 await go(p,'notas');
-ok(!(await p.locator('.gfold[data-g="notes"]').count())&&/Notas\s*1/.test(await p.locator('#notesSec .ghead').textContent())&&await row(p,'Código del portón').count()===1,'Notas screen: notes always open (no fold button), with its count');
+ok(!(await p.locator('.gfold[data-g="notes"]').count())&&/Recientes\s*1/.test(await p.locator('#notesSec .ghead').textContent())&&await row(p,'Código del portón').count()===1,'Notas screen: notes always open (no fold button), with its count');
 await go(p,'tareas');
 ok(!/Código/.test(await p.textContent('#groups'))&&/1 para hoy/.test(await p.textContent('#summary')),'a note is not in the groups nor in the header summary');
 await p.fill('#title','nota: reunión el viernes a las 10 con @Laura !alta');await sleep(150);

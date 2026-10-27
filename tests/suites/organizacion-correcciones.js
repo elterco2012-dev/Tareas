@@ -88,7 +88,7 @@ const b=await L.launch();APP=await L.appUrl();
   const noOverlap=await p.evaluate(()=>{const a=document.querySelector('.meta').getBoundingClientRect(),n=document.querySelector('.task .tnotes,.task .note,.task .notes');return {h:a.height,ok:!n||n.getBoundingClientRect().top>=a.bottom-1}});
   ok(noOverlap.h>0&&noOverlap.ok,'meta line keeps its height and does not overlap the note ('+JSON.stringify(noOverlap)+')');
   await p.click('#statusBtn');await sleep(200);
-  ok(await p.evaluate(()=>getComputedStyle(document.getElementById('syncX')).width)==='44px','close button 44 px on phone');
+  ok(await p.evaluate(()=>{const r=document.getElementById('syncX').getBoundingClientRect();return r.width>=44&&r.height>=44}),'close button at least 44 px on phone');
   await ctx.close();
 }
 // ===== 5/20: token renovado sin fecha borra la del anterior =====

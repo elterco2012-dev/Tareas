@@ -47,7 +47,7 @@ const af=await p.evaluate(()=>document.activeElement.id);   // el foco al abrir 
 await H.go(p,'tareas');   // la lista completa está en Tareas
 const pend=await p.innerText('#groups');
 ok(pend.includes('Tarea vieja sin campos nuevos')&&pend.includes('Vieja con fecha vencida'),'old tasks visible without migration');
-ok(pend.includes('Venció hace 3 días')&&pend.includes('@Juan')&&pend.includes('Alta'),'old task meta rendered (due/Alta/@)');
+ok(pend.includes('Venció hace 3 días')&&pend.includes('Juan')&&pend.includes('Alta'),'old task meta rendered (due/Alta/person)');
 await sleep(400);
 const o6=gh.items.find(x=>x.id==='v6').order,o7=gh.items.find(x=>x.id==='v7').order;
 ok(o7<o6,'old pending move op still uploaded');

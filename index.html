@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-uaejan0rQRltAsUR2fOfBqXvUvHiqLcgCzXVJE6w/oI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-qx2Ms48bXr2U6hKj8C3KF/v9Ps4qLxwq1XG/FBKMvjs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -173,7 +173,15 @@ h1{margin:0;font-size:30px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .acct summary{cursor:pointer;padding:12px 0;font-weight:600;font-size:14px;color:var(--text)}
 .acct[open]{padding-bottom:14px}
 .acct[open]>*:not(summary){margin-top:12px}
-.devsec{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--divider);padding-top:12px}
+.devsec{display:flex;flex-direction:column;gap:8px}
+/* Ajustes: una pantalla con sus grupos (Sincronización, Este dispositivo, Herramientas, Cuenta) en tarjetas */
+body.scr-ajustes .cols,body.scr-ajustes #addForm,body.scr-ajustes #searchHome,body.scr-ajustes #filterBar,body.scr-ajustes .tokenbar,body.scr-ajustes .wrap>#shortcuts{display:none}
+.ajustes{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.ajtop{display:flex;justify-content:flex-end;margin:-8px 0 -4px}
+.ajtop .textbtn{min-width:44px;min-height:44px}
+.ajgrp{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ajh{margin:0;font-size:15px;font-weight:650;color:var(--text)}
+#setBtn[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text)}
 .appinfo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:13px;color:var(--muted)}
 .themerow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:var(--text)}
 .seg{display:inline-flex;border:1px solid var(--chip);border-radius:10px;padding:2px;gap:2px;background:var(--card)}
@@ -193,27 +201,32 @@ h1{margin:0;font-size:30px;line-height:1.15;letter-spacing:-.01em;font-weight:70
 .task.dropafter{box-shadow:inset 0 -3px 0 var(--accent)}
 .task.sel.dropbefore{box-shadow:inset 3px 0 0 var(--accent),inset 0 3px 0 var(--accent)}
 .task.sel.dropafter{box-shadow:inset 3px 0 0 var(--accent),inset 0 -3px 0 var(--accent)}
-.chk{flex:none;width:44px;height:46px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0}
+.chk{flex:none;width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0}
 .chk span{width:22px;height:22px;border-radius:50%;border:2px solid var(--circle);background:var(--card)}
 .chk:hover span{border-color:var(--accent);background:var(--accent-soft)}
-.body{flex:1;min-width:0;padding:12px 0 11px;cursor:pointer}
-.ttext{font-size:15px;line-height:1.4;color:var(--text);overflow-wrap:anywhere;text-wrap:pretty}
-.meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:3px;font-size:13px;color:var(--muted)}
+.body{flex:1;min-width:0;padding:14px 0 13px;cursor:pointer}
+.ttext{font-size:16px;line-height:1.38;color:var(--text);overflow-wrap:anywhere;text-wrap:pretty}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:3px;font-size:13.5px;color:var(--muted)}
+.meta .person{display:inline-flex;align-items:center}
+.meta .person .pini{margin-right:5px}
 .meta .over{color:var(--red);font-weight:600}
 .alta{font-size:11.5px;font-weight:800;color:var(--red);background:var(--red-soft);border-radius:6px;padding:2px 6px}
 .unsynced{color:var(--amber)}
-.notes{margin-top:3px;font-size:13px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.more{flex:none;width:40px;height:46px;background:none;border:0;border-radius:10px;color:var(--faint);font-size:20px;line-height:1;padding:0}
+.notes{margin-top:3px;font-size:13.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more{flex:none;width:42px;height:52px;background:none;border:0;border-radius:10px;color:var(--muted);font-size:20px;line-height:1;padding:0}
+/* La hora, a la derecha del texto: una píldora (en rojo si ya pasó) que abre Posponer */
+.tcol{flex:none;display:flex;align-items:flex-start;padding-top:13px;margin-left:6px}
+.tcol .time{font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--text2);background:var(--sf2);border:0;border-radius:999px;padding:3px 10px;line-height:1.3}
+.tcol .time.past{color:var(--red);background:var(--red-soft)}
+.tcol button.time{cursor:pointer;position:relative}
+.tcol button.time::after{content:"";position:absolute;inset:-12px -6px}
+.tcol button.time:hover{background:var(--sf3)}
+.tcol button.time.past:hover{background:var(--red-soft);filter:brightness(.97)}
 .more:hover{background:var(--hover);color:var(--text2)}
 
 /* Hora, sugerencias, papelera */
 .meta .time{font-weight:600;color:var(--text2)}
 .meta .time.past{color:var(--red)}
-/* La hora de la fila es un botón: abre Posponer (zona de toque más grande que lo que se ve) */
-.meta button.time{font:inherit;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text2);background:var(--sf2);border:0;border-radius:10px;padding:2px 8px;cursor:pointer;position:relative}
-.meta button.time.past{color:var(--red);background:var(--red-soft)}
-.meta button.time::after{content:"";position:absolute;inset:-10px -4px}
-.meta button.time:hover{background:var(--sf3)}
 #eTime{font-size:13.5px;padding:6px 10px;border:1px solid var(--chip);border-radius:20px;color:var(--text2);background:var(--card)}
 .addcard{position:relative}
 .suggest{position:absolute;left:12px;right:12px;margin-top:6px;z-index:15;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px var(--shadow);padding:4px;display:flex;flex-direction:column}
@@ -348,7 +361,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .muted{margin:0;font-size:13.5px;color:var(--muted);line-height:1.5}
 .fine{margin:0;font-size:12.5px;color:var(--faint);line-height:1.5}
 .cfggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-.cfggrid label.fcol,.modal.sync label.fcol{gap:6px}
+.cfggrid label.fcol,.ajustes label.fcol{gap:6px}
 .cfgmsg{font-size:13px;color:var(--red)}
 .cfgbtns{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .clearbtn{align-self:flex-start;background:none;border:0;color:var(--red);font-size:13px;padding:4px 0;text-align:left}
@@ -426,6 +439,22 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .ncol[data-c=""]::before{background:linear-gradient(135deg,transparent 45%,var(--muted) 45%,var(--muted) 55%,transparent 55%),var(--card)}
 .ncol[data-c="amarillo"]::before{background:var(--n1)}.ncol[data-c="verde"]::before{background:var(--n2)}.ncol[data-c="azul"]::before{background:var(--n3)}.ncol[data-c="rosa"]::before{background:var(--n4)}.ncol[data-c="lila"]::before{background:var(--n5)}
 .ncol[aria-pressed="true"]::before{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
+/* Notas en grilla: 2 columnas en el celular, las que entren (de 200 px o más) en la compu */
+.ngrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:900px){.ngrid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
+.ngrid .task.note{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0 0 0 14px;min-height:5.5rem}
+.ngrid .task.note+.task.note{border-top:1px solid var(--border)}
+.ngrid .task.note[class*="nc-"]{border-color:transparent}
+.ngrid .task.note.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.ngrid .nico{display:none}
+.ngrid .body{padding:12px 0 14px}
+.ngrid .ttext{font-size:15px;font-weight:600}
+.ngrid .notes{white-space:normal;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;line-height:1.4}
+.ngrid .more{width:40px;height:44px}
+.nfilter{margin-bottom:14px}
+.nfilter .ncolchip{width:40px;padding:0;border:1px solid var(--border)}
+.nfilter .ncolchip.nc-amarillo{background:var(--n1)}.nfilter .ncolchip.nc-verde{background:var(--n2)}.nfilter .ncolchip.nc-azul{background:var(--n3)}.nfilter .ncolchip.nc-rosa{background:var(--n4)}.nfilter .ncolchip.nc-lila{background:var(--n5)}
+.nfilter .ncolchip[aria-pressed="true"]{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
 /* Notas con color (las ideas sin color, ámbar); "Fijada" e "Idea" también en texto */
 .task.note.nc-amarillo,.swipe .task.note.nc-amarillo{background:var(--n1)}
 .task.note.nc-verde{background:var(--n2)}.task.note.nc-azul{background:var(--n3)}.task.note.nc-rosa{background:var(--n4)}.task.note.nc-lila{background:var(--n5)}
@@ -594,6 +623,60 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
     <input id="search" class="inp" type="search" placeholder="Buscar por texto, @persona o detalle…" aria-label="Buscar">
     <button type="button" id="searchClose" class="textbtn">Cerrar</button>
   </div>
+  <!-- Ajustes: una pantalla (Atrás vuelve a Hoy; Cerrar, a la de antes). Sincronización es su primer grupo -->
+  <section id="syncOv" class="ajustes hidden" aria-label="Ajustes">
+    <div class="ajtop"><button type="button" id="syncX" class="textbtn">Cerrar</button></div>
+    <div class="ajgrp" id="ajSync">
+      <h2 id="syncH" class="ajh">Sincronización</h2>
+      <div class="statusbox"><span class="dot" id="syncDot"></span><span id="statusLong"></span></div>
+      <div id="guardBox" class="guardbox hidden">
+      <p id="guardTxt"></p>
+      <div class="cfgbtns"><button type="button" id="guardRestore" class="primary">Volver a subir la copia de este dispositivo</button><button type="button" id="guardAccept" class="secbtn">Fue a propósito: dejarlo así</button></div>
+    </div>
+      <div class="cfgbtns">
+        <button type="button" id="syncNow" class="secbtn hidden">Sincronizar ahora</button>
+        <a id="histLink" class="linkbtn hidden" target="_blank" rel="noopener">Ver historial en GitHub</a>
+        <button type="button" id="exportBtn" class="secbtn">Descargar copia</button>
+      </div>
+      <p id="avisosLine" class="muted hidden"></p>
+      <ul id="pendList" class="pendlist hidden"></ul>
+      <p class="muted">Cada tarea se guarda al instante en este dispositivo y se sube sola a GitHub. Sin señal, se sube cuando vuelve la conexión, aunque hayas cerrado la app.</p>
+      <p id="archLine" class="muted hidden"></p>
+    </div>
+    <div class="ajgrp devsec">
+      <h2 class="ajh">Este dispositivo</h2>
+      <div class="themerow"><span id="themeLbl">Apariencia</span><div class="seg" id="themeSeg" role="group" aria-labelledby="themeLbl">
+        <button type="button" data-t="auto">Automática</button><button type="button" data-t="light">Clara</button><button type="button" data-t="dark">Oscura</button>
+      </div></div>
+      <label id="kbdRow" class="switchrow hidden">Abrir la app con el teclado listo para anotar<input type="checkbox" id="kbdSw" role="switch"></label>
+      <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
+      <div id="appInfo" class="appinfo"><span id="appVer"></span><button type="button" id="appUpdate" class="linkbtn hidden">Actualizar</button></div>
+    </div>
+    <div class="ajgrp">
+      <h2 class="ajh">Herramientas</h2>
+      <div class="cfgbtns"><button type="button" id="setRep" class="secbtn">Informe</button><button type="button" id="setRev" class="secbtn">Revisión de la semana</button><button type="button" id="setTrash" class="secbtn">Papelera</button></div>
+    </div>
+    <div class="ajgrp">
+      <h2 class="ajh">Cuenta</h2>
+      <details id="acct" class="acct">
+      <summary>Cuenta de GitHub y token</summary>
+      <div class="cfggrid">
+        <label class="fcol">Usuario de GitHub<input id="owner" class="inp" autocomplete="off"></label>
+        <label class="fcol">Repositorio privado<input id="repo" class="inp" placeholder="mis-tareas-datos" autocomplete="off"></label>
+      </div>
+      <label class="fcol">Token<input id="token" class="inp" type="password" placeholder="Fine-grained · Contents: Read and write" autocomplete="off"></label>
+      <label class="fcol">El token vence el (opcional)<input id="tokenExp" class="inp" type="date"></label>
+      <p class="fine">La fecha la ves en GitHub, en la lista de tus tokens (Settings → Developer settings → Fine-grained tokens). Una semana antes te avisamos, acá y en el Telegram de la mañana. Se carga una vez y la ven tus dos dispositivos.</p>
+      <p class="fine">Usá un repositorio privado, distinto del de GitHub Pages, y un token fine-grained con acceso solo a ese repositorio (Contents: Read and write). El token queda guardado en este navegador: no cargues información confidencial.</p>
+      <div id="cfgMsg" class="cfgmsg hidden"></div>
+      <div class="cfgbtns">
+        <button type="button" id="saveCfg" class="primary">Guardar conexión</button>
+        <button type="button" id="credBtn" class="secbtn hidden">Traer de mis contraseñas</button>
+      </div>
+    </details>
+      <button type="button" id="clearCfg" class="clearbtn"></button>
+    </div>
+  </section>
   <!-- Buscar con el campo vacío: las personas, para buscar de un toque -->
   <div id="searchHome" class="searchhome hidden">
     <div id="searchPeopleRow" class="hidden"><span class="lbl">Personas</span><div id="searchPeople" class="chiprow"></div></div>
@@ -800,56 +883,6 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
     </div>
     <div id="eNoteRow" class="dfoot noteonly"><span class="spacer"></span><button type="button" id="eToTask" class="primary">Convertir en tarea</button></div>
   </form>
-</div>
-
-<div id="syncOv" class="overlay hidden">
-  <div class="modal sync" role="dialog" aria-modal="true" aria-labelledby="syncH">
-    <div class="mhead"><h2 id="syncH">Sincronización</h2><button type="button" class="xbtn" id="syncX" aria-label="Cerrar">✕</button></div>
-    <div class="statusbox"><span class="dot" id="syncDot"></span><span id="statusLong"></span></div>
-    <ul id="pendList" class="pendlist hidden"></ul>
-    <div id="guardBox" class="guardbox hidden">
-      <p id="guardTxt"></p>
-      <div class="cfgbtns"><button type="button" id="guardRestore" class="primary">Volver a subir la copia de este dispositivo</button><button type="button" id="guardAccept" class="secbtn">Fue a propósito: dejarlo así</button></div>
-    </div>
-    <div class="cfgbtns">
-      <button type="button" id="syncNow" class="secbtn hidden">Sincronizar ahora</button>
-      <button type="button" id="exportBtn" class="secbtn">Descargar copia</button>
-      <a id="histLink" class="linkbtn hidden" target="_blank" rel="noopener">Ver historial en GitHub</a>
-    </div>
-    <p class="muted">Cada tarea se guarda al instante en este dispositivo y se sube sola a GitHub. Sin señal, se sube cuando vuelve la conexión, aunque hayas cerrado la app.</p>
-    <p id="avisosLine" class="muted hidden"></p>
-    <p id="archLine" class="muted hidden"></p>
-    <details id="acct" class="acct">
-      <summary>Cuenta de GitHub y token</summary>
-      <div class="cfggrid">
-        <label class="fcol">Usuario de GitHub<input id="owner" class="inp" autocomplete="off"></label>
-        <label class="fcol">Repositorio privado<input id="repo" class="inp" placeholder="mis-tareas-datos" autocomplete="off"></label>
-      </div>
-      <label class="fcol">Token<input id="token" class="inp" type="password" placeholder="Fine-grained · Contents: Read and write" autocomplete="off"></label>
-      <label class="fcol">El token vence el (opcional)<input id="tokenExp" class="inp" type="date"></label>
-      <p class="fine">La fecha la ves en GitHub, en la lista de tus tokens (Settings → Developer settings → Fine-grained tokens). Una semana antes te avisamos, acá y en el Telegram de la mañana. Se carga una vez y la ven tus dos dispositivos.</p>
-      <p class="fine">Usá un repositorio privado, distinto del de GitHub Pages, y un token fine-grained con acceso solo a ese repositorio (Contents: Read and write). El token queda guardado en este navegador: no cargues información confidencial.</p>
-      <div id="cfgMsg" class="cfgmsg hidden"></div>
-      <div class="cfgbtns">
-        <button type="button" id="saveCfg" class="primary">Guardar conexión</button>
-        <button type="button" id="credBtn" class="secbtn hidden">Traer de mis contraseñas</button>
-      </div>
-    </details>
-    <div class="devsec">
-      <span class="lbl">Herramientas</span>
-      <div class="cfgbtns"><button type="button" id="setRep" class="secbtn">Informe</button><button type="button" id="setRev" class="secbtn">Revisión de la semana</button></div>
-    </div>
-    <div class="devsec">
-      <span class="lbl">Este dispositivo</span>
-      <div class="themerow"><span id="themeLbl">Apariencia</span><div class="seg" id="themeSeg" role="group" aria-labelledby="themeLbl">
-        <button type="button" data-t="auto">Automática</button><button type="button" data-t="light">Clara</button><button type="button" data-t="dark">Oscura</button>
-      </div></div>
-      <label id="badgeRow" class="switchrow hidden">Número en el ícono (vencidas y para hoy)<input type="checkbox" id="badgeSw" role="switch"></label>
-      <label id="kbdRow" class="switchrow hidden">Abrir la app con el teclado listo para anotar<input type="checkbox" id="kbdSw" role="switch"></label>
-      <div id="appInfo" class="appinfo"><span id="appVer"></span><button type="button" id="appUpdate" class="linkbtn hidden">Actualizar</button></div>
-      <button type="button" id="clearCfg" class="clearbtn"></button>
-    </div>
-  </div>
 </div>
 
 <div id="repOv" class="overlay hidden">
@@ -2261,7 +2294,7 @@ const SHEET=COARSE;
 if(SHEET)document.body.classList.add('capsheet');
 function openCap(focus=true){
   closeMenu();
-  if(scr==='buscar')goScreen('hoy');   // (en Buscar no se anota)
+  if(scr==='buscar'||scr==='ajustes')goScreen('hoy');   // (en Buscar y Ajustes no se anota)
   if(!SHEET){if(focus)$('title').focus();return}
   if(dock)return;
   capOpen=true;document.body.classList.add('capopen');$('capScrim').classList.remove('hidden');
@@ -2432,14 +2465,21 @@ function renderList(){
   // muestran (no tienen quién las pidió).
   const nlist=personFilter||!(scr==='notas'||scr==='buscar'&&q)?[]:notes.filter(match).sort((a,b)=>!!b.pinned-!!a.pinned||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const ns=$('notesSec');ns.replaceChildren();
-  if(nlist.length){
+  // En Notas: los chips para filtrar (Todas, Ideas y los colores que se usan). Las notas van en grilla: Fijadas y
+  // Otras, o Recientes si no hay fijadas.
+  if(scr==='notas'&&notes.length&&!personFilter)ns.append(noteFilterRow());
+  const nshown=nlist.filter(t=>noteFilter==='todas'||(noteFilter==='ideas'?!!t.idea:noteColor(t)===noteFilter)||scr!=='notas');
+  const pinned=nshown.filter(t=>t.pinned),rest=nshown.filter(t=>!t.pinned);
+  [[pinned,'Fijadas'],[rest,pinned.length?'Otras':'Recientes']].forEach(([list,title])=>{
+    if(!list.length)return;
     const grp=el('div','grp'),head=el('div','ghead');
-    head.append(...foldHead('notes','Notas',nlist,false,true));grp.append(head);
-    const card=el('div','card');
-    nlist.forEach(t=>{visibleIds.push(t.id);card.append(noteRow(t))});
-    grp.append(card);
+    head.append(...foldHead('notes',title,list,false,true));grp.append(head);
+    const grid=el('div','ngrid');
+    list.forEach(t=>{visibleIds.push(t.id);grid.append(noteRow(t))});
+    grp.append(grid);
     ns.append(grp);
-  }
+  });
+  if(scr==='notas'&&nlist.length&&!nshown.length)ns.append(el('div','emptycard',noteFilter==='ideas'?'No hay ideas.':'No hay notas de ese color.'));
   // En pantallas anchas, después de la columna principal (con las notas) vienen Esperando y Sin fecha, a la derecha
   visibleIds.push(...waitIds,...noneIds);
   fitSide();
@@ -2538,7 +2578,18 @@ function renderSearchHome(on){
 // ---- Grupos plegables ----
 function foldedGroups(){const v=load(K_FOLD,[]);return new Set(Array.isArray(v)?v:[])}
 function setFold(id,shut){if(id==='notes'){store(K_NOTES_OPEN,!shut);return}const f=foldedGroups();if(shut)f.add(id);else f.delete(id);store(K_FOLD,[...f])}
-// Una nota en la lista: sin casilla (no se termina); tocándola se edita, y en ⋯ se convierte en tarea
+// Filtro de Notas: Todas, Ideas o un color (solo los que se usan)
+let noteFilter='todas';
+function noteFilterRow(){
+  const row=el('div','chiprow nfilter');row.setAttribute('role','group');row.setAttribute('aria-label','Filtrar notas');
+  const used=NOTE_COLORS.filter(c=>notes.some(t=>noteColor(t)===c));
+  if(!used.includes(noteFilter)&&noteFilter!=='ideas')noteFilter='todas';
+  const chip=(v,label,cls)=>{const b=el('button','chip'+(cls?' '+cls:''),label);b.type='button';b.setAttribute('aria-pressed',String(noteFilter===v));b.onclick=()=>{noteFilter=noteFilter===v&&v!=='todas'?'todas':v;renderList()};return b};
+  row.append(chip('todas','Todas'),chip('ideas','Ideas'));
+  used.forEach(c=>{const b=chip(c,'','ncolchip nc-'+c);b.setAttribute('aria-label',c[0].toUpperCase()+c.slice(1));b.title=b.getAttribute('aria-label');row.append(b)});
+  return row;
+}
+// Una nota en la grilla: sin casilla (no se termina); tocándola se abre el detalle, y en ⋯ se convierte en tarea
 function noteRow(t){
   const c=noteColor(t)||(t.idea?'amarillo':'');
   const row=el('div','task note'+(c?' nc-'+c:'')+(sel===t.id?' sel':''));row.dataset.id=t.id;
@@ -2593,8 +2644,10 @@ function renderHint(){
 }
 $('hintOk').onclick=()=>{const v=hintsSeen();hintKeys.forEach(k=>{v[k]=1});store(K_HINT,v);renderHint()};
 // Tocar "@Laura" filtra por esa persona (sin abrir la edición)
-function personBtn(name,label){
-  const b=el('button','person',label);b.type='button';b.title='Ver solo las de '+name;
+// ini: con el círculo de su inicial (color fijo por persona) junto al nombre
+function personBtn(name,label,ini){
+  const b=el('button','person');b.type='button';b.title='Ver solo las de '+name;
+  if(ini)b.append(personIni(name));b.append(label);
   b.onclick=e=>{e.stopPropagation();setPersonFilter(name)};
   return b;
 }
@@ -2619,7 +2672,7 @@ function taskRow(t,gid,unsynced){
       row.classList.remove('dropbefore','dropafter');dropTask(id,t.id,after);
     });
   }
-  const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Marcar terminada');
+  const chk=el('button','chk');chk.type='button';chk.title='Terminar';chk.setAttribute('aria-label','Terminar: '+t.title);
   chk.append(el('span'));chk.onclick=()=>doneAnimated(row,t);
   const body=el('div','body');body.onclick=()=>openEdit(t);
   const tx=el('div','ttext');
@@ -2627,37 +2680,36 @@ function taskRow(t,gid,unsynced){
   tx.append(t.title);body.append(tx);
   // En la compu, al pasar el mouse: cuándo y dónde se anotó, y cuántas veces se pateó
   if(FINE&&t.createdAt){const a=-daysUntil(ymd(new Date(t.createdAt)));body.title='Anotada '+(a===0?'hoy '+timeNow(new Date(t.createdAt)):a===1?'ayer '+timeNow(new Date(t.createdAt)):'hace '+a+' días')+(t.src==='cel'?' en el celu':t.src==='pc'?' en la compu':'')+(t.postponed?' · pateada '+t.postponed+(t.postponed===1?' vez':' veces'):'')}
-  // La fecha solo donde aporta: en Hoy y Mañana sería redundante
+  // El renglón de detalle, en este orden: Alta · fecha (en Vencidas y más allá de mañana) o "Esperando · hace N días"
+  // (en ámbar si toca reclamar) · reclamado · mirar hoy · pateada N× · quién (inicial y nombre) · ↻ repetición · sin subir
   const showDue=!!t.due&&(gid==='over'||gid==='week'||gid==='later');
   const meta=el('div','meta');
-  if(gid==='waiting'){
-    // "Juan · hace 3 días" o "Juan · reclamado hace 1 día (2º)": tarde desde los 3 días, en ámbar.
-    // Con fecha para volver a mirarla, "mirar jue 15" (en ámbar ese día).
-    const ref=t.lastNudge||t.waitingSince,days=ref?Math.max(0,-daysUntil(ymd(new Date(ref)))):0,late=waitingLate(t);
-    const w=el('span',late?'late':null),ago=days===0?'hoy':days===1?'hace 1 día':'hace '+days+' días';
-    if(t.waitingOn)w.append(personBtn(t.waitingOn,t.waitingOn),' · ');else w.append('Esperando · ');
-    w.append(t.lastNudge?'reclamado '+ago+(t.nudges>1?' ('+t.nudges+'º)':''):days===0?'desde hoy':ago);
-    meta.append(w);
-    if(t.followUp)meta.append(el('span',late?'late':null,'mirar '+(daysUntil(t.followUp)<=0?'hoy':shortDue(t.followUp).toLowerCase())));
-  }
-  if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
-  // Hora: en rojo si es para hoy y ya pasó
-  const tt=taskTime(t);
-  if(tt){
-    const past=t.due===ymd(new Date())&&tt<timeNow(new Date()),tb=el(t.done?'span':'button','time'+(past?' past':''),tt);
-    if(!t.done){tb.type='button';tb.setAttribute('aria-label','Aviso a las '+tt+'. Posponer');tb.title='Posponer';tb.onclick=e=>{e.stopPropagation();openPos(t)}}
-    meta.append(tb);
-  }
-  if(t.repeat&&REPEAT_LABEL[t.repeat])meta.append(el('span',null,'↻ '+REPEAT_LABEL[t.repeat]));
   if(t.priority==='Alta')meta.append(el('span','alta','Alta'));
+  const who=[];
+  if(gid==='waiting'){
+    const days=t.waitingSince?Math.max(0,-daysUntil(ymd(new Date(t.waitingSince)))):0,late=waitingLate(t);
+    const ago=d=>d===0?'hoy':d===1?'hace 1 día':'hace '+d+' días';
+    meta.append(el('span',late?'late':null,'Esperando · '+(days===0?'desde hoy':ago(days))));
+    if(t.lastNudge){const nd=Math.max(0,-daysUntil(ymd(new Date(t.lastNudge))));meta.append(el('span',late?'late':null,'reclamado '+ago(nd)+(t.nudges>1?' ('+t.nudges+'º)':'')))}
+    if(t.followUp)meta.append(el('span',late?'late':null,'mirar '+(daysUntil(t.followUp)<=0?'hoy':shortDue(t.followUp).toLowerCase())));
+    if(t.waitingOn)who.push(t.waitingOn);
+  }else if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
   if((t.postponed||0)>=3)meta.append(el('span','late','pateada '+t.postponed+'×'));
-  if(t.requester&&!(gid==='waiting'&&samePerson(t.requester,t.waitingOn)))meta.append(personBtn(t.requester,'@'+t.requester));
+  if(t.requester&&!who.some(n=>samePerson(n,t.requester)))who.push(t.requester);
+  who.forEach(n=>meta.append(personBtn(n,n,true)));
+  if(t.repeat&&REPEAT_LABEL[t.repeat])meta.append(el('span',null,'↻ '+REPEAT_LABEL[t.repeat]));
   if(unsynced.has(t.id))meta.append(el('span','unsynced','sin subir'));
   if(meta.childNodes.length)body.append(meta);
   if(t.notes){const n=el('div','notes');n.append(...notesNodes(t.notes));body.append(n)}
+  // La hora, a la derecha (en rojo si es para hoy y ya pasó): tocarla abre Posponer
+  const tt=taskTime(t);let tb=null;
+  if(tt){
+    const past=t.due===ymd(new Date())&&tt<timeNow(new Date());tb=el(t.done?'span':'button','time'+(past?' past':''),tt);
+    if(!t.done){tb.type='button';tb.setAttribute('aria-label','Aviso a las '+tt+'. Posponer');tb.title='Posponer';tb.onclick=e=>{e.stopPropagation();openPos(t)}}
+  }
   const more=el('button','more','⋯');more.type='button';more.setAttribute('aria-label','Más acciones');more.setAttribute('aria-haspopup','menu');
-  more.onclick=e=>{e.stopPropagation();openMenu(t.id,e.detail===0)};
-  row.append(chk,body,more);
+  more.onclick=e=>{e.stopPropagation();openMenu(t.id,e.detail===0)};more.setAttribute('aria-label','Más acciones: '+t.title);
+  row.append(chk,body);if(tb){const tc=el('span','tcol');tc.append(tb);row.append(tc)}row.append(more);
   return row;
 }
 
@@ -2762,9 +2814,12 @@ function placeMenu(){
   const m=$('menu'),mh=m.offsetHeight,mw=m.offsetWidth;
   if(!row){m.style.top=(Math.max(8,(innerHeight-mh)/3)+scrollY)+'px';m.style.left=(Math.max(8,(document.documentElement.clientWidth-mw)/2)+scrollX)+'px';return}
   const r=row.querySelector('.more').getBoundingClientRect();
-  let top=r.bottom+2;if(top+mh>innerHeight-8)top=Math.max(8,r.top-mh-2);
+  // Si no entra ni abajo ni arriba, abajo igual (la página se alarga): nunca tapa su fila
+  let top=r.bottom+2;if(top+mh>innerHeight-8&&r.top-mh-2>=8)top=r.top-mh-2;
   m.style.top=(top+scrollY)+'px';m.style.left=(Math.max(8,Math.min(r.right-mw,document.documentElement.clientWidth-mw-8))+scrollX)+'px';
 }
+// (si la página se achica y el navegador la corre, por ejemplo al ocultarse el tip, el menú sigue a su fila)
+window.addEventListener('scroll',()=>{if(menuId&&!COARSE)placeMenu()},{passive:true});
 function closeMenu(){menuId=null;menuFree=false;$('menu').classList.add('hidden');$('menuBackdrop').classList.add('hidden')}
 if(COARSE){$('menu').classList.add('sheet');$('menuBackdrop').classList.add('dim')}
 
@@ -3587,7 +3642,7 @@ function keyboardOpen(){
 if(window.visualViewport)visualViewport.addEventListener('resize',scheduleFabs);
 function renderFabs(){
   // Con una ventana abierta encima, el aviso de abajo baja (no tapa sus botones)
-  const ov=overlayOpen();if(document.body.classList.contains('ovl')!==ov)document.body.classList.toggle('ovl',ov);
+  const ov=overlayOpen(true);if(document.body.classList.contains('ovl')!==ov)document.body.classList.toggle('ovl',ov);
   if(!COARSE)return;
   const a=document.activeElement,typing=!!a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)&&!listening&&!autoSave;
   const show=!menuId&&!overlayOpen()&&!typing&&!capOpen,kb=typing&&keyboardOpen();
@@ -3614,7 +3669,7 @@ $('fabMic').onclick=()=>{
 document.addEventListener('focusin',scheduleFabs);document.addEventListener('focusout',scheduleFabs);
 
 // ---- Pantallas ----
-const SCR_TITLE={hoy:'Hoy',tareas:'Tareas',notas:'Notas',buscar:'Buscar'};
+const SCR_TITLE={hoy:'Hoy',tareas:'Tareas',notas:'Notas',buscar:'Buscar',ajustes:'Ajustes'};
 function applyScreen(){
   const b=document.body;
   Object.keys(SCR_TITLE).forEach(x=>b.classList.toggle('scr-'+x,x===scr));
@@ -3622,6 +3677,9 @@ function applyScreen(){
   document.querySelectorAll('#nav .nb').forEach(x=>{if(x.dataset.s===scr)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   $('scrTitle').textContent=SCR_TITLE[scr];
   $('searchBar').classList.toggle('hidden',!searchOpen);
+  // Ajustes: como Buscar, una pantalla que se cierra (a la de antes) y que el botón Atrás deja en Hoy
+  settingsOpen=scr==='ajustes';$('syncOv').classList.toggle('hidden',!settingsOpen);
+  if(settingsOpen)$('setBtn').setAttribute('aria-current','page');else $('setBtn').removeAttribute('aria-current');
 }
 // Pasar a otra pantalla. tap: lo pidió un toque (o una tecla), así la entrada del historial para el botón Atrás se puede
 // crear (Chrome saltea las que se crean sin que hayas tocado nada). Tareas y Notas vuelven a donde estabas; Hoy y
@@ -3631,7 +3689,8 @@ function goScreen(s,o={}){
   if(s===scr)return;
   closeMenu();
   const from=scr;scrollPos[from]=scrollY;
-  if(from==='buscar')$('search').value='';else scrPrev=from;
+  if(from==='buscar')$('search').value='';else if(from!=='ajustes')scrPrev=from;
+  if(from==='ajustes'){confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'))}
   if(personFilter&&s!=='tareas'&&s!=='buscar'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
   if(!$('title').value.trim()&&(s==='notas'||from==='notas'))asNote=s==='notas';
@@ -3643,7 +3702,7 @@ function goScreen(s,o={}){
 }
 // La entrada de Tareas o Notas en el historial (Atrás desde ahí vuelve a Hoy; ver "Botón Atrás")
 const layerOf=x=>x==='tareas'||x==='notas'?x:null;
-function scrLayer(){return layerOf(scr==='buscar'?scrPrev:scr)}
+function scrLayer(){return layerOf(scr==='buscar'||scr==='ajustes'?scrPrev:scr)}
 function tapHistory(){
   const want=scrLayer(),st=history.state,cur=st&&st.pantalla||null;
   if(!want||navPending)return;   // a Hoy: se vuelve atrás solo (syncBack)
@@ -4128,7 +4187,7 @@ $('eToTask').onclick=()=>editThen(t=>{if(isNote(t))toTask(t)});
 $('archBtn').onclick=()=>loadArchive();
 // Tocar el fondo oscuro cierra el modal, salvo que el toque empiece adentro
 // (por ejemplo, al arrastrar para seleccionar texto y soltar afuera)
-['editOv','syncOv'].forEach(id=>$(id).addEventListener('pointerdown',e=>{downOn=e.target}));
+$('editOv').addEventListener('pointerdown',e=>{downOn=e.target});
 $('editOv').addEventListener('click',e=>{if(e.target===$('editOv')&&downOn===e.target)dismissEdit()});
 // En el panel de la compu, tocar afuera (en un lugar vacío de la página, no en una fila ni un botón) también cierra
 // (al apoyar, antes del clic: el clic que abre otra no lo cierra)
@@ -4140,11 +4199,13 @@ $('eDel').onclick=()=>{const t=edit&&findLive(edit.id);if(t)del(t);else closeEdi
 
 // ---- Sincronización ----
 function openSettings(){
-  closeMenu();settingsOpen=true;confirmClear=false;confirmAccept=false;
+  closeMenu();
+  if(scr!=='ajustes'){goScreen('ajustes');if(scr!=='ajustes')return}   // (con el detalle sin título no se va)
+  confirmClear=false;confirmAccept=false;window.scrollTo(0,0);
   // El token guardado no se muestra (con la compu desbloqueada se copiaría en segundos): solo sus últimas letras
   $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value='';$('tokenExp').value=cfg.tokenExp||'';
   $('token').placeholder=cfg.token?'Guardado (…'+cfg.token.slice(-4)+') · pegá uno nuevo para cambiarlo':'Fine-grained · Contents: Read and write';
-  $('cfgMsg').classList.add('hidden');$('syncOv').classList.remove('hidden');$('wrap').inert=true;
+  $('cfgMsg').classList.add('hidden');
   // La cuenta queda plegada, salvo que falte configurarla o haya que cambiar el token
   $('acct').open=!configured()||errorKind==='hard';
   $('credBtn').classList.toggle('hidden',!window.PasswordCredential);
@@ -4152,7 +4213,8 @@ function openSettings(){
   $('kbdRow').classList.toggle('hidden',!COARSE);$('kbdSw').checked=kbdOnOpen();
   renderDevice();renderStatus();renderGuard();checkAvisos(true);
 }
-function closeSettings(){settingsOpen=false;confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'));$('syncOv').classList.add('hidden');$('wrap').inert=false}
+// Cerrar: a la pantalla de antes; el botón Atrás, a Hoy
+function closeSettings(to){if(scr==='ajustes')goScreen(to||scrPrev||'hoy')}
 function renderSync(st){
   const n=getOutbox().length;
   $('syncDot').style.background=st.dot;$('statusLong').textContent=st.long;
@@ -4169,13 +4231,16 @@ function renderSync(st){
   $('archLine').classList.toggle('hidden',!archiveError);
   $('clearCfg').textContent=confirmClear?(n?'Hay '+cambios(n)+' sin subir que se van a perder. Tocá de nuevo para borrar.':'Tocá de nuevo para confirmar'):'Borrar conexión y datos de este dispositivo';
 }
-$('statusBtn').onclick=openSettings;
-$('setBtn').onclick=openSettings;
-// Herramientas (también al final de Tareas, junto a Terminadas)
+$('statusBtn').onclick=()=>openSettings();
+$('setBtn').onclick=()=>{if(settingsOpen)closeSettings();else openSettings()};
+// Herramientas (Informe y Revisión también al final de Tareas, junto a Terminadas; la Papelera, al final de Tareas)
 $('setRep').onclick=()=>{closeSettings();openReport()};
 $('setRev').onclick=()=>{closeSettings();openProc(true)};
-$('syncX').onclick=closeSettings;
-$('syncOv').addEventListener('click',e=>{if(e.target===$('syncOv')&&downOn===e.target)closeSettings()});
+$('setTrash').onclick=()=>{
+  goScreen('tareas',{tap:true});showTrash=true;confirmEmpty=false;renderTrash();
+  const t=$('trashSec');if(!t.classList.contains('hidden'))t.scrollIntoView({block:'start',behavior:'smooth'});else toast('La papelera está vacía');
+};
+$('syncX').onclick=()=>closeSettings();
 $('saveCfg').onclick=()=>{
   // Con el campo del token vacío, sigue el que estaba guardado
   const next={owner:$('owner').value.trim(),repo:$('repo').value.trim(),token:$('token').value.trim()||cfg.token||''};
@@ -4375,7 +4440,7 @@ function backClose(){
   if(repOpen())return closeReport();
   if(proc)return closeProc();
   if(bulk)return dismissBulk();
-  if(settingsOpen)return closeSettings();
+  if(settingsOpen)return closeSettings('hoy');
   if(menuId)return closeMenu();
   if(capOpen)return closeCap();
   if(dock){if(listening)stopVoice(true);return closeDock()}
@@ -4451,7 +4516,8 @@ WIDE.addEventListener('change',renderList);
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
 // Algo abierto encima de la lista (una tarea, Sincronización, el informe, Ordenar…)
-function overlayOpen(){return !!(edit||bulk||waitFor||ask||pos||settingsOpen||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))}
+// screenOk: Ajustes (una pantalla) no cuenta
+function overlayOpen(screenOk){return !!(edit||bulk||waitFor||ask||pos||settingsOpen&&!screenOk||dock||proc||repOpen()||!$('textOv').classList.contains('hidden'))}
 // Lo compartido: en el campo (o, si son varias líneas, la lista para cargarlas). Lo que estaba en el campo queda
 // guardado aparte y vuelve después (como al abrir compartiendo).
 function fillShared(params){
