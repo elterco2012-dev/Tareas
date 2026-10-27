@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-fnu3MWnw6KPJcb0o8hRKUGNSx6+6VRC0WlEMdodgRlo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-mv70eqZv83Pb8bbXolglwNlUkj1OC3y10Hrr9atOzMI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -577,7 +577,6 @@ body:not(.scr-hoy) .top .sub{display:none}
 @media (min-width:1200px){.wrap>:not(.nav){max-width:1140px}}
 /* Los atajos al pie de la barra lateral: N, / y . a la vista; "Atajos" despliega el resto */
 .shortcuts .scx{display:none}
-.shortcuts.open .scx{display:flex}
 #wrap>.shortcuts .scx{display:flex}
 #wrap>.shortcuts .scbtn{display:flex}
 .shortcuts .scbtn{display:flex;align-items:center;gap:5px;background:none;border:0;padding:2px 0;color:var(--accent);font-weight:600;font-size:0.7812rem;text-align:left}
@@ -987,11 +986,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.27-1"></script>
+<script src="sync-core.js?v=2026.10.27-2"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.27-1';
+const APP_VERSION='2026.10.27-2';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -4406,9 +4405,16 @@ function openHelp(){
   closeMenu();helpOpen=true;
   const dl=$('helpList');dl.replaceChildren();
   SHORTCUTS.concat([['Esc','cerrar lo que esté abierto'],['?','esta ayuda']]).forEach(([k,d])=>{const dt=el('dt');dt.append(el('kbd',null,k));dl.append(dt,el('dd',null,d))});
+  // Al cerrar, la lista queda como estaba (bloqueada si había otra ventana abierta) y el foco vuelve a donde estaba
+  helpWas={inert:$('wrap').inert,focus:document.activeElement};
   $('helpOv').classList.remove('hidden');$('wrap').inert=true;$('helpX').focus();
 }
-function closeHelp(){helpOpen=false;releaseFocus($('helpOv'));$('helpOv').classList.add('hidden');if(!otherOverlay()&&!editModal())$('wrap').inert=false}
+let helpWas=null;
+function closeHelp(){
+  helpOpen=false;releaseFocus($('helpOv'));$('helpOv').classList.add('hidden');
+  const w=helpWas||{inert:false};helpWas=null;$('wrap').inert=w.inert;
+  if(w.focus&&w.focus!==document.body&&w.focus.isConnected&&!w.focus.closest('[inert]'))try{w.focus.focus({preventScroll:true})}catch{}
+}
 $('helpX').onclick=closeHelp;
 $('helpOv').addEventListener('pointerdown',e=>{downOn=e.target});
 $('helpOv').addEventListener('click',e=>{if(e.target===$('helpOv')&&downOn===e.target)closeHelp()});

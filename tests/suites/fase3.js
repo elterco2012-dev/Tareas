@@ -69,6 +69,14 @@ await p.locator('#shortcuts .scbtn').click();await sleep(150);
 ok(await p.isVisible('#helpOv'),'"? todos los atajos" opens it too');
 await p.locator('#helpX').click();await sleep(150);
 ok(!(await p.isVisible('#helpOv'))&&await p.evaluate(()=>!$('wrap').inert),'✕ closes it and the list is usable again');
+// Desde la pantalla Ajustes (con el botón del pie): al cerrar, todo sigue andando
+await p.locator('#setBtn').click();await sleep(300);
+await p.locator('#shortcuts .scbtn').click();await sleep(150);
+ok(await p.isVisible('#helpOv'),'the help opens from the sidebar while on Ajustes');
+await p.keyboard.press('Escape');await sleep(150);
+ok(!(await p.isVisible('#helpOv'))&&await p.evaluate(()=>!$('wrap').inert&&document.body.dataset.screen==='ajustes'),'closing it on Ajustes leaves the app usable (still on Ajustes)');
+await p.locator('#navHoy').click({timeout:3000});await sleep(200);
+ok(await p.evaluate(()=>document.body.dataset.screen)==='hoy','and the sidebar responds');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 
