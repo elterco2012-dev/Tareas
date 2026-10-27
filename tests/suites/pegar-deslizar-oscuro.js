@@ -76,7 +76,7 @@ await swipe('Tarea A',30,160);
 ok(gh.items.find(x=>x.id==='a').done===false,'vertical gesture does not swipe');
 // tap still opens edit
 await p.locator('.task',{hasText:'Tarea A'}).locator('.body').tap();await sleep(200);
-ok(await p.isVisible('#editOv'),'tap still opens edit');await p.click('#editX');
+ok(await p.isVisible('#editOv'),'tap still opens edit');await p.click('#eSave');
 ok(p.errs.length===0,'mobile errors '+JSON.stringify(p.errs));
 await ctx.close();
 
@@ -109,7 +109,7 @@ for(const vp of [{viewport:{width:375,height:800},isMobile:true,hasTouch:true},{
   bad=await contrast(p);ok(bad.length===0,'dark contrast main '+vp.width+': '+JSON.stringify(bad));
   if(await p.evaluate(()=>document.body.classList.contains('capopen'))){await p.click('#capScrim',{position:{x:10,y:10}});await sleep(150)}   // (celular: se cierra la hoja)
   await p.locator('.task .more').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast menu: '+JSON.stringify(bad));await p.keyboard.press('Escape');
-  await p.locator('.task .body').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast edit: '+JSON.stringify(bad));await p.click('#editX');
+  await p.locator('.task .body').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast edit: '+JSON.stringify(bad));await p.click('#eSave');
   await p.click('#statusBtn');bad=await contrast(p);ok(bad.length===0,'dark contrast sync: '+JSON.stringify(bad));await p.click('#syncX');
   await p.locator('.task .chk').first().click();await L.until(async()=>(await p.innerText('#toastMsg'))==='Tarea terminada');await sleep(200);bad=await contrast(p);ok(bad.length===0,'dark contrast toast: '+JSON.stringify(bad));
   ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow '+vp.width);

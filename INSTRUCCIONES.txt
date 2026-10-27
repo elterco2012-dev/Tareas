@@ -66,7 +66,7 @@ PANTALLAS
   por Telegram). Al final, "Mañana · N" y "Esperando respuesta · N" llevan a esa parte de Tareas.
 - Tareas: la lista completa, con todos los grupos, Esperando, Terminadas (con Informe y Revision de la semana) y la
   Papelera.
-- Notas: las notas, las mas nuevas primero. Estando ahi, lo que anotas arranca como nota.
+- Notas: las notas, las fijadas y despues las mas nuevas primero. Estando ahi, lo que anotas arranca como nota.
 - Buscar: el campo de busqueda (ver "Buscar" mas abajo). Con el campo vacio muestra las personas: un toque busca
   todo lo de esa persona. "Cerrar" (o Esc) vuelve a la pantalla de antes.
 - Ajustes (la rueda, al lado del punto de estado) abre Sincronizacion, que ahora tambien tiene Herramientas:
@@ -86,10 +86,31 @@ LA HOJA PARA ANOTAR
   - Avisar (solo en Recordatorio): 9:00 · 12:00 · 15:00 · 18:00. Se marca solo la que elegís a mano, y esa manda sobre la hora escrita (la escrita se ve en "Entendi:").
   En Notas la hoja arranca en Nota. Desde Buscar, el "+" lleva a Hoy.
 
+EL DETALLE DE UNA TAREA O NOTA
+- Toca el texto de una tarea o nota para abrir su detalle. En el celular sube como una hoja desde abajo; en la compu,
+  con la ventana ancha, ocupa la columna de la derecha (en lugar de Esperando y Sin fecha, que vuelven al cerrarlo);
+  con la ventana mas angosta, es una ventana en el medio.
+- Arriba: "‹" (cierra y guarda), el tipo (Tarea, Recordatorio o Nota), "Se guarda al cerrar" y la papelera (borrar).
+  Cuando cambias algo, "Se guarda al cerrar" pasa a ser "Descartar": cierra sin guardar.
+- Se guarda al cerrar, nunca mientras escribis: con "‹", Atras, tocando afuera, Esc o, en la compu, eligiendo otra
+  fila. Aparece "Cambios guardados" con "Deshacer". Si el titulo queda vacio no se guarda y avisa.
+- Mientras editas, lo cambiado queda ademas guardado en este dispositivo (no se sube). Si el celular cierra la app
+  antes de que cierres el detalle, al volver a abrir esa tarea aparece "Tenias cambios sin guardar · Recuperar".
+- Tarea: el titulo; Para cuando (Hoy, Mañana, Lunes, Sin fecha u otra fecha; si esta anotada al pasar, la linea del
+  punto azul hasta que elijas); Aviso (9:00, 12:00, 15:00, 18:00 u otra hora, "Sin hora", y con hora "Posponer..." y
+  "Al calendario"); Prioridad; Pedida por (con las personas de siempre, cada una con su inicial); Se repite y Detalle.
+  Abajo: "⋯" (el mismo menu de la fila), "Esperando..." (o "Ya respondio") y "Terminar". Lo que hayas cambiado se
+  guarda antes.
+- Nota: el titulo, el texto, "Es una idea", "Fijar arriba" y el color (sin color o uno de 5 tonos), y cuando se edito
+  por ultima vez. Las fijadas van primero en Notas; la nota toma su color (una idea sin color, amarillo) y dice
+  "Fijada" o "Idea". Abajo, "Convertir en tarea": queda para hoy, anotada al pasar, con "Deshacer". Lo que anotes con
+  "idea:" al principio ya queda marcado como idea.
+- Tocar la hora de una tarea (el "15:00" de la fila) abre Posponer: En 1 hora, Hoy 18:00, Mañana 9:00, Hecha o Abrir.
+
 USO DIARIO
 - Abris la app, escribis la tarea y Enter: queda para hoy. Con los botones Mañana, Lunes o Sin fecha elegis otro dia.
 - Despues de agregar aparece "Agregada para mañana · 15:00 · @Laura" con "Deshacer" (la borra) y "Cambiar" (abre
-  Editar, por si se entendio mal algo).
+  el detalle, por si se entendio mal algo).
 - Si el texto no dice quien la pidio, en el celular aparece "De: Laura · Juan · Marcela": un toque la agrega.
 - Si te interrumpen mientras escribis, lo escrito queda guardado: la proxima vez que abras la app sigue ahi.
 - Texto libre: "Llamar proveedor viernes !alta @Juan" carga la fecha, la prioridad y quien la pidio.
@@ -103,14 +124,14 @@ USO DIARIO
   Si decis un dia de la semana con un numero que no coincide ("el sabado 10" cuando el 10 no cae sabado), manda el
   dia de la semana y el numero queda en el texto, a la vista, para que lo corrijas. Mira siempre el "Entendi".
   El dia del mes solo tambien sirve: "pagar el alquiler el 15", "el dia 20" (este mes, o el que viene si ya paso). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
-  y la hora se pone en rojo cuando ya paso. Se cambia o se quita en Editar.
+  y la hora se pone en rojo cuando ya paso. Se cambia o se quita en el detalle; tocandola se pospone.
   Tambien entiende "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media" o "en 1 hora y 20"
   (hoy, a esa hora).
   El aviso de Telegram llega entre 10 y 40 minutos antes: para algo de menos de una hora, usa "Al calendario".
   Si los avisos por Telegram ya andan, el "Entendi" (y el aviso de abajo al agregarla) dice cuando llega:
   "Aviso 14:50", "Aviso 10:20 (tarde)" si la corrida de antes ya paso, o "Sin aviso (muy tarde)" para las de
   despues de las 23:29 (las corridas son de 6:20 a 22:50).
-  "Recordame ..." sin hora queda a las 9:00 (para que llegue el aviso); se cambia diciendo la hora o en Editar.
+  "Recordame ..." sin hora queda a las 9:00 (para que llegue el aviso); se cambia diciendo la hora o en el detalle.
   Si es para hoy y ya paso el aviso de las 9, queda sin hora y el "Entendi" dice "Sin hora: sin aviso".
 - Sugerencias: mientras escribis aparecen tareas que ya cargaste antes, con quien las pidio. Toca una (o elegila
   con las flechas y Enter) y queda en el campo para agregarla. Despues de "@" sugiere las personas que ya usaste.
@@ -135,8 +156,8 @@ USO DIARIO
 - Toca la casilla redonda para terminar una tarea, el texto para editarla, o "⋯" para pasarla a hoy, mañana o el lunes, o borrarla.
   En el celular, "⋯" se abre como una hoja desde abajo, con el nombre de la tarea arriba.
   Despues de terminar, reagendar, borrar o guardar cambios aparece "Deshacer" por unos segundos.
-- Editar: si cambiaste algo y cerras con Atras, tocando afuera o con Esc, se guarda (con "Deshacer").
-  La ✕ y "Cancelar" descartan los cambios.
+- Detalle: si cambiaste algo y cerras con "‹", Atras, tocando afuera o con Esc, se guarda (con "Deshacer").
+  "Descartar" cierra sin guardar (ver "El detalle de una tarea o nota").
 - Terminadas: toca una para verla entera (con su detalle) sin volver a ponerla pendiente. Desde ahi podes corregir
   el detalle o tocar "Volver a pendientes". Para volverla a pendientes tambien sirve el circulo con el ✓.
 - Links en el detalle: se muestran cortos y se pueden tocar. Un ticket como
@@ -225,7 +246,7 @@ USO DIARIO
 - Orden: en cada grupo (Hoy, Mañana, Sin fecha...) van primero las de prioridad Alta, despues Media y abajo las
   Baja (en Hoy, antes las que tienen hora). Dentro de la misma prioridad, el orden lo elegis vos: en la compu,
   arrastra la tarea con el mouse o elegila y usa Alt + flecha arriba / abajo; en el celular, "⋯" > Subir o Bajar.
-  Para pasar una tarea por encima de las de mas prioridad, subile la prioridad (Editar o "!").
+  Para pasar una tarea por encima de las de mas prioridad, subile la prioridad (en el detalle o "!").
 - Vencidas: si hay dos o mas, "Todas a hoy" (a la derecha del titulo) las pasa todas a hoy de un toque, con Deshacer.
 - Esperando: en el menu "⋯" de una tarea, "Esperando respuesta…" la pasa a la seccion Esperando
   ("Juan · hace 3 dias", en ambar desde los 3 dias). Cuando te responden, "Ya respondio" la vuelve a pendientes.
@@ -239,7 +260,7 @@ USO DIARIO
   enlace: ver repo-datos/INSTRUCCIONES.md. Si ya tenias el resumen diario, reemplaza resumen.yml por la version nueva
   (si no, no llegan la revision, el aviso del token ni la marca de pateadas).
 - Tareas que se repiten: "todos los dias", "de lunes a viernes", "cada lunes", "cada semana", "cada mes"
-  (o en Editar → "Se repite"). Al terminarla se crea sola la proxima.
+  (o en el detalle → "Se repite"). Al terminarla se crea sola la proxima.
 - Filtrar por persona: toca "@Laura" en una tarea para ver, en Tareas, solo las que te pidio. La ✕ (o Esc, o Atras)
   quita el filtro.
 - Informe: en Tareas, junto a Terminadas, o en Ajustes > Herramientas, "Informe" arma un control de tus tareas para mostrar como venis. Elegis el periodo

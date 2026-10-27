@@ -66,7 +66,7 @@ const b=await L.launch();APP=await L.appUrl();
   ok(await row.locator('.notes a').count()===0&&(await row.locator('.notes .nlink').innerText())==='WB-3438','phone row: short label, not a link');
   await row.locator('.notes .nlink').tap();await sleep(200);
   ok(await p.isVisible('#editOv')&&(await p.locator('#eLinks a').innerText())==='WB-3438 ↗','tap on the label opens the task, with the link as a button');
-  await p.click('#editX');await sleep(100);
+  await p.click('#eSave');await sleep(100);
   await L.go(p,'tareas');
   await p.click('#doneToggle');await sleep(150);
   ok(await drow(p,'Cambiar toner').locator('.dmeta a').count()===0,'phone done row: no link in the row');

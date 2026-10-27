@@ -89,7 +89,7 @@ ok(t&&t.due===day(1)&&t.time==='15:00','saved by itself after 3 s');
 ok((await p.innerText('#toastMsg'))==='Agregada para mañana · 15:00'&&(await p.innerText('#toastUndo'))==='Deshacer'&&(await p.innerText('#toastB2'))==='Cambiar','toast: Deshacer + Cambiar');
 await p.locator('#toastB2').tap();await sleep(200);
 ok(await p.isVisible('#editOv')&&await p.inputValue('#eTitle')==='Llamar al banco','Cambiar opens Editar');
-await p.locator('#eCancel').tap();
+await p.locator('#eSave').tap();
 // Deshacer borra
 await L.alta(p);await p.evaluate(()=>{window.__say=['comprar pan']});await p.locator('#addBtn').tap();await sleep(500);
 await p.locator('#addBtn').tap();await sleep(400);   // tocar "Guardar · 3" guarda ya
