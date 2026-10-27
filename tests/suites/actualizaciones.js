@@ -124,6 +124,7 @@ await ctx.close();
   await q.evaluate(()=>loadPendingShare());
   ok((await q.inputValue('#title')).toLowerCase().includes('presupuesto'),'Cargar puts the shared text in the field');
   await q.fill('#title','');await q.evaluate(()=>{sharedFill=false;saveDraft()});
+  await q.locator('#capScrim').tap({position:{x:150,y:100}});await sleep(300);   // se cierra la hoja (nada abierto al recargar)
   // Después de una recarga forzada (sin service worker) igual se avisa la versión siguiente
   const cdp=await c3.newCDPSession(q);
   await Promise.all([q.waitForEvent('load'),cdp.send('Page.reload',{ignoreCache:true})]);await sleep(500);
