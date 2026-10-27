@@ -18,7 +18,7 @@ const g=id=>gh.items.find(x=>x.id===id);
 ok((await p.innerText('#waitingSec')).includes('ESPERANDO')||(await p.innerText('#waitingSec')).toUpperCase().includes('ESPERANDO'),'Esperando section shown');
 ok(!(await p.innerText('#groups')).includes('Mandar cotización'),'waiting task not in date groups');
 const wtxt=await p.innerText('#waitingSec');
-ok(wtxt.includes('Martín · hace 5 días'),'row shows "Martín · hace 5 días": '+wtxt.replace(/\n/g,' | '));
+ok(wtxt.includes('Esperando · hace 5 días')&&wtxt.includes('Martín'),'row shows "Esperando · hace 5 días" and Martín: '+wtxt.replace(/\n/g,' | '));
 ok(await p.evaluate(()=>!!document.querySelector('#waitingSec .late')),'≥3 days shown in amber');
 ok(await p.evaluate(()=>getComputedStyle(document.querySelector('#waitingSec .late')).color)==='rgb(161, 92, 7)','amber color #a15c07');
 await go(p,'hoy');const sub=await p.innerText('.sub');await go(p,'tareas');   // el resumen se ve en Hoy
@@ -31,7 +31,7 @@ ok(await p.isVisible('#waitOv')&&(await p.inputValue('#waitName'))==='Juan','min
 await p.click('#waitForm button[type=submit]');await sleep(400);
 const c=g('c');ok(c.waiting===true&&c.waitingOn==='Juan'&&c.waitingSince,'saved waiting/waitingOn/waitingSince');
 ok((await p.innerText('#toastMsg'))==='En espera de Juan'&&await p.isVisible('#toastUndo'),'toast with Deshacer');
-ok((await p.innerText('#waitingSec')).includes('Juan · desde hoy'),'moved to Esperando (desde hoy)');
+ok((await p.innerText('#waitingSec')).includes('Esperando · desde hoy')&&(await p.innerText('#waitingSec')).includes('Juan'),'moved to Esperando (desde hoy)');
 await p.click('#toastUndo');await sleep(400);
 ok(g('c').waiting===false&&(await p.innerText('#groups')).includes('Llamar proveedor'),'undo esperando');
 // Menú de una tarea en espera: Ya respondió
@@ -55,7 +55,7 @@ await p.locator('#waitingSec .task',{hasText:'Pedir muestras'}).locator('.chk').
 ok(gh.items.find(x=>x.title==='Pedir muestras').done===true,'complete from Esperando');
 
 // ===== 6. Filtrar por persona =====
-await p.locator('#groups .person',{hasText:'@Laura'}).first().click();await sleep(200);
+await p.locator('#groups .person',{hasText:'Laura'}).first().click();await sleep(200);
 ok(!(await p.isVisible('#editOv')),'tapping @Laura does not open edit');
 ok(await p.isVisible('#filterBar')&&(await p.innerText('#filterBar')).includes('Pedidas por Laura'),'filter bar "Pedidas por Laura"');
 let gt=await p.innerText('#groups');
