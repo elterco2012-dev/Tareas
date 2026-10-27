@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-9s6PHKkt8eCbXVLrEDglUMx/qG9epn3ZudLbVuvAc6g='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-uaejan0rQRltAsUR2fOfBqXvUvHiqLcgCzXVJE6w/oI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -431,11 +431,11 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .task.note.nc-verde{background:var(--n2)}.task.note.nc-azul{background:var(--n3)}.task.note.nc-rosa{background:var(--n4)}.task.note.nc-lila{background:var(--n5)}
 .task.note[class*="nc-"] .nico,.task.note[class*="nc-"] .meta{color:var(--text2)}
 /* En el celular, el detalle y Posponer suben desde abajo (90 % del alto como máximo) */
-body.capsheet #editOv,body.capsheet #posOv{align-items:flex-end;padding:0}
-body.capsheet #editOv .modal,body.capsheet #posOv .modal{max-width:560px;max-height:90vh;max-height:90dvh;border-radius:22px 22px 0 0}
+body.capsheet #editOv:not(.inpanel),body.capsheet #posOv{align-items:flex-end;padding:0}
+body.capsheet #editOv:not(.inpanel) .modal,body.capsheet #posOv .modal{max-width:560px;max-height:90vh;max-height:90dvh;border-radius:22px 22px 0 0}
 body.capsheet #posOv .modal{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
-body.capsheet .detail .dgrip{display:block;flex:none;width:36px;height:4px;border-radius:2px;background:var(--chip);margin:10px auto 0}
-@media (prefers-reduced-motion:no-preference){body.capsheet #editOv:not(.hidden) .modal,body.capsheet #posOv:not(.hidden) .modal{animation:capup .18s ease-out}}
+body.capsheet #editOv:not(.inpanel) .detail .dgrip{display:block;flex:none;width:36px;height:4px;border-radius:2px;background:var(--chip);margin:10px auto 0}
+@media (prefers-reduced-motion:no-preference){body.capsheet #editOv:not(.hidden):not(.inpanel) .modal,body.capsheet #posOv:not(.hidden) .modal{animation:capup .18s ease-out}}
 /* En la compu ancha, el detalle va en la columna de la derecha (en lugar de Esperando y Sin fecha) */
 #editOv.inpanel{position:static;inset:auto;z-index:auto;background:none;display:block;padding:0}
 #editOv.inpanel .modal{max-width:none;max-height:calc(100vh - 32px);box-shadow:none;border:1px solid var(--border);border-radius:16px}
@@ -940,11 +940,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.26-2"></script>
+<script src="sync-core.js?v=2026.10.26-3"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.26-2';
+const APP_VERSION='2026.10.26-3';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1463,9 +1463,11 @@ function actMany(ops){
   // Cada edición lleva también lo que había antes en esos campos y cuándo se hizo: si al subir resulta que en el
   // otro dispositivo se cambió lo mismo después, gana el cambio más nuevo (ver CONFLICT_KEYS en sync-core.js)
   const iso=new Date(now).toISOString();
+  // (además de los de sync-core, los de las notas: es una idea, fijada y color)
+  const EDIT_KEYS=[...CONFLICT_KEYS,'idea','pinned','color'];
   ops.forEach((o,i)=>{
     if(o.type==='edit'&&o.patch){
-      const t=findLive(o.id)||trash.find(x=>x.id===o.id),keys=CONFLICT_KEYS.filter(k=>k in o.patch),patch={...o.patch};
+      const t=findLive(o.id)||trash.find(x=>x.id===o.id),keys=EDIT_KEYS.filter(k=>k in o.patch),patch={...o.patch};
       if('due' in patch||'time' in patch)patch.whenAt=iso;
       if(keys.length){
         const prev={},edited={};
@@ -2711,7 +2713,7 @@ function openMenu(id,byKey){
   if(menuId===id){closeMenu();return}
   if(edit&&edit.panel&&!dismissEdit())return;
   const t=findLive(id);if(!t)return;
-  menuId=id;
+  menuId=id;menuFree=!document.querySelector('#wrap .task[data-id="'+CSS.escape(id)+'"]');
   const m=$('menu');m.replaceChildren();
   // En el celular, la hoja de abajo dice de qué tarea es (puede tapar la fila)
   if(COARSE)m.append(el('div','mtitle',t.title));
@@ -2751,16 +2753,19 @@ function openMenu(id,byKey){
 }
 // Debajo del botón ⋯ de la fila; si no entra en la pantalla, arriba. Queda anclado a la
 // página (acompaña el scroll) y se vuelve a ubicar cada vez que la lista se redibuja.
+// Abierto sin su fila a la vista (desde el detalle de una que no está en esta pantalla): en el medio
 function placeMenu(){
   if(!menuId)return;
   const row=document.querySelector('#wrap .task[data-id="'+CSS.escape(menuId)+'"]');
-  if(!row){closeMenu();return}
+  if(!row&&!menuFree){closeMenu();return}
   if(COARSE)return;   // la hoja de abajo (CSS)
-  const m=$('menu'),r=row.querySelector('.more').getBoundingClientRect(),mh=m.offsetHeight,mw=m.offsetWidth;
+  const m=$('menu'),mh=m.offsetHeight,mw=m.offsetWidth;
+  if(!row){m.style.top=(Math.max(8,(innerHeight-mh)/3)+scrollY)+'px';m.style.left=(Math.max(8,(document.documentElement.clientWidth-mw)/2)+scrollX)+'px';return}
+  const r=row.querySelector('.more').getBoundingClientRect();
   let top=r.bottom+2;if(top+mh>innerHeight-8)top=Math.max(8,r.top-mh-2);
   m.style.top=(top+scrollY)+'px';m.style.left=(Math.max(8,Math.min(r.right-mw,document.documentElement.clientWidth-mw-8))+scrollX)+'px';
 }
-function closeMenu(){menuId=null;$('menu').classList.add('hidden');$('menuBackdrop').classList.add('hidden')}
+function closeMenu(){menuId=null;menuFree=false;$('menu').classList.add('hidden');$('menuBackdrop').classList.add('hidden')}
 if(COARSE){$('menu').classList.add('sheet');$('menuBackdrop').classList.add('dim')}
 
 // ---- Acciones ----
@@ -3882,6 +3887,9 @@ const K_DDRAFT='detalleBorrador';
 const NOTE_COLORS=['amarillo','verde','azul','rosa','lila'];
 const editHome={parent:null,next:null};
 const editModal=()=>!!edit&&!edit.panel;
+// Otra ventana abierta (además del detalle): la lista de atrás sigue bloqueada
+const otherOverlay=()=>!!(proc||ask||waitFor||pos||settingsOpen||bulk||repOpen()||!$('textOv').classList.contains('hidden'));
+let menuFree=false;   // el ⋯ abierto sin su fila en pantalla
 function noteColor(t){return NOTE_COLORS.includes(t.color)?t.color:''}
 function openEdit(t,opts={}){
   closeMenu();
@@ -3906,6 +3914,7 @@ function openEdit(t,opts={}){
   $('eDoneTxt').textContent=t.done?doneLong(t.completedAt)+(archived?' · en archivo/'+t.archivo:''):'';
   $('eReopen').classList.toggle('hidden',archived);
   $('eWait').textContent=t.waiting?'Ya respondió':'Esperando…';
+  $('eMore').classList.toggle('hidden',!!proc);   // con Ordenar abierto, el menú quedaría detrás
   $('eEdited').textContent=edit.isNote?editedAgo(t):'';
   setEditReadonly(archived);
   renderLinks();renderPeople();
@@ -3934,7 +3943,11 @@ function placeEdit(){
   sheetState();
   if(typeof fitSide==='function')fitSide();
 }
-WIDE.addEventListener('change',()=>{if(!edit)return;placeEdit();$('wrap').inert=!edit.panel||!!proc})
+WIDE.addEventListener('change',()=>{
+  if(!edit)return;
+  if(pos)closePos();   // Posponer queda detrás de la ventana del detalle: se cierra
+  placeEdit();$('wrap').inert=!edit.panel||otherOverlay();
+});
 function editedAgo(t){
   const ed=t.edited&&typeof t.edited==='object'?Object.values(t.edited).filter(x=>typeof x==='string'):[];
   const iso=ed.concat(t.createdAt||[]).sort().pop();if(!iso)return '';
@@ -4011,7 +4024,8 @@ function editChanged(){
   if(!edit||edit.readonly)return;
   renderEdit();
   const p=editPatch();
-  if(Object.keys(p).length)store(K_DDRAFT,{id:edit.id,v:editVals(),at:Date.now()});else dropDraft();
+  // Solo lo cambiado: al recuperarlo no vuelve lo viejo de otros campos (que pudo cambiar en otro dispositivo)
+  if(Object.keys(p).length)store(K_DDRAFT,{id:edit.id,v:p,at:Date.now()});else dropDraft();
 }
 function dropDraft(){const d=load(K_DDRAFT,null);if(d&&(!edit||d.id===edit.id))try{localStorage.removeItem(K_DDRAFT)}catch{}}
 $('eRecover').onclick=()=>{
@@ -4023,7 +4037,9 @@ $('eRecover').onclick=()=>{
   if(typeof v.requester==='string')$('eRequester').value=v.requester;
   if(typeof v.notes==='string')$('eNotes').value=v.notes;
   if(v.repeat===null||REPEAT_LABEL[v.repeat])$('eRepeat').value=v.repeat||'';
-  edit.idea=!!v.idea;edit.pinned=!!v.pinned;edit.color=NOTE_COLORS.includes(v.color)?v.color:'';
+  if('idea' in v)edit.idea=!!v.idea;
+  if('pinned' in v)edit.pinned=!!v.pinned;
+  if('color' in v)edit.color=NOTE_COLORS.includes(v.color)?v.color:'';
   edit.draft=null;$('eDraft').classList.add('hidden');
   renderLinks();fitTitle();editChanged();
 };
@@ -4033,7 +4049,8 @@ function closeEdit(){
   if(!edit)return;
   dropDraft();edit=null;releaseFocus($('editOv'));$('editOv').classList.add('hidden');
   placeEdit();
-  if(!proc)$('wrap').inert=false;else setTimeout(renderProc,0);
+  if(!otherOverlay())$('wrap').inert=false;
+  if(proc)setTimeout(renderProc,0);
 }
 document.querySelectorAll('#eChips .chip').forEach(b=>b.addEventListener('click',()=>{edit.due=dueFor(b.dataset.v)||'';editChanged()}));
 $('eDue').addEventListener('change',()=>{if($('eDue').validity.badInput)return;edit.due=$('eDue').value;editChanged()});   // a medio escribir: todavía no
@@ -4466,7 +4483,7 @@ function handleLaunch(params,initial){
     if(overlayOpen()){
       // Con algo abierto no se interrumpe: lo compartido espera y se carga al tocar el aviso
       if(shared){pendingShare=params;toast('Llegó un texto compartido',loadPendingShare,'Cargar',15000)}
-      else if(revisar)toast('Revisión de la semana',()=>{if(!overlayOpen())openProc(true,true)},'Abrir',15000);
+      else if(revisar)toast('Revisión de la semana',()=>{if(edit&&edit.panel&&!dismissEdit())return;if(!overlayOpen())openProc(true,true)},'Abrir',15000);
       return;
     }
     goScreen('hoy');   // lo que se abre desde el ícono o compartiendo va en Hoy (ahí está el campo para anotar)

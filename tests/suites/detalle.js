@@ -47,18 +47,28 @@ ok(item(gh,'a').requester==='Laura'&&!item(gh,'a').time,'nothing saved while edi
 await p.reload();await sleep(800);
 await row(p,'Llamar al banco').locator('.body').tap();await sleep(300);
 ok(await seen(p,'#eDraft')&&/Tenías cambios sin guardar/.test(await p.innerText('#eDraft'))&&await p.inputValue('#eRequester')==='Laura','reopened after the app closed: "Tenías cambios sin guardar · Recuperar"');
+ok(await p.evaluate(()=>{const v=JSON.parse(localStorage.getItem('detalleBorrador')).v;return Object.keys(v).sort().join()==='requester,time'}),'the draft keeps only what changed');
 await p.locator('#eRecover').tap();await sleep(100);
 ok(await p.inputValue('#eRequester')==='Juan'&&await p.inputValue('#eTime')==='09:00'&&await seen(p,'#editX'),'Recuperar brings the changes back');
 await p.goBack();await sleep(500);
 ok(!(await seen(p,'#editOv'))&&item(gh,'a').requester==='Juan'&&item(gh,'a').time==='09:00','Back saves');
 ok(/Cambios guardados/.test(await p.innerText('#toastMsg'))&&await p.isVisible('#toastUndo'),'with "Cambios guardados · Deshacer"');
 ok(await p.evaluate(()=>localStorage.getItem('detalleBorrador'))===null,'the draft is gone once saved');
-// Descartar no guarda
+// Recuperar no vuelve atrás lo que se cambió en otro dispositivo (solo lo que cambiaste acá)
 await row(p,'Llamar al banco').locator('.body').tap();await sleep(300);
+await p.fill('#eTitle','Llamar al banco Nación');await p.dispatchEvent('#eTitle','input');
+await p.reload();await sleep(600);
+Object.assign(item(gh,'a'),{notes:'cuenta 999',priority:'Alta'});gh.sha++;
+await p.evaluate(()=>sync());await sleep(800);
+await row(p,'Llamar al banco').locator('.ttext').tap();await sleep(300);
+await p.locator('#eRecover').tap();await sleep(100);await p.locator('#eSave').tap();await sleep(800);
+ok(item(gh,'a').title==='Llamar al banco Nación'&&item(gh,'a').notes==='cuenta 999'&&item(gh,'a').priority==='Alta','Recuperar keeps what changed on the other device '+JSON.stringify({t:item(gh,'a').title,n:item(gh,'a').notes,p:item(gh,'a').priority}));
+// Descartar no guarda
+await row(p,'Llamar al banco').locator('.ttext').tap();await sleep(300);
 ok(!(await seen(p,'#eDraft')),'no draft offer when there is nothing pending');
 await p.fill('#eTitle','Otra cosa');await p.dispatchEvent('#eTitle','input');
 await p.locator('#editX').tap();await sleep(400);
-ok(!(await seen(p,'#editOv'))&&item(gh,'a').title==='Llamar al banco'&&await p.evaluate(()=>localStorage.getItem('detalleBorrador'))===null,'Descartar closes without saving');
+ok(!(await seen(p,'#editOv'))&&item(gh,'a').title==='Llamar al banco Nación'&&await p.evaluate(()=>localStorage.getItem('detalleBorrador'))===null,'Descartar closes without saving');
 // Anotada al pasar: la línea del punto azul; elegir fecha la saca (y cuenta como elegida)
 await row(p,'Comprar pilas').locator('.body').tap();await sleep(300);
 ok(await seen(p,'#eInbox')&&/Anotada al pasar/.test(await p.innerText('#eInbox')),'inbox task: the blue-dot line under Para cuándo');
@@ -81,8 +91,15 @@ await row(p,'Presupuesto techo').locator('.body').tap();await sleep(300);
 await p.locator('#eWait').tap();await sleep(300);
 ok(await seen(p,'#waitOv')&&await p.inputValue('#waitName')==='Juan','Esperando… opens the waiting dialog');
 await p.goBack();await sleep(400);
-// La hora de la fila abre Posponer (hoja desde abajo)
+// ⋯ desde el detalle de una que no está en esta pantalla (abierta con "Cambiar" después de agregarla para mañana)
 await go(p,'hoy');
+await L.alta(p);await p.fill('#title','pagar luz mañana');await p.dispatchEvent('#title','input');await p.locator('#addBtn').tap();await sleep(500);
+await p.locator('#toastB2').tap();await sleep(300);
+ok(await seen(p,'#editOv')&&/pagar luz/i.test(await p.inputValue('#eTitle')),'Cambiar opens the detail of the one just added');
+await p.locator('#eMore').tap();await sleep(300);
+ok(await seen(p,'#menu')&&await p.locator('#menu button',{hasText:'Para hoy'}).count()===1,'its ⋯ opens the row menu even with the row off screen');
+await p.locator('#menuBackdrop').tap({position:{x:5,y:5}});await sleep(200);
+// La hora de la fila abre Posponer (hoja desde abajo)
 const tb=row(p,'Turno dentista').locator('button.time');
 ok(await tb.count()===1&&(await tb.getAttribute('aria-label'))==='Aviso a las 23:30. Posponer','the time in the row is a button "Aviso a las 23:30. Posponer"');
 await tb.tap();await sleep(300);
@@ -104,6 +121,7 @@ ok(JSON.stringify(await pressed(p,'#eColors .ncol'))===JSON.stringify(['']),'no 
 await p.locator('#eIdea').tap();await p.locator('#ePin').tap();await p.locator('#eColors .ncol[data-c="verde"]').tap();await sleep(100);
 await p.locator('#eSave').tap();await sleep(500);
 let n=item(gh,'n');
+ok(n.edited&&n.edited.color&&n.edited.pinned&&n.edited.idea,'idea, pinned and color record when they changed');
 ok(n.idea===true&&n.pinned===true&&n.color==='verde'&&n.kind==='nota'&&n.due==null&&!n.time,'‹ saves idea, pinned and color; still a note');
 await p.evaluate(()=>{const now=new Date().toISOString();act({type:'add',task:{id:'n2',src:'cel',kind:'nota',title:'Otra nota más nueva',requester:'',priority:'Media',due:null,time:null,notes:'',done:false,createdAt:now,completedAt:null}})});await sleep(300);
 const order=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .task .ttext')].map(x=>x.textContent));
@@ -161,6 +179,18 @@ const pw=await box(p,'#posOv .modal');
 ok(await seen(p,'#posOv')&&pw&&Math.abs(pw.x+pw.w/2-650)<40&&pw.b<880,'computer: tapping the time opens Posponer centered '+JSON.stringify(pw));
 await p.keyboard.press('Escape');await sleep(200);
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+await ctx.close();
+
+// Desde Ordenar: el detalle es la ventana (no el panel) y sin ⋯ (el menú quedaría detrás)
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,{viewport:{width:1300,height:900}},APP,SEEN));
+await p.locator('#procBtn').click();await sleep(300);
+if(await seen(p,'#procOv')){
+  await p.keyboard.press('e');await sleep(300);
+  ok(await seen(p,'#editOv')&&await p.evaluate(()=>!$('editOv').classList.contains('inpanel'))&&!(await seen(p,'#eMore')),'from Ordenar: a window, without ⋯');
+  await p.keyboard.press('Escape');await sleep(200);
+  ok(await seen(p,'#procOv')&&!(await seen(p,'#editOv')),'Esc closes the detail and goes back to Ordenar');
+}else ok(false,'Ordenar did not open');
 await ctx.close();
 
 // ===== Compu más angosta: ventana centrada =====
