@@ -14,10 +14,10 @@ const b=await L.launch();APP=await L.appUrl();
   ok(await p.isVisible('#editOv'),'edit open');
   await p.goBack();await sleep(300);
   ok(await p.isHidden('#editOv')&&onApp(p)&&await p.isVisible('#fabAdd'),'Back closes the task and stays in the app (the list, with the + to add)');
-  // Cerrar con ✕ no deja una entrada de más: el siguiente Atrás sale
+  // Cerrar con ‹ no deja una entrada de más: el siguiente Atrás sale
   await p.locator('.task .ttext',{hasText:'Probar tickets Jira'}).tap();await sleep(200);
-  await p.click('#editX');await sleep(300);
-  ok(await p.evaluate(()=>!(history.state&&history.state.tareas)),'closing with ✕ clears the guard');
+  await p.click('#eSave');await sleep(300);
+  ok(await p.evaluate(()=>!(history.state&&history.state.tareas)),'closing with ‹ clears the guard');
   // Menú ⋯, búsqueda, Sincronización, informe
   await p.locator('.task',{has:p.locator('.ttext',{hasText:'Otra'})}).locator('.more').tap();await sleep(200);
   await p.goBack();await sleep(300);ok(await p.isHidden('#menu')&&onApp(p),'Back closes the ⋯ menu');

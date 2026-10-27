@@ -32,16 +32,16 @@ t=gh.items.find(x=>x.title==='sin fecha');ok(t&&t.time==='09:00'&&t.due===null,'
 // Editar
 await row(p,'Llamar al banco').locator('.body').click();
 ok(await p.inputValue('#eTime')==='15:00','edit shows time');
-await p.fill('#eTime','16:30');await p.click('#editForm button[type=submit]');await sleep(400);
+await p.fill('#eTime','16:30');await p.click('#eSave');await sleep(400);
 ok(gh.items.find(x=>x.title==='Llamar al banco').time==='16:30','edit changes time');
-await row(p,'Llamar al banco').locator('.body').click();await p.fill('#eTime','');await p.click('#editForm button[type=submit]');await sleep(400);
+await row(p,'Llamar al banco').locator('.body').click();await p.fill('#eTime','');await p.click('#eSave');await sleep(400);
 t=gh.items.find(x=>x.title==='Llamar al banco');
 ok(t.time===null&&!(await row(p,'Llamar al banco').innerText()).match(/\d\d:\d\d/),'edit clears time');
 await row(p,'Pagar luz a las 10').locator('.body').click();
 ok(await p.inputValue('#eTime')==='10:00','old task: edit shows time from title');
-await p.click('#editForm button[type=submit]');await sleep(400);
+await p.click('#eSave');await sleep(400);
 ok(gh.items.find(x=>x.id==='h3').time==='10:00','old task: saving makes the time a field');
-await row(p,'Temprano').locator('.body').click();await p.click('#eCancel');
+await row(p,'Temprano').locator('.body').click();await p.click('#eSave');
 await row(p,'Diaria').locator('.chk').click();await L.until(()=>gh.items.some(x=>x.repeatOf==='h5'));
 t=gh.items.find(x=>x.repeatOf==='h5');ok(t&&t.time==='08:00'&&t.due===day(1),'repeat keeps the time');
 // Calendario con la hora del campo

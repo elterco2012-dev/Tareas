@@ -30,9 +30,9 @@ ok(gh.items.find(x=>x.title==='Pagar alquiler').repeat==='monthly','saved repeat
 // Editar: Se repite
 await p.locator('.task',{hasText:'Normal'}).locator('.body').click();
 ok((await p.inputValue('#eRepeat'))==='','edit select shows No');
-await p.selectOption('#eRepeat','weekdays');await p.click('#editForm button[type=submit]');await sleep(300);
+await p.selectOption('#eRepeat','weekdays');await p.click('#eSave');await sleep(300);
 ok(gh.items.find(x=>x.id==='n').repeat==='weekdays','edit sets repeat');
-await p.locator('.task',{hasText:'Normal'}).locator('.body').click();await p.selectOption('#eRepeat','');await p.click('#editForm button[type=submit]');await sleep(300);
+await p.locator('.task',{hasText:'Normal'}).locator('.body').click();await p.selectOption('#eRepeat','');await p.click('#eSave');await sleep(300);
 ok(gh.items.find(x=>x.id==='n').repeat===null,'edit clears repeat');
 // ===== Calendario (.ics) =====
 const getIcs=async(fn)=>{const [dl]=await Promise.all([p.waitForEvent('download'),fn()]);const path=await dl.path();return {name:dl.suggestedFilename(),txt:fs.readFileSync(path,'utf8')}};

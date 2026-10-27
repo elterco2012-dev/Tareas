@@ -65,7 +65,7 @@ ok(await until(()=>p.evaluate(()=>newVersion)),'new version detected with a task
 await p.evaluate(()=>reloadApp());await sleep(300);
 ok(await p.evaluate(()=>APP_VERSION)===v2&&await p.isVisible('#editOv'),'does not reload with a task open');
 ok((await p.innerText('#toastMsg')).includes('cerrá lo que tenés abierto'),'says to close it first');
-await p.click('#editX');await sleep(200);
+await p.click('#eSave');await sleep(200);
 await H.go(p,'tareas');   // al actualizarse sola después de un rato tiene que quedar en Hoy
 await setVis(p,'hidden');await p.clock.fastForward(3*60e3);
 await Promise.all([p.waitForEvent('load'),setVis(p,'visible')]);await sleep(300);
@@ -120,7 +120,7 @@ await ctx.close();
   await q.locator('.task .ttext',{hasText:'Revisar stock'}).tap();await sleep(200);
   await q.evaluate(()=>handleLaunch(new URLSearchParams('text=pasame el presupuesto'),false));
   ok(await q.isVisible('#editOv')&&(await q.innerText('#toastMsg'))==='Llegó un texto compartido'&&(await q.innerText('#toastUndo'))==='Cargar','share with a task open waits for Cargar');
-  await q.click('#editX');await sleep(200);
+  await q.click('#eSave');await sleep(200);
   await q.evaluate(()=>loadPendingShare());
   ok((await q.inputValue('#title')).toLowerCase().includes('presupuesto'),'Cargar puts the shared text in the field');
   await q.fill('#title','');await q.evaluate(()=>{sharedFill=false;saveDraft()});

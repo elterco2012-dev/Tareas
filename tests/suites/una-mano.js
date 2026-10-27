@@ -107,7 +107,7 @@ ok(!(await vis(p,'#fabs')),'bottom buttons hidden under the ⋯ sheet');
 await p.locator('#menuBackdrop').tap({position:{x:5,y:5}});await sleep(200);
 await row(p,'Pagar la luz').locator('.body').tap();await sleep(200);
 ok(!(await vis(p,'#fabs')),'and under a task being edited');
-await p.locator('#editX').tap();await sleep(200);
+await p.locator('#eSave').tap();await sleep(200);
 ok(await vis(p,'#fabs'),'back after closing');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();

@@ -30,15 +30,15 @@ const b=await L.launch();APP=await L.appUrl();
   // ✕ descarta
   await p.locator('.task .ttext',{hasText:'Galicia'}).tap();await sleep(200);
   await p.fill('#eNotes','no va');await p.click('#editX');await sleep(1300);
-  ok(gh.items.find(x=>x.id==='a').notes==='','✕ discards');
+  ok(gh.items.find(x=>x.id==='a').notes==='','Descartar discards');
   // Título vacío: Atrás no cierra
   await p.locator('.task .ttext',{hasText:'Galicia'}).tap();await sleep(200);
   await p.fill('#eTitle','');await p.goBack();await sleep(400);
   ok(await p.isVisible('#editOv')&&onApp(p),'empty title: Back keeps it open');
   ok((await p.textContent('#toastMsg')).includes('Falta el título'),'tells why');
   ok(await p.evaluate(()=>history.state&&history.state.tareas==='atras'),'guard restored after refused Back');
-  await p.click('#eCancel');await sleep(400);
-  ok(await p.evaluate(()=>!(history.state&&history.state.tareas)),'Cancel clears the guard');
+  await p.click('#editX');await sleep(400);
+  ok(await p.evaluate(()=>!(history.state&&history.state.tareas)),'Descartar clears the guard');
   ok(await p.evaluate(()=>window.__push.every(x=>x!==false)),'no pushState without user activation: '+JSON.stringify(await p.evaluate(()=>window.__push)));
   ok(p.errs.length===0,'no errors '+p.errs);await ctx.close();
 }

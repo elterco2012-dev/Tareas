@@ -38,10 +38,10 @@ gh=makeGH([T('e1','Pagar luz a las 10',{due:day(0)}),T('e2','Sin hora',{due:day(
 await L.go(p,'tareas'); // la sin fecha no está en Hoy
 await row(p,'Pagar luz').locator('.body').click();
 ok(await p.inputValue('#eTime')==='10:00','legacy edit shows 10:00');
-await p.fill('#eTime','');await p.click('#editForm button[type=submit]');await sleep(300);
+await p.fill('#eTime','');await p.click('#eSave');await sleep(300);
 let outb=await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')));
 ok(outb.length===1&&outb[0].patch.time===null&&!(await row(p,'Pagar luz').innerText()).includes('10:00'),'clearing the time on a legacy task removes it: '+JSON.stringify(outb.map(o=>o.patch)));
-await row(p,'Sin hora').locator('.body').click();await p.click('#editForm button[type=submit]');await sleep(300);
+await row(p,'Sin hora').locator('.body').click();await p.click('#eSave');await sleep(300);
 outb=await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')));
 ok(outb.length===1,'saving an untimed task unchanged queues nothing');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
