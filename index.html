@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-6BAxFSrP1y6Kr9S7acWc6WaNPQ7YEVgJ5pvpeid+sWQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-W3MAFIreUHS5Jak6Y/RSRQpMadaGoVJ8/C8aQjxBSL4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -505,6 +505,7 @@ body:not(.scr-hoy) .top .sub{display:none}
 .capgrip{display:none}
 body.capsheet #addForm{display:none}
 body.capsheet.capopen #addForm{display:block;position:fixed;left:0;right:0;bottom:0;z-index:46;margin:0 auto;max-width:560px;max-height:90vh;max-height:90dvh;overflow-y:auto;border-radius:22px 22px 0 0;border-bottom:0;padding:8px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px var(--shadow)}
+body.capsheet #suggest{position:static;margin-top:8px}
 body.capsheet.capopen .capgrip{display:block;width:36px;height:4px;border-radius:2px;background:var(--chip);margin:0 auto 10px}
 /* Dictando desde el atajo ("Dictar tarea"), lo que se entendió se ve arriba, como siempre */
 body.capsheet.docked #addForm{display:block;position:static}
@@ -551,8 +552,6 @@ body.capsheet.docked #addForm{display:block;position:static}
       <input id="title" class="inp" placeholder="¿Qué tenés que hacer?" aria-label="Nueva tarea" maxlength="500" enterkeyhint="done">
       <button type="submit" id="addBtn" class="primary addbtn">Agregar</button>
     </div>
-    <div id="suggest" class="suggest hidden" role="listbox" aria-label="Sugerencias"></div>
-    <div id="whoRow" class="whorow hidden"></div>
     <div id="saveHint" class="savehint hidden">Se guarda solo · tocá el texto para corregir</div>
     <div id="detected" class="detected hidden"></div>
     <div id="typeRow" class="chiprow" role="group" aria-label="Tipo">
@@ -580,6 +579,8 @@ body.capsheet.docked #addForm{display:block;position:static}
         <button type="button" class="chip" data-t="18:00">18:00</button>
       </span>
     </div>
+    <div id="whoRow" class="whorow hidden"></div>
+    <div id="suggest" class="suggest hidden" role="listbox" aria-label="Sugerencias"></div>
     <div id="tip" class="tip hidden">Tip: escribí “viernes”, “15/10”, “!alta” o “@Juan” y se completa solo.</div>
     <textarea id="note" class="inp hidden" placeholder="Detalle (opcional)" maxlength="2000" rows="2"></textarea>
   </form>
@@ -4139,7 +4140,8 @@ function syncBack(){
     // Después de un Atrás que dejó otra ventana abierta debajo se vuelve a la guarda que ya existe (está adelante).
     // Crear una nueva sin que hayas tocado nada haría que Chrome saltee esta entrada, y el Atrás siguiente
     // cerraría la app.
-    if(ap)traverse(1);else history.pushState({tareas:'atras',pantalla:want},'');
+    // (abierta sin un toque, por ejemplo la hoja con "Nueva tarea" del ícono: la guarda se crea con el primer toque)
+    if(ap)traverse(1);else if(gestured)history.pushState({tareas:'atras',pantalla:want},'');else waitTap=true;
   }
 }
 function scheduleBack(){clearTimeout(backTimer);backTimer=setTimeout(syncBack,0)}
@@ -4242,6 +4244,8 @@ function loadPendingShare(){
   const p=pendingShare;pendingShare=null;openCap(true);fillShared(p);
 }
 handleLaunch(params,true);
+// Actualizada con la hoja abierta y algo escrito: vuelve abierta, con lo escrito (sin el teclado)
+try{if(sessionStorage.getItem('hojaAbierta')){sessionStorage.removeItem('hojaAbierta');if($('title').value.trim()||$('note').value.trim())openCap(false)}}catch{}
 // Con la app ya abierta en la compu, los accesos del ícono llegan acá en lugar de abrir otra ventana
 // (launch_handler del manifest). La primera vez llega la misma dirección con que se abrió: ya está hecha.
 if('launchQueue' in window){
@@ -4280,10 +4284,10 @@ let swReg=null,newVersion=null,storageKept=null,lastSwCheck=0;
 // "2026.10.16-2" es más nueva que "2026.10.16-1" y que "2026.10.9-5"
 function isNewer(a,b){const k=v=>String(v).split(/[.-]/).map(Number);const x=k(a),y=k(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
 // Nada que se pierda al recargar (lo que está en el campo de alta queda en el borrador, con su fecha, y vuelve)
-function readyForReload(){return !capOpen&&!edit&&!bulk&&!waitFor&&!ask&&!pos&&!dock&&!listening&&!autoSave&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')}
+function readyForReload(){return !edit&&!bulk&&!waitFor&&!ask&&!pos&&!dock&&!listening&&!autoSave&&!proc&&!repOpen()&&$('textOv').classList.contains('hidden')}
 function reloadApp(){
   if(!readyForReload()){toast('Guardá o cerrá lo que tenés abierto y tocá Actualizar de nuevo');return}
-  try{sessionStorage.setItem('actualizada','1')}catch{}
+  try{sessionStorage.setItem('actualizada','1');if(capOpen)sessionStorage.setItem('hojaAbierta','1')}catch{}
   location.reload();
 }
 function offerUpdate(v){

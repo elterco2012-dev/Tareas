@@ -59,7 +59,8 @@ await ctx.close();
 gh.items=gh.items.concat(Array.from({length:25},(_,i)=>T('x'+i,'Tarea '+i,{due:day(0)})));gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,STANDALONE));
 await p.addInitScript(KBD);await p.reload();await sleep(500);
-await p.evaluate(()=>document.activeElement.blur());
+// (abre con la hoja para anotar: se cierra tocando afuera para ir a la lista)
+await p.locator('#capScrim').tap({position:{x:150,y:100}});await sleep(200);
 await row(p,'Tarea 20').locator('.more').tap();await sleep(100);
 ok(await p.isVisible('#menu'),'menu open');
 // Salir de la app y volver ms después: el reloj se adelanta (fastForward), sin esperar de verdad
@@ -78,7 +79,7 @@ ok(!(await p.isVisible('#tip')),'tip hidden after 5 opens');
 await ctx.close();
 // ===== Dictado que se guarda solo =====
 ({ctx,p}=await device(b,gh,PHONE,APP,FAKE));
-await p.evaluate(()=>{window.__say=['recordame mañana a las 3 llamar al banco']});
+await L.alta(p);await p.evaluate(()=>{window.__say=['recordame mañana a las 3 llamar al banco']});
 await p.locator('#addBtn').tap();await sleep(500);
 ok(await p.evaluate(()=>document.getElementById('addBtn').dataset.mode)==='saving'&&await p.isVisible('#saveHint'),'countdown after dictation');
 ok(!gh.items.some(x=>/banco/.test(x.title)),'not saved yet');
@@ -90,29 +91,29 @@ await p.locator('#toastB2').tap();await sleep(200);
 ok(await p.isVisible('#editOv')&&await p.inputValue('#eTitle')==='Llamar al banco','Cambiar opens Editar');
 await p.locator('#eCancel').tap();
 // Deshacer borra
-await p.evaluate(()=>{window.__say=['comprar pan']});await p.locator('#addBtn').tap();await sleep(500);
+await L.alta(p);await p.evaluate(()=>{window.__say=['comprar pan']});await p.locator('#addBtn').tap();await sleep(500);
 await p.locator('#addBtn').tap();await sleep(400);   // tocar "Guardar · 3" guarda ya
 ok(gh.items.some(x=>x.title==='Comprar pan'),'tap during countdown saves now');
 await p.locator('#toastUndo').tap();await sleep(500);
 ok(!gh.items.some(x=>x.title==='Comprar pan'),'Deshacer removes it');
 // tocar el texto cancela
-await p.evaluate(()=>{window.__say=['pagar la luz']});await p.locator('#addBtn').tap();await sleep(500);
-await p.locator('#title').tap();await sleep(3500);
+await L.alta(p);await p.evaluate(()=>{window.__say=['pagar la luz']});await p.locator('#addBtn').tap();await sleep(500);
+await L.alta(p);await p.locator('#title').tap();await sleep(3500);
 ok(!gh.items.some(x=>/luz/i.test(x.title))&&await p.inputValue('#title')==='pagar la luz','tapping the text cancels the countdown');
 await p.fill('#title','');
 // solo "recordame mañana": no se guarda
-await p.evaluate(()=>{window.__say=['recordame mañana']});await p.locator('#addBtn').tap();await sleep(3800);
+await L.alta(p);await p.evaluate(()=>{window.__say=['recordame mañana']});await p.locator('#addBtn').tap();await sleep(3800);
 ok(!(await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')||'[]').some(o=>o.type==='add'&&/recordame/i.test(o.task.title))))&&(await p.innerText('#toastMsg')).includes('Decí también'),'bare command not saved');
 await p.fill('#title','');
 // salir de la app durante la cuenta → se guarda ya
-await p.evaluate(()=>{window.__say=['llamar a Pedro']});await p.locator('#addBtn').tap();await sleep(500);
+await L.alta(p);await p.evaluate(()=>{window.__say=['llamar a Pedro']});await p.locator('#addBtn').tap();await sleep(500);
 await p.evaluate(()=>{Object.defineProperty(document,'visibilityState',{get:()=>'hidden',configurable:true});document.dispatchEvent(new Event('visibilitychange'))});
 ok(await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')||'[]').some(o=>o.type==='add'&&o.task.title==='Llamar a Pedro'))||gh.items.some(x=>x.title==='Llamar a Pedro'),'leaving the app during countdown saves it');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 // ===== Fila "De:" =====
 ({ctx,p}=await device(b,gh,PHONE));
-await p.locator('#title').tap();await p.keyboard.type('pagar impuestos');await sleep(100);
+await L.alta(p);await p.locator('#title').tap();await p.keyboard.type('pagar impuestos');await sleep(100);
 let who=await p.$$eval('#whoRow button',bs=>bs.map(x=>x.innerText));
 ok(JSON.stringify(who)===JSON.stringify(['Juan','Laura','Marcela','@…']),'who row: recent first: '+JSON.stringify(who));
 await p.locator('#whoRow button',{hasText:'Laura'}).tap();await sleep(100);
@@ -124,14 +125,14 @@ ok((await p.$$eval('#whoRow button',bs=>bs.length))===4&&await p.isVisible('#who
 await ctx.close();
 // ===== Borrador =====
 ({ctx,p}=await device(b,gh,PHONE));
-await p.locator('#title').tap();await p.keyboard.type('mandar el remito a Ferre');
+await L.alta(p);await p.locator('#title').tap();await p.keyboard.type('mandar el remito a Ferre');
 await p.reload();await sleep(500);
 ok(await p.inputValue('#title')==='mandar el remito a Ferre','draft restored after reload');
-await p.locator('#title').tap();await p.keyboard.type('tería');await p.keyboard.press('Enter');await sleep(300);
+await L.alta(p);await p.locator('#title').tap();await p.keyboard.type('tería');await p.keyboard.press('Enter');await sleep(300);
 await p.reload();await sleep(500);
 ok(await p.inputValue('#title')==='','draft cleared after adding');
 // El borrador dura 12 h (reloj adelantado, sin esperar)
-await p.locator('#title').tap();await p.keyboard.type('borrador de anoche');
+await L.alta(p);await p.locator('#title').tap();await p.keyboard.type('borrador de anoche');
 await p.clock.fastForward(11*3600e3);await p.reload();await sleep(500);
 ok(await p.inputValue('#title')==='borrador de anoche','draft 11 h old: still restored');
 await p.clock.fastForward(61*60e3);await p.reload();await sleep(500);

@@ -57,7 +57,7 @@ ok(await p.evaluate(()=>APP_VERSION)===v2,'after Actualizar: running '+await p.e
 ok((await p.innerText('#toastMsg')).startsWith('App actualizada'),'tells it was updated');
 ok(JSON.stringify(await p.evaluate(()=>caches.keys()))===JSON.stringify(['tareas-'+v2]),'old cache removed');
 // Con una tarea abierta no recarga; al volver después de un rato, sin nada abierto, se actualiza sola
-await p.fill('#title','Llamar al banco');await p.press('#title','Enter');await sleep(200);
+await H.alta(p);await p.fill('#title','Llamar al banco');await p.press('#title','Enter');await sleep(200);   // (en el celular se anota en la hoja del "+")
 await p.locator('.task .ttext',{hasText:'Llamar al banco'}).tap();await sleep(200);
 publish(dir,v2,v3);
 await p.evaluate(()=>checkForUpdate(true));
@@ -99,7 +99,9 @@ await ctx.close();
   await away();
   ok(await q.evaluate(()=>APP_VERSION)==='2099.2.1-1','updated by itself on return');
   ok((await q.inputValue('#title')).includes('remito')&&await q.evaluate(()=>chip==='1'&&chipTouched&&sharedFill),'shared text and the chosen date chip survive the update reload');
+  ok(await q.evaluate(()=>document.body.classList.contains('capopen')),'and the sheet comes back open with it');
   await q.fill('#title','');await q.evaluate(()=>{chip='0';chipTouched=false;sharedFill=false;saveDraft();renderAdd()});
+  await q.locator('#capScrim').tap({position:{x:150,y:100}});await sleep(200);
   // Con Sincronización abierta no se recarga sola
   bump('2099.2.1-2');await q.evaluate(()=>checkForUpdate(true));
   await until(()=>q.evaluate(()=>newVersion==='2099.2.1-2'),{timeout:8000});
@@ -109,12 +111,12 @@ await ctx.close();
   await Promise.all([q.waitForEvent('load'),q.click('#appUpdate')]);await sleep(400);
   ok(await q.evaluate(()=>APP_VERSION)==='2099.2.1-2','Actualizar inside Sincronización still works');
   // "Dictar" con la app abierta y algo escrito: lo escrito queda aparte (no se mezcla con lo dictado)
-  await q.fill('#title','llamar a Marta por');
+  await H.alta(q);await q.fill('#title','llamar a Marta por');
   await q.evaluate(()=>handleLaunch(new URLSearchParams('voz=1'),false));
   ok(await q.isVisible('#voiceDock')&&await q.inputValue('#title')===''&&await q.evaluate(()=>heldDraft&&heldDraft.t==='llamar a Marta por'),'Dictar on the open app keeps the typed text aside');
   await q.click('#dockClose');await q.evaluate(()=>{heldDraft=null;$('title').value='';saveDraft()});
   // Compartir con una tarea abierta: espera a "Cargar"
-  await q.fill('#title','Revisar stock');await q.press('#title','Enter');await sleep(200);
+  await H.alta(q);await q.fill('#title','Revisar stock');await q.press('#title','Enter');await sleep(200);
   await q.locator('.task .ttext',{hasText:'Revisar stock'}).tap();await sleep(200);
   await q.evaluate(()=>handleLaunch(new URLSearchParams('text=pasame el presupuesto'),false));
   ok(await q.isVisible('#editOv')&&(await q.innerText('#toastMsg'))==='Llegó un texto compartido'&&(await q.innerText('#toastUndo'))==='Cargar','share with a task open waits for Cargar');

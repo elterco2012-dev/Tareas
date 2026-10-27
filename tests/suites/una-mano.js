@@ -24,43 +24,29 @@ const hd=await p.evaluate(()=>({h:Math.round(document.querySelector('.top').getB
   h1:document.querySelector('.top h1').textContent,h1w:document.querySelector('.top h1').getBoundingClientRect().width,txt:document.querySelector('#todayLabel .dshort').textContent}));
 ok(hd.short!=='none'&&hd.long==='none'&&hd.txt==='Mié 14/10','phone: short date "Mié 14/10" '+JSON.stringify(hd));
 ok(hd.h<=56&&hd.h1==='Hoy'&&hd.h1w<=1,'phone: header on one line, title only for screen readers '+JSON.stringify(hd));
-ok(await p.evaluate(()=>document.getElementById('addForm').classList.contains('rest'))&&!(await vis(p,'#addForm .chiprow')),'phone at rest: no date chips under the field');
+// En el celular no hay campo arriba: se anota en la hoja que abre el "+" (rediseño 1b; el alta "en reposo" de la fase 5
+// ya no existe, y con ella las pruebas de las fechas que se pliegan bajo el campo)
+ok(!(await vis(p,'#addForm'))&&await vis(p,'#fabAdd'),'phone: no add field at the top, the + at the bottom');
 ok(await active(p)!=='title','phone browser tab: opens without the keyboard');
-await p.locator('#title').tap();await sleep(150);
-ok(await vis(p,'#addForm .chiprow')&&await vis(p,'#chips .chip[data-v="1"]'),'tapping the field shows the dates');
+await p.locator('#fabAdd').tap();await sleep(250);
+ok(await vis(p,'#addForm .chiprow')&&await vis(p,'#chips .chip[data-v="1"]')&&await active(p)==='title','the + opens the sheet with the dates, ready to write');
 await p.locator('#chips .chip[data-v="1"]').tap();await sleep(400);
-ok(await vis(p,'#addForm .chiprow')&&await p.evaluate(()=>document.querySelector('#chips .chip.on').dataset.v)==='1'&&await active(p)==='title','tapping Mañana selects it and the dates stay');
+ok(await p.evaluate(()=>document.querySelector('#chips .chip.on').dataset.v)==='1'&&await active(p)==='title','tapping Mañana selects it and the keyboard stays');
 await p.keyboard.type('Pasar presupuesto');await p.keyboard.press('Enter');await sleep(400);
 ok(gh.items.some(x=>x.title==='Pasar presupuesto'&&x.due===day(1)),'added for tomorrow');
-// Tocar la lista: las fechas no se van ahí (la lista no salta bajo el dedo) y el toque cae donde apuntaba
+ok(!(await vis(p,'#addForm'))&&await vis(p,'#fabs'),'adding closes the sheet: back to the list');
+// Tocar la lista después: el toque cae donde apuntaba
 const vY=()=>p.evaluate(()=>Math.round(document.querySelector('.ghead.over .gfold').getBoundingClientRect().top));
 const y0=await vY();
 await p.locator('.ghead.over .gfold').tap();await sleep(600);
 const y1=await vY();
-ok(await vis(p,'#addForm .chiprow')&&y1===y0&&await p.locator('.ghead.over .gfold').getAttribute('aria-expanded')==='false','leaving the field: the dates stay, nothing moves under the finger, the tap lands '+y0+'→'+y1);
+ok(y1===y0&&await p.locator('.ghead.over .gfold').getAttribute('aria-expanded')==='false','a tap on the list lands where it pointed '+y0+'→'+y1);
+await p.locator('.ghead.over .gfold').tap();await sleep(150);
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
-// Con el alta fuera de la pantalla se vuelven a guardar, sin mover lo que estás viendo
 gh.items=items().concat(Array.from({length:25},(_,i)=>T('m'+i,'Más tarde '+i,{due:day(9)})));gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 await L.go(p,'tareas');   // las de más adelante están en Tareas
-await p.locator('#title').tap();await sleep(100);await p.evaluate(()=>document.activeElement.blur());await sleep(400);
-ok(await vis(p,'#addForm .chiprow'),'dates shown after visiting the field');
-await p.evaluate(()=>window.scrollTo(0,900));await sleep(100);
-const anc=()=>p.evaluate(()=>Math.round([...document.querySelectorAll('.task')].find(r=>r.textContent.includes('Más tarde 12')).getBoundingClientRect().top));
-const a0=await anc();
-ok(await L.until(()=>p.evaluate(()=>document.getElementById('addForm').classList.contains('rest'))),'add card off-screen: back to one line');
-await sleep(150);const a1=await anc();
-ok(Math.abs(a1-a0)<=1,'what you are looking at does not move '+a0+'→'+a1);
-await p.evaluate(()=>window.scrollTo(0,0));await sleep(150);
-ok(!(await vis(p,'#addForm .chiprow')),'back at the top: no dates under the field');
-// Agregar con el botón (el foco queda en el alta), bajar y volver a subir: tocar la lista no pliega nada después
-await p.locator('#title').tap();await p.keyboard.type('Con el botón');await p.locator('#addBtn').tap();await sleep(400);
-ok(gh.items.some(x=>x.title==='Con el botón')&&await vis(p,'#addForm .chiprow'),'added with the Agregar button, dates still shown');
-await p.evaluate(()=>window.scrollTo(0,900));await sleep(300);await p.evaluate(()=>window.scrollTo(0,0));await sleep(300);
-const gY=()=>p.evaluate(()=>Math.round(document.querySelector('.ghead.over .gfold').getBoundingClientRect().top));
-const g0=await gY();await p.locator('.ghead.over .gfold').tap();await sleep(600);const g1=await gY();
-ok(g1===g0,'after scrolling away and back with focus in the add card, a tap on the list does not fold the dates afterwards '+g0+'→'+g1);
 await p.locator('.ghead.over .gfold').tap();await sleep(150);
 // Al final de la página: abrir y cerrar la hoja ⋯ no corre la lista (el margen de abajo no cambia)
 await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await sleep(200);
@@ -86,32 +72,34 @@ ok(await vis(p,'#fabs')&&await vis(p,'#fabAdd')&&await vis(p,'#fabMic'),'phone: 
 const fr=await p.evaluate(()=>{const r=document.getElementById('fabAdd').getBoundingClientRect(),n=document.getElementById('nav').getBoundingClientRect();return {b:Math.round(n.top-r.bottom),r:Math.round(innerWidth-r.right)}});
 ok(fr.b>=0&&fr.b<=24&&fr.r<=24,'bottom right, right above the bottom bar, within thumb reach '+JSON.stringify(fr));
 await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await sleep(100);
+const sy=await p.evaluate(()=>scrollY);
 await p.locator('#fabAdd').tap();await sleep(300);
-ok(await active(p)==='title'&&await p.evaluate(()=>scrollY)===0,'+ goes to the top with the field ready');
-ok(!(await vis(p,'#fabs')),'while typing, the bottom buttons step aside');
-await p.evaluate(()=>document.activeElement.blur());await sleep(150);
-ok(await vis(p,'#fabs'),'back after leaving the field');
+ok(await active(p)==='title'&&await vis(p,'#addForm')&&await p.evaluate(()=>scrollY)===sy,'+ opens the sheet with the field ready (the list stays where it was)');
+ok(!(await vis(p,'#fabs')),'with the sheet open, the bottom buttons step aside');
+await p.goBack();await sleep(300);
+ok(await vis(p,'#fabs')&&!(await vis(p,'#addForm')),'back after closing the sheet');
 // Dictar desde abajo: escucha, cuenta regresiva en el mismo botón y el Deshacer justo arriba
 await p.evaluate(()=>{window.__say=['llamar a la escribanía'];window.__hold=true});
 await p.locator('#fabMic').tap();
-ok(await L.until(()=>p.evaluate(()=>listening&&document.getElementById('fabMic').classList.contains('listening'))),'mic at the bottom starts listening');
+ok(await L.until(()=>p.evaluate(()=>listening&&document.body.classList.contains('capopen')&&document.getElementById('addBtn').dataset.mode==='listening')),'mic at the bottom opens the sheet and starts listening');
 await L.until(()=>p.evaluate(()=>!!document.getElementById('title').value));
-await p.locator('#fabMic').tap();   // "Listo"
-ok(await L.until(()=>p.evaluate(()=>!!autoSave&&/^[123]$/.test(document.getElementById('fabMic').textContent))),'tap again: stops, and the countdown shows on the bottom mic');
+await p.locator('#addBtn').tap();   // "Listo"
+ok(await L.until(()=>p.evaluate(()=>!!autoSave&&/[123]/.test(document.getElementById('addBtn').textContent))),'tap Listo: stops, and the countdown shows on the button');
 await p.evaluate(()=>{window.__hold=false});
-await p.locator('#fabMic').tap();
+await p.locator('#addBtn').tap();
 ok(await L.until(()=>gh.items.some(x=>x.title==='Llamar a la escribanía')),'tapping it during the countdown saves now');
+ok(await L.until(async()=>!(await vis(p,'#addForm'))&&await vis(p,'#fabs')),'the sheet closes, the bottom buttons are back');
 const tp=await p.evaluate(()=>{const t=document.getElementById('toast').getBoundingClientRect(),m=document.getElementById('fabMic').getBoundingClientRect();return {vis:!document.getElementById('toast').classList.contains('hidden'),gap:Math.round(m.top-t.bottom),undo:!document.getElementById('toastUndo').classList.contains('hidden')}});
 ok(tp.vis&&tp.undo&&tp.gap>=4&&tp.gap<=40,'Undo toast right above the mic, not covering it '+JSON.stringify(tp));
 await p.locator('#toastUndo').tap();
 ok(await L.until(()=>!gh.items.some(x=>x.title==='Llamar a la escribanía')),'Undo from there removes it');
 // Con algo escrito en el campo: no dicta encima (lo mezclaría); avisa y lo escrito queda como estaba
-await p.locator('#title').tap();await p.keyboard.type('Comprar pan');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
-await p.evaluate(()=>{window.__say=['llamar al plomero'];window.scrollTo(0,500)});
+await L.alta(p);await p.keyboard.type('Comprar pan');await p.goBack();await sleep(300);
+await p.evaluate(()=>{window.__say=['llamar al plomero']});
 await p.locator('#fabMic').tap();await sleep(400);
-ok(await p.evaluate(()=>!listening&&!autoSave&&scrollY===0)&&await p.inputValue('#title')==='Comprar pan'&&/agregalo o borralo/.test(await p.innerText('#toastMsg')),'typed text in the field: the bottom mic does not dictate over it, goes up and says to add or clear it first');
+ok(await p.evaluate(()=>!listening&&!autoSave&&document.body.classList.contains('capopen'))&&await p.inputValue('#title')==='Comprar pan'&&/agregalo o borralo/.test(await p.innerText('#toastMsg')),'typed text: the bottom mic does not dictate over it; it opens the sheet with the text and says to add or clear it first');
 ok(!gh.items.some(x=>/plomero|pan/i.test(x.title)),'nothing saved');
-await p.fill('#title','');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
+await p.fill('#title','');await p.dispatchEvent('#title','input');await p.goBack();await sleep(300);
 // El menú ⋯ y los modales tapan la barra (la de mañana está en Tareas)
 await L.go(p,'tareas');
 await row(p,'Pagar la luz').locator('.more').tap();await sleep(200);
@@ -238,7 +226,7 @@ gh.items=items().concat([T('in','Anotada al pasar',{due:day(0),inbox:true})]);gh
 ({ctx,p}=await device(b,gh,PHONE));
 let ht=await p.innerText('#hint').catch(()=>'');
 ok(await p.isVisible('#hint')&&/Deslizá una tarea a la derecha/.test(ht)&&/punto azul/.test(ht),'phone, first time: gestures and the blue dot explained');
-ok(await p.evaluate(()=>{const d=document.querySelector('.inboxdot');return !!d&&/al pasar/.test(d.title)&&d.getAttribute('aria-label')===d.title}),'the blue dot has a label');
+ok(await p.evaluate(()=>{const d=document.querySelector('.task .inboxdot');return !!d&&/al pasar/.test(d.title)&&d.getAttribute('aria-label')===d.title}),'the blue dot has a label');
 await p.locator('#hintOk').tap();await sleep(150);
 ok(!(await p.isVisible('#hint')),'Entendido hides it');
 await p.reload();await sleep(700);
@@ -270,7 +258,7 @@ ok(await p.isVisible('#welcome')&&!(await p.isVisible('#empty'))&&/Conectá tu r
 await p.locator('#welcomeGo').tap();await sleep(200);
 ok(await p.isVisible('#syncOv')&&await p.evaluate(()=>document.getElementById('acct').open),'Conectar opens the GitHub account settings');
 await p.locator('#syncX').tap();await sleep(150);
-await p.locator('#title').tap();await p.keyboard.type('Primera tarea');await p.keyboard.press('Enter');await sleep(300);
+await L.alta(p);await p.keyboard.type('Primera tarea');await p.keyboard.press('Enter');await sleep(300);
 ok(!(await p.isVisible('#welcome'))&&await row(p,'Primera tarea').count()===1,'after the first task, the welcome steps aside');
 await ctx.close();
 ({ctx,p}=await device(b,makeGH([]),PHONE));

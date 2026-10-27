@@ -195,7 +195,9 @@ const url=(await L.appUrl())+'?text='+encodeURIComponent('comprar pan\nllamar a 
 const {ctx,p}=await device(b,gh,PHONE,url,spy);await sleep(800);
 console.log('bulk visible:',await p.isVisible('#bulkOv'),'history.length:',await p.evaluate(()=>history.length),'state:',JSON.stringify(await p.evaluate(()=>history.state)));
 console.log('pushState calls:',JSON.stringify(await p.evaluate(()=>window.__push)));
-// add a task on the other device -> arrivals toast while Recuperar is showing
+ok((await p.evaluate(()=>window.__push)).every(x=>x.active),'no history entry created without a tap (Chrome would skip it with Back)');
+// La persona toca la lista (ahí se crea la entrada para Atrás); add a task on the other device -> arrivals toast while Recuperar is showing
+await p.locator('#bulkH').tap();await sleep(200);
 await p.goBack();await sleep(400);
 console.log('after Back: bulk hidden',await p.isHidden('#bulkOv'),'toast:',await p.textContent('#toastMsg'),await p.textContent('#toastUndo'));
 gh.items=[...gh.items,T('n','Nueva desde la compu',{due:day(0),src:'pc'})];gh.sha++;

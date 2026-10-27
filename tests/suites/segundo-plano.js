@@ -26,7 +26,7 @@ await p.reload();await sleep(800);   // ya controlada por el service worker
 ok(await p.evaluate(()=>!!navigator.serviceWorker.controller),'page controlled by the service worker');
 // Sin señal: se agrega y se "cierra la app"
 gh.mode='offline';
-await p.fill('#title','Anotada en el ascensor');await p.press('#title','Enter');await sleep(1500);
+await L.alta(p);await p.fill('#title','Anotada en el ascensor');await p.press('#title','Enter');await sleep(1500);
 await p.evaluate(()=>{Object.defineProperty(document,'visibilityState',{get:()=>'hidden',configurable:true});document.dispatchEvent(new Event('visibilitychange'))});
 await sleep(800);
 const snap=await p.evaluate(()=>idbGet('pendiente'));
@@ -51,7 +51,7 @@ ok(gh.messages.length===puts&&gh.items.filter(x=>x.title==='Anotada en el ascens
 ok(await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')||'[]').length)===0&&await p.innerText('#statusShort')==='Al día','outbox empty and "Al día" after reopening');
 ok(!(await p.evaluate(()=>idbGet('pendiente'))),'snapshot cleared');
 // Si tareas.json desapareció, el service worker no crea uno nuevo con solo lo pendiente (lo resuelve la página)
-gh.mode='offline';await p.fill('#title','Sin señal y sin archivo');await p.press('#title','Enter');await sleep(1200);
+gh.mode='offline';await L.alta(p);await p.fill('#title','Sin señal y sin archivo');await p.press('#title','Enter');await sleep(1200);
 await p.evaluate(()=>{Object.defineProperty(document,'visibilityState',{get:()=>'hidden',configurable:true});document.dispatchEvent(new Event('visibilitychange'))});await sleep(800);
 const had=((await p.evaluate(()=>idbGet('pendiente')))||{}).had;
 ok(had>=2,'the snapshot remembers how many tasks there were: '+had);
@@ -65,7 +65,7 @@ await p.goto(APPURL);await sleep(2000);
 ok(await p.evaluate(()=>fileGuard&&fileGuard.kind)==='missing'&&await p.evaluate(()=>tasks.some(t=>t.title==='Sin señal y sin archivo')),'the page shows the missing-file warning and keeps the pending task');
 gh.missing=false;
 // Borrar la conexión borra la copia con el token
-gh.mode='offline';await p.fill('#title','Otra sin señal');await p.press('#title','Enter');await sleep(1200);
+gh.mode='offline';await L.alta(p);await p.fill('#title','Otra sin señal');await p.press('#title','Enter');await sleep(1200);
 ok(!!(await p.evaluate(()=>idbGet('pendiente'))),'snapshot written again when offline');
 await p.click('#statusBtn');await p.click('#clearCfg');await p.click('#clearCfg');await sleep(500);
 ok(!(await p.evaluate(()=>idbGet('pendiente'))),'clearing the connection removes the snapshot (token) from IndexedDB');
@@ -76,7 +76,7 @@ gh.mode='ok';gh.items=[T('a','Uno',{due:day(0)}),T('b','Dos',{due:day(0)}),T('c'
 p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));
 await p.addInitScript(()=>{if(!localStorage.getItem('githubTasksConfig'))localStorage.setItem('githubTasksConfig',JSON.stringify({owner:'u',repo:'r',token:'x'}))});   // (se borró la conexión)
 await p.goto(APPURL);await sleep(1500);
-gh.mode='offline';await p.fill('#title','Otra más sin señal');await p.press('#title','Enter');await sleep(1200);
+gh.mode='offline';await L.alta(p);await p.fill('#title','Otra más sin señal');await p.press('#title','Enter');await sleep(1200);
 await p.evaluate(()=>{Object.defineProperty(document,'visibilityState',{get:()=>'hidden',configurable:true});document.dispatchEvent(new Event('visibilitychange'))});await sleep(800);
 ok(((await p.evaluate(()=>idbGet('pendiente')))||{}).live===5,'the snapshot remembers how many live tasks there are (4 + the new one)');
 await p.close();

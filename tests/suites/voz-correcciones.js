@@ -20,30 +20,31 @@ await p.goto(await H.appUrl());await sleep(500);
 const mode=()=>p.evaluate(()=>document.getElementById('addBtn').dataset.mode);
 // Enter mientras escucha = Listo (no guarda el parcial)
 await p.evaluate(()=>{window.__say=['llamar al banco mañana','llamar al banco mañana a las 10'];window.__hold=true});
-await p.locator('#addBtn').tap();await sleep(200);
+await H.alta(p);await p.locator('#addBtn').tap();await sleep(200);
 ok((await p.inputValue('#title'))==='llamar al banco mañana','interim in field');
-await p.focus('#title');await p.keyboard.press('Enter');await sleep(100);
+await H.alta(p);await p.focus('#title');await p.keyboard.press('Enter');await sleep(100);
 ok(await p.evaluate(()=>window.__stopped>=1)&&!gh.items.some(x=>/banco/.test(x.title))&&(await p.evaluate(()=>JSON.parse(localStorage.getItem('tareasPendientes')||'[]').length))===0,'Enter while listening stops instead of saving');
 await sleep(600);
 ok((await mode())==='saving'&&(await p.inputValue('#title'))==='llamar al banco mañana','text left in the field, saving countdown');
 await p.evaluate(()=>cancelAutoSave());
 ok((await p.innerText('#detected')).split('\n')[0]==='Llamar al banco','Detectado shows the full title to be saved: '+(await p.innerText('#detected')).replace(/\n/g,' | '));
-await p.fill('#title','');
+await H.alta(p);await p.fill('#title','');
 // Escribir mientras escucha corta el dictado y no se pisa. El resultado de mentira llega tarde (1,5 s), después
 // de lo que se escribe, así se prueba que un resultado que llega después no pisa lo escrito.
 await p.evaluate(()=>{window.__say=['algo dictado'];window.__hold=true;window.__aborted=0;window.__delay=1500});
-await p.locator('#addBtn').tap();
-await p.focus('#title');await p.keyboard.type('pagar luz');await sleep(1800);
+await H.alta(p);await p.locator('#addBtn').tap();
+await H.alta(p);await p.focus('#title');await p.keyboard.type('pagar luz');await sleep(1800);
 ok(await p.evaluate(()=>window.__aborted>=1)&&(await p.inputValue('#title'))==='pagar luz'&&(await mode())==='add','typing during dictation aborts it and keeps typed text');
 await p.evaluate(()=>{window.__delay=0});
-await p.fill('#title','');await p.evaluate(()=>document.activeElement.blur());
+await H.alta(p);await p.fill('#title','');await p.evaluate(()=>document.activeElement.blur());
 // El navegador nunca avisa el fin: el botón se libera igual
 await p.evaluate(()=>{window.__say=[];window.__hold=true;window.__noend=true});
-await p.locator('#addBtn').tap();await sleep(50);ok((await mode())==='listening','listening');
-await p.locator('#addBtn').tap();await sleep(4300);
+await H.alta(p);await p.locator('#addBtn').tap();await sleep(50);ok((await mode())==='listening','listening');
+await H.alta(p);await p.locator('#addBtn').tap();await sleep(4300);
 ok((await mode())==='mic','button recovers if onend never fires');
 await p.evaluate(()=>{window.__noend=false;window.__hold=false});
-// Calendario de tarea vencida → hoy
+// Calendario de tarea vencida → hoy (primero se cierra la hoja, tocando afuera)
+await p.click('#capScrim',{position:{x:10,y:10}});await sleep(150);
 await p.locator('.task',{hasText:'Pagar luz'}).locator('.more').tap();
 const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#menu button:has-text("Agregar al calendario")')]);
 const today=(await p.evaluate(()=>ymd(new Date()))).replace(/-/g,'');
@@ -63,7 +64,7 @@ ok(ev.tom==='08:00','"a las 8" tomorrow stays 08:00');
 if(ev.res)ok(ev.res==='20:00','"a las 8" today after 8am becomes 20:00');
 // Aviso en 320px: el texto no se corta
 await p.setViewportSize({width:320,height:640});
-await p.fill('#title','recordame el lunes llamar al banco a las 10');await p.locator('#addBtn').tap();await sleep(300);
+await H.alta(p);await p.fill('#title','recordame el lunes llamar al banco a las 10');await H.alta(p);await p.locator('#addBtn').tap();await sleep(300);
 const tb=await p.evaluate(()=>{const m=document.getElementById('toastMsg');return {sw:m.scrollWidth,cw:m.clientWidth,txt:m.textContent}});
 ok(tb.sw<=tb.cw+1,'toast message not truncated at 320px: '+tb.txt);
 ok(errs.length===0,'no page errors '+JSON.stringify(errs));

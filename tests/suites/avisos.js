@@ -10,7 +10,7 @@ const envFile=o=>({content:JSON.stringify(o),sha:1});
 // Este dispositivo ya vio salir avisos (como si hubiera leído el archivo otro día)
 const AVISOS_ON=()=>{if(!sessionStorage.getItem('av')){sessionStorage.setItem('av','1');localStorage.setItem('avisosTelegram',JSON.stringify({repo:'u/r',last:'2026-10-13T23:50:00.000Z'}))}};
 const tags=p=>p.$$eval('#detected .tag',e=>e.map(x=>x.textContent+(x.classList.contains('warn')?'!':'')));
-const type=async(p,v)=>{await p.fill('#title',v);await sleep(120)};
+const type=async(p,v)=>{await L.alta(p);await p.fill('#title',v);await sleep(120)};   // (en el celular, en la hoja del "+")
 (async()=>{
 const b=await L.launch();
 
@@ -218,8 +218,11 @@ const b=await L.launch();
 
   gh=mk();d=await device(b,gh,PHONE,(await L.appUrl())+'?tarea=a',AVISOS_ON);p=d.p;
   await until(()=>p.isVisible('#posOv'),{timeout:5000});
-  // Atrás la cierra sin salir de la app
+  // Atrás la cierra sin salir de la app. (Abierta desde Telegram, la entrada del historial para Atrás se crea con el
+  // primer toque en la app: creada sin un toque, Chrome la saltearía y Atrás cerraría la app.)
   await p.locator('#posBtns button',{hasText:'Hoy 18:00'}).waitFor();
+  ok(await p.evaluate(()=>!(history.state&&history.state.tareas)),'sin tocar nada todavía no hay entrada para Atrás');
+  await p.locator('#posT').tap();
   await p.evaluate(()=>new Promise(r=>{const t0=Date.now();(function w(){if(!navPending&&history.state&&history.state.tareas==='atras'||Date.now()-t0>3000)r();else setTimeout(w,50)})()}));
   await p.goBack();await sleep(500);
   ok(!await p.isVisible('#posOv')&&/\/Tareas\//.test(p.url()),'Atrás cierra la hoja y queda en la app');

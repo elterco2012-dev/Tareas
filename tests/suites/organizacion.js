@@ -53,9 +53,10 @@ await ctx.close();
 // ===== Anotadas al pasar =====
 gh=makeGH([]);
 ({ctx,p}=await device(b,gh,PHONE));
-await p.locator('#title').tap();await p.keyboard.type('Comprar cartuchos');await p.keyboard.press('Enter');await sleep(400);
-await p.keyboard.type('Llamar a Pedro mañana');await p.keyboard.press('Enter');await sleep(400);
-await p.locator('#chips .chip[data-v="1"]').tap();await p.locator('#title').tap();await p.keyboard.type('Pasar presupuesto');await p.keyboard.press('Enter');await sleep(400);
+// (en el celular cada una se anota en la hoja del "+", que se cierra al agregar)
+await L.alta(p);await p.keyboard.type('Comprar cartuchos');await p.keyboard.press('Enter');await sleep(400);
+await L.alta(p);await p.keyboard.type('Llamar a Pedro mañana');await p.keyboard.press('Enter');await sleep(400);
+await L.alta(p);await p.locator('#chips .chip[data-v="1"]').tap();await p.locator('#title').tap();await p.keyboard.type('Pasar presupuesto');await p.keyboard.press('Enter');await sleep(400);
 const ib=t=>gh.items.find(x=>x.title===t);
 ok(ib('Comprar cartuchos').inbox===true&&ib('Comprar cartuchos').due===day(0),'phone, no date chosen → inbox, still today');
 ok(!ib('Llamar a Pedro').inbox&&!ib('Pasar presupuesto').inbox,'date in the text or chip chosen → not inbox');

@@ -89,7 +89,7 @@ gh=makeGH([]);
 const byTitle=t=>gh.items.find(x=>x.title===t);
 // Se agrega en la pantalla Hoy (la de inicio): la tarea va a "Para hoy"
 const inToday=(t)=>p.evaluate(t=>{const grp=[...document.querySelectorAll('#hoyList .grp')].find(x=>/^Para hoy/.test(x.querySelector('.ghead').textContent));return !!grp&&[...grp.querySelectorAll('.task')].some(r=>r.querySelector('.ttext').textContent===t&&!!r.querySelector('.inboxdot'))},t);
-ok(await p.evaluate(()=>FINE&&!COARSE)&&await p.getAttribute('#chips .chip.on','data-v')==='0','desktop: the date chip starts on "Hoy", untouched');
+ok(await p.evaluate(()=>FINE&&!COARSE&&!document.querySelector('#chips .chip.on')),'desktop: no date chip marked at first (without choosing, it stays in Hoy as anotada al pasar)');
 await p.fill('#title','Comprar tóner');await p.press('#title','Enter');await sleep(500);
 let t=byTitle('Comprar tóner');
 ok(t&&t.inbox===true&&t.due===day(0),'desktop add without a date → saved with inbox:true, due today: '+JSON.stringify(t&&{inbox:t.inbox,due:t.due}));

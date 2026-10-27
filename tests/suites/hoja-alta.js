@@ -13,7 +13,7 @@ const box=(p,s)=>p.evaluate(s=>{const e=document.querySelector(s);if(!e)return n
 const pressed=p=>p.evaluate(()=>[...document.querySelectorAll('#addForm .chip[aria-pressed="true"]')].map(b=>b.textContent));
 const seen=(p,s)=>p.evaluate(s=>{const e=document.querySelector(s);return !!e&&!!e.getBoundingClientRect().height},s);
 const type=async(p,v)=>{await p.fill('#title',v);await p.dispatchEvent('#title','input');await sleep(150)};
-const byT=(gh,t)=>gh.items.find(x=>x.title===t);
+const byT=(gh,t)=>gh.items.find(x=>x.title.toLowerCase()===t.toLowerCase());
 (async()=>{
 const b=await L.launch();APP=await L.appUrl();
 const items=()=>[T('o','Pagar el seguro',{due:day(-1),requester:'Laura'}),T('t','Revisar presupuesto',{due:day(0)})];
