@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-qx2Ms48bXr2U6hKj8C3KF/v9Ps4qLxwq1XG/FBKMvjs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-SKgQSgJZksWXA4r6ws212qhS5fDECwgT0ibotZwCMiA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -179,6 +179,10 @@ body.scr-ajustes .cols,body.scr-ajustes #addForm,body.scr-ajustes #searchHome,bo
 .ajustes{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
 .ajtop{display:flex;justify-content:flex-end;margin:-8px 0 -4px}
 .ajtop .textbtn{min-width:44px;min-height:44px}
+.ajustes .secbtn,.ajustes .primary,.ajustes .clearbtn,.ajustes .linkbtn{min-height:44px}
+.ajustes .clearbtn{padding:0}
+.nfilter .chip{min-height:44px}
+.nfilter .ncolchip{width:44px}
 .ajgrp{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .ajh{margin:0;font-size:15px;font-weight:650;color:var(--text)}
 #setBtn[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text)}
@@ -446,7 +450,7 @@ label.fcol .inp,.modal .big{font-size:15px;font-weight:400;padding:10px 12px;bor
 .ngrid .task.note+.task.note{border-top:1px solid var(--border)}
 .ngrid .task.note[class*="nc-"]{border-color:transparent}
 .ngrid .task.note.sel{outline:2px solid var(--accent);outline-offset:-2px}
-.ngrid .nico{display:none}
+.ngrid .task.note .nico{display:none}
 .ngrid .body{padding:12px 0 14px}
 .ngrid .ttext{font-size:15px;font-weight:600}
 .ngrid .notes{white-space:normal;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;line-height:1.4}
@@ -973,11 +977,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.26-3"></script>
+<script src="sync-core.js?v=2026.10.27-1"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.26-3';
+const APP_VERSION='2026.10.27-1';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1029,7 +1033,7 @@ let scr=(()=>{
   const p=history.state&&history.state.pantalla,q=new URLSearchParams(location.search);
   return (p==='tareas'||p==='notas')&&!LAUNCH_KEYS.some(k=>q.has(k))?p:'hoy';
 })();
-let scrPrev='hoy';const scrollPos={};
+let scrPrev='hoy',ajFrom='hoy';const scrollPos={};   // ajFrom: la pantalla desde la que se abrió Ajustes
 
 // ---- Almacenamiento local ----
 function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch{return def}}
@@ -2469,8 +2473,9 @@ function renderList(){
   // Otras, o Recientes si no hay fijadas.
   if(scr==='notas'&&notes.length&&!personFilter)ns.append(noteFilterRow());
   const nshown=nlist.filter(t=>noteFilter==='todas'||(noteFilter==='ideas'?!!t.idea:noteColor(t)===noteFilter)||scr!=='notas');
-  const pinned=nshown.filter(t=>t.pinned),rest=nshown.filter(t=>!t.pinned);
-  [[pinned,'Fijadas'],[rest,pinned.length?'Otras':'Recientes']].forEach(([list,title])=>{
+  // (buscando, un solo grupo "Notas")
+  const pinned=scr==='notas'?nshown.filter(t=>t.pinned):[],rest=nshown.filter(t=>!pinned.includes(t));
+  [[pinned,'Fijadas'],[rest,scr!=='notas'?'Notas':pinned.length?'Otras':'Recientes']].forEach(([list,title])=>{
     if(!list.length)return;
     const grp=el('div','grp'),head=el('div','ghead');
     head.append(...foldHead('notes',title,list,false,true));grp.append(head);
@@ -3689,9 +3694,11 @@ function goScreen(s,o={}){
   if(s===scr)return;
   closeMenu();
   const from=scr;scrollPos[from]=scrollY;
-  if(from==='buscar')$('search').value='';else if(from!=='ajustes')scrPrev=from;
+  // (a Ajustes y de vuelta, la búsqueda y el filtro por persona siguen como estaban)
+  if(s==='ajustes')ajFrom=from;
+  if(from==='buscar'){if(s!=='ajustes')$('search').value=''}else if(from!=='ajustes')scrPrev=from;
   if(from==='ajustes'){confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'))}
-  if(personFilter&&s!=='tareas'&&s!=='buscar'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
+  if(personFilter&&s!=='tareas'&&s!=='buscar'&&s!=='ajustes'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
   if(!$('title').value.trim()&&(s==='notas'||from==='notas'))asNote=s==='notas';
   else if(from==='notas'&&asNote)noteCarry=true;
@@ -4200,7 +4207,9 @@ $('eDel').onclick=()=>{const t=edit&&findLive(edit.id);if(t)del(t);else closeEdi
 // ---- Sincronización ----
 function openSettings(){
   closeMenu();
-  if(scr!=='ajustes'){goScreen('ajustes');if(scr!=='ajustes')return}   // (con el detalle sin título no se va)
+  // Ya en Ajustes (el punto de estado sigue a la vista): arriba, sin borrar lo que estés escribiendo
+  if(scr==='ajustes'){window.scrollTo({top:0,behavior:'smooth'});return}
+  goScreen('ajustes');if(scr!=='ajustes')return;   // (con el detalle sin título no se va)
   confirmClear=false;confirmAccept=false;window.scrollTo(0,0);
   // El token guardado no se muestra (con la compu desbloqueada se copiaría en segundos): solo sus últimas letras
   $('owner').value=cfg.owner||'';$('repo').value=cfg.repo||'';$('token').value='';$('tokenExp').value=cfg.tokenExp||'';
@@ -4214,7 +4223,7 @@ function openSettings(){
   renderDevice();renderStatus();renderGuard();checkAvisos(true);
 }
 // Cerrar: a la pantalla de antes; el botón Atrás, a Hoy
-function closeSettings(to){if(scr==='ajustes')goScreen(to||scrPrev||'hoy')}
+function closeSettings(to){if(scr==='ajustes')goScreen(to||ajFrom||'hoy')}
 function renderSync(st){
   const n=getOutbox().length;
   $('syncDot').style.background=st.dot;$('statusLong').textContent=st.long;

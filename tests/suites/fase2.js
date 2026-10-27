@@ -48,6 +48,8 @@ const heads=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .ghead
 ok(JSON.stringify(heads)===JSON.stringify(['Fijadas1','Otras2']),'sections Fijadas and Otras '+JSON.stringify(heads));
 const g=await p.evaluate(()=>{const c=[...document.querySelectorAll('#notesSec .ngrid')].pop().children;return {cols:getComputedStyle(c[0].parentNode).gridTemplateColumns.split(' ').length,sameRow:Math.abs(c[0].getBoundingClientRect().top-c[1].getBoundingClientRect().top)<2}});
 ok(g.cols===2&&g.sameRow,'phone: 2 columns '+JSON.stringify(g));
+const tw=await row(p,'Código del portón').evaluate(r=>({t:Math.round(r.querySelector('.body').getBoundingClientRect().width),c:Math.round(r.getBoundingClientRect().width),ico:getComputedStyle(r.querySelector('.nico')).display}));
+ok(tw.ico==='none'&&tw.t>=tw.c-60,'cards: no icon, the text uses the card width '+JSON.stringify(tw));
 ok(await row(p,'Código del portón').evaluate(r=>r.classList.contains('nc-verde'))&&await row(p,'Viaje a Mendoza').evaluate(r=>r.classList.contains('nc-amarillo')),'cards take their color (an idea without color, amber)');
 const chips=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .nfilter .chip')].map(b=>b.textContent||b.getAttribute('aria-label')));
 ok(JSON.stringify(chips)===JSON.stringify(['Todas','Ideas','Verde']),'filters: Todas, Ideas and the colors in use '+JSON.stringify(chips));
@@ -76,6 +78,24 @@ const sy=await box(p,'#ajSync');
 ok(await p.evaluate(()=>document.body.dataset.screen)==='ajustes'&&sy&&sy.y<200,'the status button opens Ajustes at Sincronización');
 await p.locator('#syncX').tap();await sleep(300);
 ok(await p.evaluate(()=>document.body.dataset.screen)==='tareas','Cerrar goes back to the screen before');
+// Con el filtro por persona o una búsqueda, ir a Ajustes y volver los deja como estaban
+await row(p,'Pagar el seguro').locator('.meta .person').tap();await sleep(300);
+await p.locator('#setBtn').tap();await sleep(300);await p.locator('#syncX').tap();await sleep(300);
+ok(await p.evaluate(()=>document.body.dataset.screen)==='tareas'&&(await p.innerText('#filterName'))==='Laura'&&await p.isVisible('#filterBar'),'Tareas filtered by Laura → Ajustes → Cerrar: still filtered');
+await p.locator('#filterX').tap();await sleep(200);
+await p.locator('#searchBtn').tap();await sleep(200);await p.fill('#search','seguro');await p.dispatchEvent('#search','input');await sleep(200);
+await p.locator('#setBtn').tap();await sleep(300);await p.locator('#syncX').tap();await sleep(300);
+ok(await p.evaluate(()=>document.body.dataset.screen)==='buscar'&&await p.inputValue('#search')==='seguro','Buscar → Ajustes → Cerrar: back in Buscar with the search');
+const nh=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .ghead')].map(h=>h.textContent.replace(/\s+/g,'')));
+await p.fill('#search','portón');await p.dispatchEvent('#search','input');await sleep(200);
+ok(JSON.stringify(await p.evaluate(()=>[...document.querySelectorAll('#notesSec .ghead')].map(h=>h.textContent.replace(/\s+/g,''))))===JSON.stringify(['Notas1']),'notes in search results are headed Notas');
+await p.locator('#searchClose').tap();await sleep(200);await go(p,'tareas');
+// El punto de estado en Ajustes no borra lo que estás escribiendo
+await p.locator('#setBtn').tap();await sleep(300);
+await p.evaluate(()=>{$('acct').open=true});await p.fill('#owner','otro');
+await p.locator('#statusBtn').tap();await sleep(300);
+ok(await p.inputValue('#owner')==='otro'&&await p.evaluate(()=>$('acct').open),'the status button on Ajustes keeps what you typed');
+await p.locator('#syncX').tap();await sleep(300);
 // Borrar conexión: dos toques
 await p.locator('#setBtn').tap();await sleep(300);
 await p.locator('#clearCfg').tap();await sleep(150);
