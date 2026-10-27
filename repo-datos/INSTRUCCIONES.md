@@ -145,7 +145,7 @@ Para que el mensaje traiga el enlace, cargá la dirección de la app una vez:
 2. Pestaña **Variables** → **New repository variable**.
 3. Name: `APP_URL` — Value: la dirección de la app, por ejemplo `https://TU_USUARIO.github.io/organizador-web/`. Tocá **Add variable**.
 
-Sin esa variable, el mensaje llega igual y dice que abras la app y toques "Revisión de la semana" (abajo, junto a Terminadas): es la misma revisión, en el celular o en la compu.
+Sin esa variable, el mensaje llega igual y dice que abras la app y toques "Revisión de la semana" (en Ajustes › Herramientas, o en Tareas, abajo, junto a Terminadas): es la misma revisión, en el celular o en la compu.
 
 ---
 
@@ -538,7 +538,7 @@ Desde ese momento se copia sola todas las noches. GitHub a veces la demora un ra
 
 ## Cómo recuperar las tareas
 
-**Primero, desde la app.** Si `tareas.json` desapareció, quedó vacío o se dañó, la app lo avisa arriba en rojo y deja de sincronizar en ese dispositivo para no perder nada. Abrí la app en el dispositivo que tenga las tareas más al día y, en **Sincronización**, tocá **Volver a subir la copia de este dispositivo**: usa la última versión buena de GitHub (si el otro dispositivo subió algo después) o la copia del dispositivo, con lo que falte subir. Así no se pierde nada de lo que hiciste después de la última copia de la noche.
+**Primero, desde la app.** Si `tareas.json` desapareció, quedó vacío o se dañó, la app lo avisa arriba en rojo y deja de sincronizar en ese dispositivo para no perder nada. Abrí la app en el dispositivo que tenga las tareas más al día y, en **Ajustes › Sincronización**, tocá **Volver a subir la copia de este dispositivo**: usa la última versión buena de GitHub (si el otro dispositivo subió algo después) o la copia del dispositivo, con lo que falte subir. Así no se pierde nada de lo que hiciste después de la última copia de la noche.
 
 **Si no se puede desde la app** (por ejemplo, ningún dispositivo tiene las tareas), usá la copia de la noche. Ojo: vuelve a como estaba a las 3:17 de ese día; lo que cargaste o cambiaste después se pierde.
 

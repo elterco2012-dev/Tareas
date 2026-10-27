@@ -303,9 +303,11 @@ const counts=await p.evaluate(()=>['navHoyN','navTareasN','navNotasN'].map(id=>d
 ok(JSON.stringify(counts)===JSON.stringify(['6','13','1']),'counts: Hoy (vencidas + para hoy), Tareas (pending, without the waiting ones), Notas '+JSON.stringify(counts));
 ok(await p.evaluate(()=>document.getElementById('navFoot').contains(document.getElementById('statusBtn'))&&document.getElementById('navFoot').contains(document.getElementById('setBtn'))),'status and Ajustes at the foot of the sidebar');
 ok(await p.innerText('#statusShort')==='Al día'&&(await box(p,'#statusShort')).w>20,'computer: the status with its text');
-ok(await p.isVisible('#shortcuts')&&!(await p.isVisible('#shortcuts .scx'))&&/nueva/.test(await p.innerText('#shortcuts')),'shortcuts line: N, / and . (the rest folded)');
+ok(await p.isVisible('#shortcuts')&&!(await p.isVisible('#shortcuts .scx'))&&/nueva/.test(await p.innerText('#shortcuts'))&&/\?/.test(await p.innerText('#shortcuts .scbtn')),'shortcuts line: N, /, . and ? (the rest in the help)');
 await p.click('#shortcuts .scbtn');await sleep(100);
-ok(await p.isVisible('#shortcuts .scx')&&/ordenar/.test(await p.innerText('#shortcuts')),'"Todos los atajos" shows the rest');
+ok(await p.isVisible('#helpOv')&&/ordenar/.test(await p.innerText('#helpList'))&&/revisión de la semana/.test(await p.innerText('#helpList')),'"? todos los atajos" opens the help with all of them');
+await p.keyboard.press('Escape');await sleep(100);
+ok(!(await p.isVisible('#helpOv')),'Esc closes the help');
 ok(!(await box(p,'#side')),'900–1199: no right column');
 // Buscar va arriba de todo en la barra lateral, también con Tab; en Buscar se ve elegido
 ok(await p.evaluate(()=>document.getElementById('nav').firstElementChild.id)==='searchBtn','sidebar: Buscar first (also with Tab)');
