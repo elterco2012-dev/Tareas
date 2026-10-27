@@ -190,8 +190,10 @@ USO DIARIO
 - En la compu hay atajos de teclado: N nueva, / buscar, flechas para elegir (con el campo vacio, flecha abajo pasa a la
   lista), Espacio terminar, E editar, H hoy, M mañana, L lunes, F otra fecha ("jueves", "15/10", "mañana a las 3"),
   S sin fecha, W esperando, Q (o @) quien la pidio, ! prioridad alta, . abre el menu, P ordenar, Shift+P revision de la
-  semana, Alt+flechas mover, Supr borrar. Al pie de la barra de la izquierda se ven N, / y .; "Todos los atajos"
-  muestra el resto.
+  semana, Alt+flechas mover, Supr borrar. La tecla ? abre la ayuda con todos los atajos (Esc la cierra). Al pie de
+  la barra de la izquierda se ven N, /, . y ? ("todos los atajos").
+- Letra grande: la app sigue el tamaño de letra del celular o de la compu (en Chrome de la compu: Configuracion >
+  Apariencia > Tamaño de fuente). Probada al 130 %: no se corta nada ni hay que deslizar a los costados.
   Despues de decidir (H, M, L, S, Espacio, Supr) la seleccion pasa sola a la siguiente. La tarea elegida se marca
   con una barra a la izquierda. Con las flechas no se entra a un grupo plegado.
 - Anotadas al pasar: lo que cargas sin elegir fecha (sin escribir una fecha ni tocar los botones de fecha), en el
