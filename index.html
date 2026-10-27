@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-W3MAFIreUHS5Jak6Y/RSRQpMadaGoVJ8/C8aQjxBSL4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-YX/0eapzUEgAB4hxO/FSpC2T4J1vh+S874rNfkhR5rE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -510,6 +510,8 @@ body.capsheet.capopen .capgrip{display:block;width:36px;height:4px;border-radius
 /* Dictando desde el atajo ("Dictar tarea"), lo que se entendió se ve arriba, como siempre */
 body.capsheet.docked #addForm{display:block;position:static}
 @media (prefers-reduced-motion:no-preference){body.capsheet.capopen #addForm{animation:capup .18s ease-out}}
+/* Con la hoja abierta, los avisos van arriba (abajo taparían los chips) */
+body.capopen:not(.docked) .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 @keyframes capup{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 </style>
 </head>
@@ -834,11 +836,11 @@ body.capsheet.docked #addForm{display:block;position:static}
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.26-1"></script>
+<script src="sync-core.js?v=2026.10.26-2"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.26-1';
+const APP_VERSION='2026.10.26-2';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -2121,8 +2123,7 @@ function renderAdd(){
   $('dueRow').classList.toggle('hidden',nd);
   $('inboxLine').classList.toggle('hidden',!(raw.trim()&&!nd&&p.due===undefined&&!chipTouched&&!p.time&&!p.waiting));
   $('timeRow').classList.toggle('hidden',info.kind!=='rec');
-  const tl=p.time?timeLabel(p.time):null;
-  document.querySelectorAll('#timeChips .chip').forEach(b=>{const on=info.kind==='rec'&&b.dataset.t===tl;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
+  document.querySelectorAll('#timeChips .chip').forEach(b=>{const on=info.kind==='rec'&&b.dataset.t===capTime;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   const det=$('detected');det.replaceChildren();
   const tags=[];
   if(nd&&p.title.trim())tags.push('Nota: sin fecha ni aviso');
@@ -2161,13 +2162,16 @@ function openCap(focus=true){
   if(focus)$('title').focus();
   renderAdd();scheduleFabs();
 }
+// Para, tipo y aviso sin elegir (lo nuevo no hereda lo elegido para otra cosa)
+function freshCap(){chip='0';chipTouched=false;capKind=null;capTime=null}
 function closeCap(){
   if(!capOpen)return;
+  cancelAutoSave();if(listening)stopVoice(true);   // lo escrito queda como borrador, no se guarda solo
   capOpen=false;document.body.classList.remove('capopen');$('capScrim').classList.add('hidden');
   const a=document.activeElement;if(a&&$('addForm').contains(a))a.blur();
   hideSuggest();
   // Sin nada escrito, la próxima vez arranca de cero (en Notas, como nota)
-  if(!$('title').value.trim()&&!$('note').value.trim()){chip='0';chipTouched=false;capKind=null;capTime=null;asNote=scr==='notas';noteCarry=false;setNote(false)}
+  if(!$('title').value.trim()&&!$('note').value.trim()){freshCap();asNote=scr==='notas';noteCarry=false;setNote(false)}
   saveDraft();renderAdd();scheduleFabs();
 }
 $('capScrim').addEventListener('pointerdown',e=>{downOn=e.target});
@@ -3337,7 +3341,7 @@ $('bulkForm').addEventListener('submit',e=>{
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
   actMany(ops);
-  $('title').value='';asNote=scr==='notas';saveDraft();renderAdd();
+  $('title').value='';asNote=scr==='notas';capKind=null;capTime=null;saveDraft();renderAdd();closeCap();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   const nn=added.filter(isNote).length,nt=added.length-nn,cnt=(n,a,b)=>n+' '+(n===1?a:b);
   toast((nt?cnt(nt,'tarea','tareas'):'')+(nt&&nn?' y ':'')+(nn?cnt(nn,'nota','notas'):'')+(added.length===1?' agregada':' agregadas'),()=>{
@@ -4112,7 +4116,7 @@ function backClose(){
   if(bulk)return dismissBulk();
   if(settingsOpen)return closeSettings();
   if(menuId)return closeMenu();
-  if(capOpen){if(listening)stopVoice(true);return closeCap()}
+  if(capOpen)return closeCap();
   if(dock){if(listening)stopVoice(true);return closeDock()}
   if(searchOpen)return closeSearch('hoy');
   if(personFilter)return setPersonFilter(null);
@@ -4123,7 +4127,8 @@ function traverse(n){navPending++;gestured=false;clearTimeout(navTimer);navTimer
 // Chrome saltea con el botón Atrás las entradas creadas sin un toque (o una tecla) desde el último movimiento en el
 // historial: la de una pantalla se crea recién con el próximo toque
 let gestured=false,waitTap=false;
-['pointerdown','keydown'].forEach(t=>document.addEventListener(t,e=>{if(!e.isTrusted)return;gestured=true;if(waitTap){waitTap=false;scheduleBack()}},true));
+// (con el dedo Chrome lo cuenta como toque recién al levantarlo; con el mouse, al apretar)
+['pointerdown','pointerup','keydown'].forEach(t=>document.addEventListener(t,e=>{if(!e.isTrusted||e.type!=='keydown'&&(e.type==='pointerup')===(e.pointerType==='mouse'))return;gestured=true;if(waitTap){waitTap=false;scheduleBack()}},true));
 function syncBack(){
   if(navPending)return;
   const open=backable(),ap=afterPop;afterPop=false;
@@ -4196,8 +4201,8 @@ function fillShared(params){
     openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
     return;
   }
-  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,at:Date.now()};
-  asNote=false;   // lo compartido es una tarea, salvo que empiece con nota: o idea:
+  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,k:capKind,tm:capTime,at:Date.now()};
+  asNote=false;freshCap();   // lo compartido es una tarea, salvo que empiece con nota: o idea:
   const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
   const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
   $('title').value=sp.title.slice(0,500);sharedFill=true;voiceFilled=false;
@@ -4227,8 +4232,8 @@ function handleLaunch(params,initial){
   if(initial){if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft()}
   // "Dictar" con la app abierta y algo escrito: lo escrito queda guardado aparte y vuelve después de dictar
   else if(voz&&($('title').value.trim()||$('note').value.trim())){
-    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,at:Date.now()};
-    $('title').value='';$('note').value='';setNote(false);asNote=false;sharedFill=false;voiceFilled=false;renderAdd();
+    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,k:capKind,tm:capTime,at:Date.now()};
+    $('title').value='';$('note').value='';setNote(false);asNote=false;freshCap();sharedFill=false;voiceFilled=false;renderAdd();
   }
   // En el celular, la app instalada abre mostrando la lista, sin el teclado (salvo que en Sincronización › Este
   // dispositivo se elija abrirla lista para anotar); con "Nueva tarea" o compartiendo, sí. Con "Dictar", lista para hablar.

@@ -83,7 +83,7 @@ LA HOJA PARA ANOTAR
     las 9:00 (o sin hora si es para hoy y ya paso el aviso de las 9).
   - Para: Hoy · Mañana · Lunes · Sin fecha. Ninguno aparece marcado de entrada: si no elegis, se ve "Sin fecha elegida:
     queda en Hoy como anotada al pasar". Tocar el elegido lo saca.
-  - Avisar (solo en Recordatorio): 9:00 · 12:00 · 15:00 · 18:00. Lo elegido manda sobre la hora escrita.
+  - Avisar (solo en Recordatorio): 9:00 · 12:00 · 15:00 · 18:00. Se marca solo la que elegís a mano, y esa manda sobre la hora escrita (la escrita se ve en "Entendi:").
   En Notas la hoja arranca en Nota. Desde Buscar, el "+" lleva a Hoy.
 
 USO DIARIO

@@ -32,7 +32,7 @@ await type(p,'llamar al banco');
 ok(await seen(p,'#inboxLine')&&JSON.stringify(await pressed(p))===JSON.stringify(['Tarea']),'no date chosen: "Sin fecha elegida: queda en Hoy como anotada al pasar", Hoy not marked');
 // Recordatorio: se adivina con "recordame" o una hora
 await type(p,'recordame mañana llamar a Juan');
-ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio','Mañana','9:00'])&&await seen(p,'#timeRow')&&!(await seen(p,'#inboxLine')),'"recordame mañana": Recordatorio, Mañana, Avisar 9:00 '+JSON.stringify(await pressed(p)));
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio','Mañana'])&&await seen(p,'#timeRow')&&!(await seen(p,'#inboxLine')),'"recordame mañana": Recordatorio, Mañana, Avisar shown (no hour chosen by hand) '+JSON.stringify(await pressed(p)));
 ok(/Entendí:\s*Mañana\s*09:00/.test((await p.innerText('#detected')).replace(/\n/g,' ')),'"Entendí: Mañana 09:00" ('+(await p.innerText('#detected')).replace(/\n/g,' ')+')');
 // Tarea a mano: sin hora ni aviso
 await p.locator('#typeRow .chip',{hasText:'Tarea'}).tap();await sleep(150);
@@ -55,7 +55,11 @@ ok(t2&&t2.time==='15:00'&&t2.due&&t2.due>day(0),'saved with the reminder at 15:0
 // Una hora escrita y otra elegida: manda la elegida
 await p.locator('#fabAdd').tap();await sleep(200);
 await type(p,'reunión a las 15');
-ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio','15:00']),'a time in the text: Recordatorio with that time');
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio'])&&/15:00/.test(await p.innerText('#detected')),'a time in the text: Recordatorio, the time under "Entendí:", no Avisar chip lit');
+// Avisar marca solo lo elegido: tocar 15:00 lo marca, tocarlo otra vez lo saca
+const c15=p.locator('#timeChips .chip',{hasText:'15:00'});
+await c15.tap();await sleep(100);const on1=JSON.stringify(await pressed(p));await c15.tap();await sleep(100);const on2=JSON.stringify(await pressed(p));
+ok(on1===JSON.stringify(['Recordatorio','15:00'])&&on2===JSON.stringify(['Recordatorio']),'an Avisar chip lights only when chosen, and a second tap clears it '+on1+' '+on2);
 await p.locator('#timeChips .chip',{hasText:'12:00'}).tap();await sleep(100);
 await p.keyboard.press('Enter');await sleep(300);
 ok(byT(gh,'Reunión')&&byT(gh,'Reunión').time==='12:00','the Avisar chip wins over the written time');
@@ -107,6 +111,31 @@ await p.locator('#fabMic').tap();
 ok(await L.until(()=>seen(p,'#addForm')),'the mic opens the sheet');
 ok(await L.until(()=>byT(gh,'Comprar yerba'),{timeout:8000})&&byT(gh,'Comprar yerba').due===day(1),'dictated and saved by itself');
 ok(await L.until(async()=>!(await seen(p,'#addForm'))),'and the sheet closes');
+// Dictado y cerrar antes de que se guarde solo: queda como borrador
+await p.evaluate(()=>{window.__say=['comprar pan']});
+await p.locator('#fabMic').tap();
+ok(await L.until(()=>p.evaluate(()=>$('addBtn').dataset.mode==='saving')),'dictated: counting down to save');
+await p.locator('#capScrim').tap({position:{x:150,y:100}});await sleep(3800);
+ok(!byT(gh,'Comprar pan')&&await p.inputValue('#title')==='comprar pan','tapping outside during the countdown: not saved, kept as a draft');
+// Con la hoja abierta los avisos van arriba (no tapan los chips)
+await p.locator('#fabMic').tap();await sleep(300);
+const tb=await box(p,'#toast'),ty=await box(p,'#typeRow');
+ok(tb&&ty&&tb.b<=ty.y,'with the sheet open, a toast sits above the chips '+JSON.stringify({tb,ty}));
+await p.fill('#title','');await p.dispatchEvent('#title','input');
+// Varias líneas pegadas en la hoja: se agregan, la hoja se cierra y no queda nada elegido
+await p.locator('#typeRow .chip',{hasText:'Recordatorio'}).tap();await p.locator('#timeChips .chip',{hasText:'18:00'}).tap();await sleep(100);
+await p.evaluate(()=>{const dt=new DataTransfer();dt.setData('text/plain','lavar el auto\npagar la luz');$('title').dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}))});await sleep(300);
+ok(await seen(p,'#bulkOv'),'several lines: the load-one-per-line dialog');await p.locator('#bulkOk').tap();await sleep(400);
+ok(byT(gh,'Lavar el auto')&&byT(gh,'Pagar la luz')&&!(await seen(p,'#addForm')),'several lines: added, and the sheet closes');
+await p.locator('#fabAdd').tap();await sleep(200);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Tarea']),'and nothing chosen is left over '+JSON.stringify(await pressed(p)));
+// Compartido con la app abierta: no hereda lo elegido para el borrador de antes
+await type(p,'algo');await p.locator('#typeRow .chip',{hasText:'Tarea'}).tap();await p.locator('#chips .chip',{hasText:'Lunes'}).tap();await sleep(100);
+await p.locator('#capScrim').tap({position:{x:150,y:100}});await sleep(250);
+await p.evaluate(()=>handleLaunch(new URLSearchParams('share=1&text='+encodeURIComponent('Llamar a Juan mañana a las 15')),false));await sleep(300);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio','Mañana']),'shared text: its own type and date, nothing carried over '+JSON.stringify(await pressed(p)));
+await p.locator('#addBtn').tap();await sleep(400);
+ok(byT(gh,'Llamar a Juan')&&byT(gh,'Llamar a Juan').time==='15:00'&&byT(gh,'Llamar a Juan').due===day(1),'saved for tomorrow at 15:00 '+JSON.stringify(byT(gh,'Llamar a Juan')));
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 gh=makeGH(items());
@@ -120,7 +149,7 @@ gh=makeGH(items());
 ok(await seen(p,'#addForm')&&await seen(p,'#typeRow')&&await seen(p,'#dueRow')&&!(await seen(p,'#capScrim')),'computer: the field above the list, chips in view');
 ok(JSON.stringify(await pressed(p))===JSON.stringify(['Tarea']),'computer: no date marked at first');
 await p.click('#title');await type(p,'reunión a las 15');
-ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio','15:00']),'computer: a time → Recordatorio 15:00');
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Recordatorio'])&&/15:00/.test(await p.innerText('#detected')),'computer: a time → Recordatorio, 15:00 understood');
 await p.keyboard.press('Enter');await sleep(300);
 ok(byT(gh,'Reunión')&&byT(gh,'Reunión').time==='15:00'&&await p.evaluate(()=>document.activeElement.id)==='title','saved; the cursor stays in the field for the next one');
 // Recordatorio sin hora para hoy, ya pasadas las 9: sin hora (la regla de "recordame")
