@@ -130,9 +130,9 @@ ok(await p.evaluate(()=>window.__stored.length===1&&window.__stored[0].id==='yo/
 await ctx.close();
 // ===== Contraste y toques =====
 ({ctx,p}=await dev(b,makeGH([T('a','Uno',{due:day(-2),requester:'Laura'}),T('b','Dos',{due:day(-1)})]),{viewport:{width:384,height:832},isMobile:true,hasTouch:true}));
-await p.locator('#title').tap();await sleep(150);   // en el celular, las fechas aparecen al tocar el campo
+await L.alta(p);   // en el celular, las fechas están en la hoja del "+"
 const sz=await p.evaluate(()=>({chip:document.querySelector('#chips .chip').getBoundingClientRect().height,gbtn:document.querySelector('.ghead .gbtn').getBoundingClientRect().height,faint:getComputedStyle(document.documentElement).getPropertyValue('--faint').trim()}));
 ok(sz.chip>=40&&sz.gbtn>=44&&sz.faint==='#647083','touch targets ≥40/44 px and darker gray: '+JSON.stringify(sz));
-ok(await p.evaluate(()=>document.querySelector('#chips .chip.on').getAttribute('aria-pressed'))==='true','aria-pressed on chips');
+ok(await p.evaluate(()=>document.querySelector('#addForm .chip.on').getAttribute('aria-pressed'))==='true','aria-pressed on chips');
 await ctx.close();
 await b.close();console.log('fails',L.fails)})();

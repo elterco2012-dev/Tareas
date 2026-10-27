@@ -73,12 +73,12 @@ ok(!(await row(p,'Para hoy A').innerText()).includes('Hoy'),'no due label in Hoy
 const fri=await p.evaluate(()=>{const d=new Date();return (5-d.getDay()+7)%7||7});
 await p.fill('#title','Llamar proveedor viernes !alta @Juan_Pérez');
 let det=await p.innerText('#detected');
-ok(det.includes('Detectado')&&det.includes('Prioridad alta')&&det.includes('@Juan Pérez'),'detected chips: '+det.replace(/\n/g,' '));
+ok(det.includes('Entendí')&&det.includes('Prioridad alta')&&det.includes('@Juan Pérez'),'detected chips: '+det.replace(/\n/g,' '));
 await p.press('#title','Enter');await sleep(400);
 let t=byTitle('Llamar proveedor');
 ok(t&&t.priority==='Alta'&&t.requester==='Juan Pérez'&&t.due===dayStr(fri),'NLP add saved: '+JSON.stringify(t&&{d:t.due,p:t.priority,r:t.requester}));
 ok((await p.innerText('#toast')).includes('Agregada para'),'toast after add: '+await p.innerText('#toastMsg'));
-ok(await p.evaluate(()=>document.querySelector('#chips .chip.on').dataset.v)==='0','chip back to Hoy');
+ok(await p.evaluate(()=>!document.querySelector('#chips .chip.on')),'date chips back to none marked');
 for(const [txt,exp,title] of [['Pagar luz mañana',dayStr(1),'Pagar luz'],['Turno médico pasado mañana',dayStr(2),'Turno médico'],['Revisar stock en 3 días',dayStr(3),'Revisar stock'],['Reunión del lunes con Laura',null,'Reunión con Laura'],['Enviar informe para el 1/8',null,'Enviar informe'],['Comprar algo hoy !baja',dayStr(0),'Comprar algo']]){
   await p.fill('#title',txt);await p.press('#title','Enter');await sleep(250);
   const x=byTitle(title)||(await p.evaluate(tt=>JSON.parse(localStorage.getItem('tareasPendientes')||'[]').map(o=>o.task).find(k=>k&&k.title===tt),title));
@@ -225,7 +225,7 @@ const target='Pagar luz';
 await A.p.locator('.task',{hasText:target}).locator('.body').click();await A.p.fill('#eNotes','nota desde compu');
 await B.p.locator('.task',{hasText:target}).locator('.body').click();await B.p.click('#ePrios .prio[data-p="Alta"]');await B.p.fill('#eRequester','Jefa');
 await Promise.all([A.p.click('#editForm button[type=submit]'),B.p.click('#editForm button[type=submit]')]);
-await Promise.all([A.p.fill('#title','Nueva desde compu').then(()=>A.p.press('#title','Enter')),B.p.fill('#title','Nueva desde celu').then(()=>B.p.press('#title','Enter'))]);
+await Promise.all([A.p.fill('#title','Nueva desde compu').then(()=>A.p.press('#title','Enter')),H.alta(B.p).then(()=>B.p.fill('#title','Nueva desde celu')).then(()=>B.p.press('#title','Enter'))]);
 await sleep(3000);gh.delay=0;
 const ta=byTitle('Pagar luz');
 ok(ta.notes==='nota desde compu'&&ta.priority==='Alta'&&ta.requester==='Jefa','concurrent edits of different fields both kept: '+JSON.stringify({n:ta.notes,p:ta.priority,r:ta.requester}));

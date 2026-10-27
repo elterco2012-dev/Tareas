@@ -94,11 +94,20 @@ async function launchPersistent(userDataDir,opts={}){
 const NAV={hoy:'#navHoy',tareas:'#navTareas',notas:'#navNotas',buscar:'#searchBtn'};
 async function go(p,screen){
   if(await p.evaluate(()=>document.body.dataset.screen)===screen)return;
-  // Con el teclado del celular abierto la barra no se ve: primero se cierra
+  // Con la hoja para anotar abierta, se cierra tocando afuera; con el teclado abierto la barra no se ve: se cierra
+  if(await p.evaluate(()=>document.body.classList.contains('capopen'))){await p.click('#capScrim',{position:{x:10,y:10}});await sleep(150)}
   if(!await p.isVisible(NAV[screen])){await p.evaluate(()=>document.activeElement&&document.activeElement.blur&&document.activeElement.blur());await sleep(80)}
   await p.click(NAV[screen]);
   // Si no llegó, que se note (si no, lo que se controla después pasaría en otra pantalla)
   if(!await until(()=>p.evaluate(s=>document.body.dataset.screen===s,screen)))throw new Error('go(): no se pudo ir a '+screen);
+  await sleep(50);
+}
+// Abrir el alta: en el celular es una hoja que se abre con el "+" (se toca, como lo haría una persona); en la compu el
+// campo ya está arriba de la lista. Si el "+" no se ve (algo abierto encima), se abre igual por código.
+async function alta(p){
+  if(!await p.evaluate(()=>document.body.classList.contains('capsheet')&&!document.body.classList.contains('capopen')))return;
+  if(await p.isVisible('#fabAdd'))await p.click('#fabAdd');else await p.evaluate(()=>openCap(true));
+  if(!await until(()=>p.evaluate(()=>document.body.classList.contains('capopen'))))throw new Error('alta(): no se abrió la hoja');
   await sleep(50);
 }
 // Capturas y otros archivos de salida: tests/artifacts/<prueba>/ (ignorado por git)
@@ -111,5 +120,5 @@ function out(name){
 const repoFile=rel=>path.join(ROOT,rel);
 const readRepo=rel=>fs.readFileSync(repoFile(rel),'utf8');
 
-module.exports={chromium,devices,launch,launchPersistent,appUrl,appOrigin,serve,ok,sleep,until,go,
+module.exports={chromium,devices,launch,launchPersistent,appUrl,appOrigin,serve,ok,sleep,until,go,alta,
   now,date,ago,day,TZ,REF,REF_ISO,DAY,ROOT,out,repoFile,readRepo,get fails(){return fails}};

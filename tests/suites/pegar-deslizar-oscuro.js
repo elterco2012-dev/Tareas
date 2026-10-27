@@ -105,8 +105,9 @@ for(const vp of [{viewport:{width:375,height:800},isMobile:true,hasTouch:true},{
   await L.go(p,'notas');bad=await contrast(p);ok(bad.length===0,'dark contrast Notas '+vp.width+': '+JSON.stringify(bad));
   await L.go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());bad=await contrast(p);ok(bad.length===0,'dark contrast Buscar '+vp.width+': '+JSON.stringify(bad));
   await L.go(p,'tareas'); // la lista completa (con Terminadas) está en Tareas
-  await p.click('#doneToggle');await p.fill('#title','reunión mañana !alta @Juan');await sleep(100);
+  await p.click('#doneToggle');await L.alta(p);await p.fill('#title','reunión mañana !alta @Juan');await sleep(100);
   bad=await contrast(p);ok(bad.length===0,'dark contrast main '+vp.width+': '+JSON.stringify(bad));
+  if(await p.evaluate(()=>document.body.classList.contains('capopen'))){await p.click('#capScrim',{position:{x:10,y:10}});await sleep(150)}   // (celular: se cierra la hoja)
   await p.locator('.task .more').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast menu: '+JSON.stringify(bad));await p.keyboard.press('Escape');
   await p.locator('.task .body').first().click();bad=await contrast(p);ok(bad.length===0,'dark contrast edit: '+JSON.stringify(bad));await p.click('#editX');
   await p.click('#statusBtn');bad=await contrast(p);ok(bad.length===0,'dark contrast sync: '+JSON.stringify(bad));await p.click('#syncX');

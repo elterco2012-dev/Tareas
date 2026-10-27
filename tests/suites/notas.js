@@ -44,8 +44,10 @@ await p.reload();await sleep(700);
 ok(await p.inputValue('#title')==='Talle de zapatillas 42'&&await p.getAttribute('#noteChip','aria-pressed')==='true','draft keeps the Nota button');
 await p.press('#title','Enter');await sleep(300);
 ok(byT(gh,'Talle de zapatillas 42')?.kind==='nota'&&await p.getAttribute('#noteChip','aria-pressed')==='false','saved as a note; the button goes back off');
-await p.click('#noteChip');await p.click('#chips .chip[data-v="1"]');await p.fill('#title','Comprar pilas');await p.press('#title','Enter');await sleep(300);
-ok(byT(gh,'Comprar pilas')?.kind!=='nota'&&byT(gh,'Comprar pilas')?.due===day(1),'a date chip turns Nota off: a normal task for tomorrow');
+// (con Nota elegida no se ven las fechas: Tarea la apaga, y ahí se elige el día)
+await p.click('#noteChip');ok(!(await p.isVisible('#dueRow')),'Nota chosen: no dates');
+await p.click('#typeRow .chip[data-k="tarea"]');await p.click('#chips .chip[data-v="1"]');await p.fill('#title','Comprar pilas');await p.press('#title','Enter');await sleep(300);
+ok(byT(gh,'Comprar pilas')?.kind!=='nota'&&byT(gh,'Comprar pilas')?.due===day(1),'Tarea turns Nota off; with a date chip: a normal task for tomorrow');
 await p.fill('#title','nota:');await p.press('#title','Enter');await sleep(200);
 ok(!gh.items.some(x=>x.title===''||x.title==='nota:'),'"nota:" alone adds nothing');
 await p.fill('#title','');
@@ -136,14 +138,14 @@ await ctx.close();
 gh.items=items();gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 await p.addInitScript(FAKE);await p.reload();await sleep(700);
-await p.locator('#title').tap();
+await L.alta(p);await p.locator('#title').tap();
 await p.evaluate(()=>{const dt=new DataTransfer();dt.setData('text','nota: horario del dentista\nComprar yerba mañana\nidea: viaje a Mendoza');document.getElementById('title').dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}))});await sleep(200);
 ok(/notas/.test(await p.textContent('#bulkHint')),'pasted list: the hint explains "nota:"/"idea:"');
 await p.locator('#bulkOk').tap();await sleep(400);
 ok(byT(gh,'horario del dentista')?.kind==='nota'&&byT(gh,'viaje a Mendoza')?.kind==='nota'&&byT(gh,'Comprar yerba')?.kind!=='nota'&&byT(gh,'Comprar yerba')?.due===day(1),'pasted list: "nota:"/"idea:" lines become notes, the rest tasks');
 ok(/1 tarea y 2 notas agregadas/.test(await p.innerText('#toastMsg')),'toast counts both: '+await p.innerText('#toastMsg'));
 // Dictar con el botón Nota
-await p.locator('#title').tap();await p.locator('#noteChip').tap();await p.evaluate(()=>document.activeElement.blur());
+await L.alta(p);await p.locator('#title').tap();await p.locator('#noteChip').tap();await p.evaluate(()=>document.activeElement.blur());
 await p.evaluate(()=>{window.__say=['la llave está en la maceta']});
 await p.locator('#addBtn').tap();
 ok(await L.until(()=>p.evaluate(()=>!!autoSave)),'dictation with Nota on: countdown');
@@ -218,18 +220,18 @@ ok(await p.textContent('#bulkH')==='¿Cargar 1 tarea y 2 notas?','bulk heading c
 await p.click('#bulkCancel');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
-// Celular: el botón Nota se apaga solo cuando el alta vuelve al reposo (no queda prendido sin verse)
+// Celular: el botón Nota se apaga solo al cerrar la hoja sin nada escrito (no queda prendido sin verse)
 gh.items=items();gh.sha++;
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
 await p.addInitScript(FAKE);await p.reload();await sleep(700);
-await p.locator('#title').tap();await p.locator('#noteChip').tap();await p.evaluate(()=>document.activeElement.blur());await sleep(400);
-ok(await p.getAttribute('#noteChip','aria-pressed')==='true','Nota on while the dates are shown');
-await p.evaluate(()=>readyToCapture());await sleep(200);
-ok(await p.getAttribute('#noteChip','aria-pressed')==='false'&&await p.evaluate(()=>!asNote),'back at rest: Nota goes off');
+await L.alta(p);await p.locator('#noteChip').tap();await sleep(200);
+ok(await p.getAttribute('#noteChip','aria-pressed')==='true','Nota on in the sheet');
+await p.goBack();await sleep(300);
+ok(await p.evaluate(()=>!asNote),'sheet closed with nothing written: Nota goes off');
 await p.evaluate(()=>{window.__say=['llamar al médico mañana a las 10']});
 await p.locator('#fabMic').tap();
 ok(await L.until(()=>p.evaluate(()=>!!autoSave)),'dictation countdown');
-await p.locator('#fabMic').tap();
+await p.locator('#addBtn').tap();   // (con la hoja abierta, la cuenta está en su botón)
 ok(await L.until(()=>{const x=gh.items.find(t=>/médico/.test(t.title));return x&&x.kind!=='nota'&&x.due===day(1)&&x.time==='10:00'}),'so the next dictation is a task with its date and time');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();

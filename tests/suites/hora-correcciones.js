@@ -49,7 +49,7 @@ await ctx.close();
 // 4) Sugerencias debajo de los chips (celular)
 gh=makeGH([T('s1','Mandar mail a proveedor',{done:true,completedAt:L.date().toISOString(),requester:'Lautaro'})]);
 ({ctx,p}=await device(b,gh,{viewport:{width:375,height:740},isMobile:true,hasTouch:true,deviceScaleFactor:2}));
-await p.locator('#title').tap();await p.keyboard.type('Mandar');await sleep(100);
+await L.alta(p);await p.locator('#title').tap();await p.keyboard.type('Mandar');await sleep(100);
 const pos=await p.evaluate(()=>({chips:document.querySelector('#addForm .chiprow').getBoundingClientRect().bottom,sug:document.getElementById('suggest').getBoundingClientRect().top,vis:!document.getElementById('suggest').classList.contains('hidden')}));
 ok(pos.vis&&pos.sug>=pos.chips,'dropdown below the chips '+JSON.stringify(pos));
 await p.screenshot({path:L.out('suggest2-375.png')});

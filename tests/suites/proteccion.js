@@ -26,7 +26,7 @@ const b=await L.launch();
   ok(/desapareció/.test(await p.textContent('#guardMsg')),'aviso: "'+await p.textContent('#guardMsg')+'"');
   ok(await p.innerText('#statusShort')==='Revisar','el estado dice Revisar');
   // Lo que se agrega mientras tanto no se sube (no se crea un tareas.json con solo eso)
-  await p.fill('#title','Nueva mientras tanto');await p.press('#title','Enter');await sleep(1500);
+  await L.alta(p);await p.fill('#title','Nueva mientras tanto');await p.press('#title','Enter');await sleep(1500);
   ok(gh.missing&&!(gh.puts>0),'mientras tanto no se sube nada');
   ok(await p.evaluate(()=>getOutbox().length)===1,'lo nuevo queda guardado para subir');
   // Sigue frenado al volver a abrir la app (aunque no haya señal: queda guardado)
@@ -50,7 +50,7 @@ const b=await L.launch();
   const gh=makeGH([]);gh.missing=true;
   const {ctx,p}=await device(b,gh,PHONE);await sleep(1000);
   ok(!(await state(p)).kind,'repositorio nuevo sin tareas.json: sin aviso');
-  await p.fill('#title','La primera');await p.press('#title','Enter');await sleep(1500);
+  await L.alta(p);await p.fill('#title','La primera');await p.press('#title','Enter');await sleep(1500);
   ok(!gh.missing&&gh.items.length===1,'la primera tarea crea tareas.json');
   await ctx.close();
 }
@@ -171,7 +171,7 @@ const b=await L.launch();
   ok(r.z&&r.z.repeat===null&&r.z.requester==='42','repetición desconocida y quién la pidió como texto');
   ok(/datos inválidos: se arreglaron/.test(await p.textContent('#toastMsg')),'aviso: "'+await p.textContent('#toastMsg')+'"');
   // En la próxima subida se guarda arreglado
-  await p.fill('#title','Otra');await p.press('#title','Enter');await sleep(1500);
+  await L.alta(p);await p.fill('#title','Otra');await p.press('#title','Enter');await sleep(1500);
   ok(gh.items.length===7&&gh.items.every(t=>t&&typeof t==='object'&&t.id!=null),'al subir, tareas.json queda arreglado');
   await ctx.close();
 }
@@ -201,7 +201,7 @@ const b=await L.launch();
   const {ctx,p}=await device(b,gh,DESK);await sleep(1000);
   const s=await state(p);
   ok(s.errorKind==='hard'&&/es público/.test(s.lastError),'repositorio público: frena con aviso ('+s.lastError+')');
-  await p.fill('#title','No tiene que subir');await p.press('#title','Enter');await sleep(1500);
+  await L.alta(p);await p.fill('#title','No tiene que subir');await p.press('#title','Enter');await sleep(1500);
   ok(!(gh.puts>0),'no se sube nada a un repositorio público');
   gh.repo={private:true};
   await p.evaluate(()=>{repoOk=null;return sync()});await sleep(1500);
@@ -342,7 +342,7 @@ const b=await L.launch();
   const {ctx,p}=await device(b,gh,DESK,null,()=>{window.__csp=[];document.addEventListener('securitypolicyviolation',e=>window.__csp.push(e.violatedDirective+' '+e.blockedURI))});
   await sleep(800);
   ok(await p.evaluate(()=>!!document.querySelector('meta[http-equiv="Content-Security-Policy"]')),'la página tiene CSP');
-  await p.fill('#title','Llamar mañana a las 10');await p.press('#title','Enter');await sleep(800);
+  await L.alta(p);await p.fill('#title','Llamar mañana a las 10');await p.press('#title','Enter');await sleep(800);
   await p.locator('.task .ttext',{hasText:'Alfa'}).click();await sleep(300);await p.keyboard.press('Escape');await sleep(300);
   await p.click('#statusBtn');await sleep(300);
   const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#exportBtn')]);await dl.path();

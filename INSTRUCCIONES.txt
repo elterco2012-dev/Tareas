@@ -41,8 +41,8 @@ VERSION Y ACTUALIZACIONES
   Con una tarea abierta no se actualiza: guardala o cerrala y toca Actualizar.
 
 ABRIR MAS RAPIDO (celular)
-- La app instalada abre en Hoy, sin el teclado. Para anotar, toca el "+" de abajo a la derecha (o el campo de
-  arriba); para dictar, el microfono que esta al lado del "+". Si volves a ella despues de un rato, vuelve a Hoy,
+- La app instalada abre en Hoy, sin el teclado. Para anotar, toca el "+" de abajo a la derecha: se abre la hoja para
+  anotar (ver "La hoja para anotar"); para dictar, el microfono que esta al lado del "+". Si volves a ella despues de un rato, vuelve a Hoy,
   arriba (salvo que tengas algo abierto). Si preferis que abra con el teclado listo para escribir (como antes):
   Sincronizacion > Este dispositivo > "Abrir la app con el teclado listo para anotar".
 - Atajos: mantene apretado el icono de Tareas y vas a ver "Nueva tarea" (abre para escribir) y "Dictar tarea"
@@ -73,6 +73,20 @@ PANTALLAS
   Informe y Revision de la semana.
 
 USO DIARIO
+LA HOJA PARA ANOTAR
+- En el celular se anota en una hoja que sube desde abajo: el "+" la abre con el teclado listo; el microfono la abre y
+  ya escucha. Agregar (o Enter) la cierra; Atras, tocar afuera o Esc tambien, y lo escrito queda para la proxima vez.
+  En la compu, el campo sigue arriba de la lista, con lo mismo debajo, siempre a la vista.
+- Debajo del campo: "Entendi:" (antes "Detectado") con lo que se va a cargar, y despues:
+  - el tipo: Tarea · Recordatorio · Nota. Se elige solo: una hora o "recordame..." es un Recordatorio; "nota:" o
+    "idea:" al principio, una Nota. Un toque lo cambia: Tarea saca la hora (sin aviso); Recordatorio sin hora queda a
+    las 9:00 (o sin hora si es para hoy y ya paso el aviso de las 9).
+  - Para: Hoy · Mañana · Lunes · Sin fecha. Ninguno aparece marcado de entrada: si no elegis, se ve "Sin fecha elegida:
+    queda en Hoy como anotada al pasar". Tocar el elegido lo saca.
+  - Avisar (solo en Recordatorio): 9:00 · 12:00 · 15:00 · 18:00. Se marca solo la que elegís a mano, y esa manda sobre la hora escrita (la escrita se ve en "Entendi:").
+  En Notas la hoja arranca en Nota. Desde Buscar, el "+" lleva a Hoy.
+
+USO DIARIO
 - Abris la app, escribis la tarea y Enter: queda para hoy. Con los botones Mañana, Lunes o Sin fecha elegis otro dia.
 - Despues de agregar aparece "Agregada para mañana · 15:00 · @Laura" con "Deshacer" (la borra) y "Cambiar" (abre
   Editar, por si se entendio mal algo).
@@ -82,26 +96,26 @@ USO DIARIO
   Fechas: hoy, mañana, pasado mañana, lunes a domingo (el proximo), 15/10, el 15, en 3 dias. Prioridad: !alta (o !), !media, !baja.
   Una fecha como 15/10 que ya paso hace menos de un mes queda en este año (vencida, o el dia en que la hiciste);
   si paso hace mas, es la del año que viene.
-  Debajo del campo aparece "Detectado: ..." con lo que se va a cargar.
+  Debajo del campo aparece "Entendi: ..." con lo que se va a cargar.
 - Hora: "a las 3", "a las 15:30", "a las 9 y media", "a las 10 y 30", "a las 9 menos cuarto" o "a las 8 de la noche"
   se guarda aparte (no queda en el texto). Tambien sin "a las": "el viernes 9:30", "mañana 10:30", "el martes 15 hs",
   "viernes 9am", "el viernes 9 y media", "el martes 8 de la mañana", "al mediodia" o "a la medianoche".
   Si decis un dia de la semana con un numero que no coincide ("el sabado 10" cuando el 10 no cae sabado), manda el
-  dia de la semana y el numero queda en el texto, a la vista, para que lo corrijas. Mira siempre el "Detectado".
+  dia de la semana y el numero queda en el texto, a la vista, para que lo corrijas. Mira siempre el "Entendi".
   El dia del mes solo tambien sirve: "pagar el alquiler el 15", "el dia 20" (este mes, o el que viene si ya paso). La tarea muestra la hora ("15:00"), en Hoy se ordenan por hora
   y la hora se pone en rojo cuando ya paso. Se cambia o se quita en Editar.
   Tambien entiende "en 30 minutos", "en media hora", "dentro de 2 horas", "en una hora y media" o "en 1 hora y 20"
   (hoy, a esa hora).
   El aviso de Telegram llega entre 10 y 40 minutos antes: para algo de menos de una hora, usa "Al calendario".
-  Si los avisos por Telegram ya andan, el "Detectado" (y el aviso de abajo al agregarla) dice cuando llega:
+  Si los avisos por Telegram ya andan, el "Entendi" (y el aviso de abajo al agregarla) dice cuando llega:
   "Aviso 14:50", "Aviso 10:20 (tarde)" si la corrida de antes ya paso, o "Sin aviso (muy tarde)" para las de
   despues de las 23:29 (las corridas son de 6:20 a 22:50).
   "Recordame ..." sin hora queda a las 9:00 (para que llegue el aviso); se cambia diciendo la hora o en Editar.
-  Si es para hoy y ya paso el aviso de las 9, queda sin hora y el "Detectado" dice "Sin hora: sin aviso".
+  Si es para hoy y ya paso el aviso de las 9, queda sin hora y el "Entendi" dice "Sin hora: sin aviso".
 - Sugerencias: mientras escribis aparecen tareas que ya cargaste antes, con quien las pidio. Toca una (o elegila
   con las flechas y Enter) y queda en el campo para agregarla. Despues de "@" sugiere las personas que ya usaste.
 - Por voz: con el campo vacio, el boton de Agregar es un microfono. Tocalo y deci la tarea. Cuando terminas de
-  hablar se muestra lo que entendio ("Detectado: ...") y se guarda solo a los 3 segundos: podes guardar el celular.
+  hablar se muestra lo que entendio ("Entendi: ...") y se guarda solo a los 3 segundos: podes guardar el celular.
   Si queres corregir algo, toca el texto antes de que se guarde (o "Cambiar" en el aviso despues). Si solo dijiste
   "recordame mañana" sin la tarea, no se guarda: toca el microfono y segui hablando. Ejemplos:
     "recordame mañana a las 3 llamar al banco, es urgente, me lo pidio Laura"
@@ -163,7 +177,7 @@ USO DIARIO
   hace rato. Una tecla o un toque por decision y pasa sola a la siguiente; al final dice cuantas ordenaste y con
   cuantas quedo Hoy. N la pasa a notas (si no era para hacer). "Deshacer" (o Z) vuelve a la tarjeta de antes.
 - Notas: lo que no es para hacer (un dato, una idea, el talle de alguien). Escribi "nota:" o "idea:" al principio
-  ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca el boton "Nota" (al lado de las fechas) y
+  ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca "Nota" (en el tipo, debajo del campo) y
   escribi o dicta. El texto se guarda tal cual: no busca fechas, horas ni "@persona". No guardes claves ni
   contraseñas: cada cambio queda en el historial de GitHub y en la copia diaria. Van en la pantalla Notas (estando
   ahi, el boton "Nota" ya aparece elegido); al buscar aparecen las que coinciden. No tienen casilla: toca una para
@@ -191,12 +205,12 @@ USO DIARIO
   un par de minutos: Chrome instala la actualizacion con la app cerrada. Si no aparece, repetilo una vez (no antes
   de un minuto). No hace falta desinstalarla.
 - Deslizar (celular): una tarea hacia la derecha la termina; hacia la izquierda la pasa a mañana.
-- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, encima de la barra, donde llega el pulgar. El microfono escucha,
-  muestra la cuenta regresiva y, si lo tocas, guarda ya; el "Deshacer" aparece justo arriba. Si en el campo habia
-  algo escrito, no lo mezcla con lo que dictas: te avisa que primero lo agregues o lo borres. Se ocultan mientras
-  escribis o con algo abierto (la barra de abajo tambien se oculta mientras escribis). En Buscar, el "+" lleva a Hoy.
-  Arriba de Hoy, la fecha y el resumen van en una linea, y los botones de fecha (Hoy, Mañana...) y "+ Detalle" aparecen al
-  tocar el campo (se vuelven a guardar al abrir la app o cuando bajas por la lista).
+- Celular a una mano: el "+" y el microfono quedan abajo a la derecha, encima de la barra, donde llega el pulgar. El
+  microfono abre la hoja y escucha; la cuenta regresiva queda en el boton de la hoja y, si lo tocas, guarda ya; al
+  guardarse la hoja se cierra y el "Deshacer" aparece justo arriba del microfono. Si habia algo escrito, no lo mezcla
+  con lo que dictas: abre la hoja con lo escrito y te avisa que primero lo agregues o lo borres. Se ocultan con la
+  hoja o algo abierto (la barra de abajo tambien se oculta mientras escribis con el teclado abierto).
+  Arriba de Hoy, la fecha y el resumen van en una linea.
 - Grupos plegables: toca el titulo de un grupo (Vencidas, Hoy, Mañana, Esperando...) para plegarlo; queda solo el
   titulo con cuantas hay. Tocalo de nuevo para volver a verlas. Cada dispositivo recuerda los que plegaste. Al buscar
   o filtrar por persona se ven todos. Si llega algo del otro dispositivo a un grupo plegado, el titulo dice

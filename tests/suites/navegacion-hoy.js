@@ -73,13 +73,13 @@ ok(await noDup(p),'no task has two rows');
 // El + y el micrófono, encima de la barra; la barra se va mientras escribís
 const fab=await box(p,'#fabAdd');
 ok(fab&&fab.b<=nav.y-8&&fab.b>=nav.y-30,'the + sits just above the bar '+JSON.stringify(fab));
-await p.locator('#title').tap();await sleep(200);
+await L.alta(p);await sleep(200);
 ok(!!(await box(p,'#nav')),'field chosen, keyboard not open: the bar stays (it is the way to change screens)');
 await p.setViewportSize({width:384,height:500});await sleep(300);   // como cuando sube el teclado
 ok(!(await box(p,'#nav'))&&await p.evaluate(()=>document.body.classList.contains('typing')),'keyboard open: the bar steps aside');
 await p.setViewportSize({width:384,height:832});await sleep(300);
 ok(!!(await box(p,'#nav')),'keyboard closed with the field still chosen: the bar is back');
-await p.evaluate(()=>document.activeElement.blur());await sleep(200);
+await p.goBack();await sleep(300);   // cierra la hoja
 // El estado: con todo bien, solo el punto (el texto sigue para el lector de pantalla)
 const st=await p.evaluate(()=>({q:document.getElementById('statusBtn').classList.contains('quiet'),w:Math.round(document.getElementById('statusBtn').getBoundingClientRect().width),t:document.getElementById('statusShort').textContent,a:document.getElementById('statusBtn').getAttribute('aria-label')}));
 ok(st.q&&st.w===40&&st.t==='Al día'&&st.a==='Sincronización: Al día','phone status: only the dot when up to date '+JSON.stringify(st));
@@ -106,7 +106,7 @@ gh=makeGH(items());
 await go(p,'notas');
 ok(await row(p,'Clave del wifi').isVisible()&&!(await row(p,'Pagar el seguro').count()),'Notas: only the notes');
 ok(await p.getAttribute('#title','placeholder')==='Escribí una nota…','Notas: the field proposes a note');
-await p.locator('#title').tap();await p.keyboard.type('Talle de Juan 42');await p.keyboard.press('Enter');await sleep(400);
+await L.alta(p);await p.keyboard.type('Talle de Juan 42');await p.keyboard.press('Enter');await sleep(400);
 ok(gh.items.some(x=>x.title==='Talle de Juan 42'&&x.kind==='nota'),'added on Notas: saved as a note');
 await p.evaluate(()=>document.activeElement.blur());await sleep(150);
 ok(await p.getAttribute('#noteChip','aria-pressed')==='true','after adding, the next one is a note too');
@@ -134,7 +134,7 @@ gh=makeGH(items());
 await go(p,'buscar');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
 await p.locator('#fabAdd').tap();await sleep(300);
 ok(await screen(p)==='hoy'&&await p.evaluate(()=>document.activeElement.id)==='title','+ on Buscar: goes to Hoy, ready to write');
-await p.evaluate(()=>document.activeElement.blur());await sleep(150);
+await p.goBack();await sleep(300);   // cierra la hoja
 await row(p,'Pagar el seguro').locator('.person').tap();await sleep(300);
 ok(await screen(p)==='tareas'&&await p.isVisible('#filterBar')&&await p.textContent('#filterName')==='Laura','@Laura on Hoy: Tareas, only hers');
 await p.goBack();await sleep(400);
@@ -190,10 +190,10 @@ await noErr(p,'block');if(onApp(p))await taps(p,'block');await ctx.close();
 // Lo escrito en Notas que se lleva a otra pantalla sigue como nota; borrado, el campo vuelve a ser para tareas
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
-await go(p,'notas');await p.locator('#title').tap();await p.keyboard.type('Comprar');await p.evaluate(()=>document.activeElement.blur());await sleep(150);
+await go(p,'notas');await L.alta(p);await p.keyboard.type('Comprar');await p.goBack();await sleep(300);   // la hoja se cierra con lo escrito
 await go(p,'hoy');
 ok(await p.inputValue('#title')==='Comprar'&&await p.getAttribute('#noteChip','aria-pressed')==='true','Notas → Hoy with text: still a note draft');
-await p.locator('#title').tap();await p.fill('#title','');await p.keyboard.type('Llamar a Pedro');await sleep(150);
+await L.alta(p);await p.fill('#title','');await p.keyboard.type('Llamar a Pedro');await sleep(150);
 ok(await p.getAttribute('#noteChip','aria-pressed')==='false','cleared on Hoy: the field is for tasks again');
 await p.keyboard.press('Enter');await sleep(300);
 ok(gh.items.some(x=>x.title==='Llamar a Pedro'&&!x.kind),'saved as a task');

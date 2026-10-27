@@ -141,7 +141,7 @@ ok(p.errs.length===0,'suggest: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 // Celular: tocar una sugerencia no cierra el teclado
 ({ctx,p}=await device(b,gh,{viewport:{width:375,height:740},isMobile:true,hasTouch:true}));
-await p.locator('#title').tap();await p.keyboard.type('rev');await sleep(100);
+await L.alta(p);await p.locator('#title').tap();await p.keyboard.type('rev');await sleep(100);
 await p.screenshot({path:L.out('suggest-375.png')});
 await p.locator('#suggest button').first().tap();await sleep(100);
 ok(await p.inputValue('#title')==='Revisar stock @Lautaro '&&await p.evaluate(()=>document.activeElement.id)==='title','mobile tap picks and keeps focus');
