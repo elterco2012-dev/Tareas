@@ -18,7 +18,8 @@ const state=p=>p.evaluate(()=>{
   const heads=[...document.querySelectorAll('#hoyList .ghead')].map(h=>h.textContent.replace(/\s+/g,' ').trim());
   const next=[...document.querySelectorAll('#hoyList .grp')].find(g=>/Lo que sigue/.test(g.querySelector('.ghead').textContent));
   const links=document.getElementById('hoyLinks'),lr=links.getBoundingClientRect();
-  return {empty:!e.classList.contains('hidden')&&e.innerText,clear:e.classList.contains('clear'),check:/✓/.test(before),
+  const hoyIds=[...document.querySelectorAll('#hoyList .task')].map(r=>r.dataset.id),dup=hoyIds.filter((x,i)=>hoyIds.indexOf(x)!==i);
+  return {dup,empty:!e.classList.contains('hidden')&&e.innerText,clear:e.classList.contains('clear'),check:/✓/.test(before),
     heads,next:next?[...next.querySelectorAll('.task')].map(r=>r.querySelector('.ttext').textContent+' · '+((r.querySelector('.meta')||{}).innerText||'').replace(/\s+/g,' ').trim()):null,
     seeAll:next?(next.querySelector('.ghead .gbtn')||{}).textContent||null:null,foldable:!!(next&&next.querySelector('.gfold')),
     entries:links.classList.contains('entries'),shown:lr.height>0,
@@ -36,9 +37,10 @@ let s=await state(p);
 ok(s.empty==='Nada para hoy.'&&s.clear&&s.check,'phone, nothing for today: "Nada para hoy." is a row with a ✓ '+JSON.stringify({empty:s.empty,clear:s.clear,check:s.check}));
 ok(JSON.stringify(s.next)===JSON.stringify(['Pagar la luz · Mañana','Turno dentista · Sáb 17/10']),'phone: "Lo que sigue" shows the next 2 with a date, in order, with their date '+JSON.stringify(s.next));
 ok(s.seeAll==='Ver todas ›'&&!s.foldable,'phone: "Lo que sigue" has "Ver todas ›" and does not fold '+JSON.stringify({seeAll:s.seeAll,foldable:s.foldable}));
-ok(!s.heads.some(h=>/Próximos avisos|Próximas con hora/.test(h)),'phone: no "Próximos avisos" while Hoy is empty (no row twice) '+JSON.stringify(s.heads));
-ok(s.entries&&JSON.stringify(s.rows.map(r=>r.t))===JSON.stringify(['Sin fecha 2 ›','Esperando respuesta 1 ›']),'phone: the access card: Sin fecha and Esperando respuesta, with their number '+JSON.stringify(s.rows));
-ok(s.rows.every(r=>r.h>=48)&&s.rows[0].label==='Sin fecha, 2 tareas'&&s.rows[1].label==='Esperando respuesta, 1 tarea','phone: access rows are 48 px tall, with a full label '+JSON.stringify(s.rows));
+// (el turno del sábado, con hora, ya está en Lo que sigue: Próximos avisos no lo repite y, sin otra con hora, no aparece)
+ok(!s.heads.some(h=>/Próximos avisos|Próximas con hora/.test(h))&&s.dup.length===0,'phone: no row twice on Hoy '+JSON.stringify({heads:s.heads,dup:s.dup}));
+ok(s.entries&&JSON.stringify(s.rows.map(r=>r.t))===JSON.stringify(['Mañana 1 ›','Sin fecha 2 ›','Esperando respuesta 1 ›']),'phone: the access card: Mañana (as the old "Mañana · N" link), Sin fecha and Esperando respuesta, with their number '+JSON.stringify(s.rows));
+ok(s.rows.every(r=>r.h>=48)&&s.rows[0].label==='Mañana, 1 tarea'&&s.rows[1].label==='Sin fecha, 2 tareas'&&s.rows[2].label==='Esperando respuesta, 1 tarea','phone: access rows are 48 px tall, with a full label '+JSON.stringify(s.rows));
 // "Ver todas ›": Tareas, con el grupo de la primera abierto y a la vista (aunque estuviera plegado)
 await p.evaluate(()=>localStorage.setItem('gruposPlegados',JSON.stringify(['tomorrow'])));
 await p.locator('#hoyList .ghead .gbtn').tap();await sleep(400);
@@ -64,6 +66,22 @@ ok(gh.items.find(x=>x.id==='m1').done&&JSON.stringify(s.next)===JSON.stringify([
 ok(p.errs.length===0,'phone: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 
+// ===== Nada para hoy, pero con avisos esta semana: no se pierden (antes estaban en Próximos avisos) =====
+// Cuatro para mañana sin hora ocupan Lo que sigue; las dos con hora de la semana siguen a la vista en Próximos avisos
+// (sin repetir) y la tarjeta dice cuántas hay para mañana, como antes "Mañana · 4 ›"
+gh=makeGH([T('t1','Pagar la luz',{due:day(1)}),T('t2','Comprar pan',{due:day(1)}),T('t3','Llamar a mamá',{due:day(1)}),T('t4','Regar',{due:day(1)}),
+  T('a1','Turno dentista',{due:day(3),time:'10:30'}),T('a2','Reunión consorcio',{due:day(6),time:'19:00'}),T('s1','Ordenar el placard')]);
+({ctx,p}=await device(b,gh,PHONE,APP,SEEN));
+s=await state(p);
+const avisos=await p.evaluate(()=>{const g=[...document.querySelectorAll('#hoyList .grp')].find(g=>/Próximos avisos|Próximas con hora/.test(g.querySelector('.ghead').textContent));return g?[...g.querySelectorAll('.ttext')].map(x=>x.textContent):null});
+ok(JSON.stringify(s.next)===JSON.stringify(['Pagar la luz · Mañana','Comprar pan · Mañana']),'timed tasks this week: Lo que sigue has the next two (for tomorrow) '+JSON.stringify(s.next));
+ok(JSON.stringify(avisos)===JSON.stringify(['Turno dentista','Reunión consorcio'])&&s.dup.length===0,'timed tasks this week: still on Hoy, in Próximos avisos, without repeating '+JSON.stringify({avisos,dup:s.dup}));
+ok(JSON.stringify(s.rows.map(r=>r.t))===JSON.stringify(['Mañana 4 ›','Sin fecha 1 ›']),'timed tasks this week: the card says how many for tomorrow '+JSON.stringify(s.rows));
+await p.locator('#hoyLinks button',{hasText:'Mañana'}).tap();await sleep(400);
+g=await openGroup(p,'tomorrow');
+ok(await screen(p)==='tareas'&&g&&g.open==='true','"Mañana" goes to Tareas with Mañana open '+JSON.stringify(g));
+await ctx.close();
+
 // ===== Celular al 130 %: todo se ve, por encima del "+" y del micrófono =====
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,PHONE,APP,INIT_BIG));
@@ -75,12 +93,12 @@ ok(p.errs.length===0,'130%: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 
 // ===== Compu =====
-for(const [name,w,entries] of [['wide computer (1280)',1280,[]],['narrow computer (1000)',1000,['Sin fecha 2 ›','Esperando respuesta 1 ›']]]){
+for(const [name,w,entries] of [['wide computer (1280)',1280,['Mañana 1 ›']],['narrow computer (1000)',1000,['Mañana 1 ›','Sin fecha 2 ›','Esperando respuesta 1 ›']]]){
   gh=makeGH(items());
   ({ctx,p}=await device(b,gh,{viewport:{width:w,height:800}},APP,SEEN));
   s=await state(p);
   ok(s.next&&s.next.length===3&&/^Mandar remitos/.test(s.next[2]),name+': "Lo que sigue" shows the next 3 '+JSON.stringify(s.next));
-  ok(JSON.stringify(s.rows.map(r=>r.t))===JSON.stringify(entries)&&s.shown===entries.length>0,name+(entries.length?': the access card has Sin fecha and Esperando respuesta':': no access card (Sin fecha and Esperando are in the right column)')+' '+JSON.stringify({rows:s.rows,shown:s.shown}));
+  ok(JSON.stringify(s.rows.map(r=>r.t))===JSON.stringify(entries)&&s.shown,name+(w===1280?': the access card has only Mañana (Sin fecha and Esperando are in the right column)':': the access card has Mañana, Sin fecha and Esperando respuesta')+' '+JSON.stringify({rows:s.rows,shown:s.shown}));
   ok(p.errs.length===0,name+': no page errors '+JSON.stringify(p.errs));
   await ctx.close();
 }

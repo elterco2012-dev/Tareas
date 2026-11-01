@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-VXGLI69BeZDsiL2/MzRi5uQLw1cy+CyFmcC/g5/wjjc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-G+Kj7doei2HjGnIXMQLuuEA4MQRUVQFRifMyZx5w61E='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -1019,11 +1019,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.1-5"></script>
+<script src="sync-core.js?v=2026.11.1-6"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.1-5';
+const APP_VERSION='2026.11.1-6';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -2618,27 +2618,31 @@ function renderHoy(pending,unsynced,folded,noFold){
   main=over.length+recl.length+today.length;
   const wait=tasks.filter(t=>!t.done&&t.waiting).length;
   const links=$('hoyLinks');links.replaceChildren();links.classList.toggle('entries',!main);
+  // Próximos avisos: hasta 3 con hora, de mañana a 7 días (sin las que ya están en Lo que sigue)
+  const tom=pending.filter(t=>groupOf(t)==='tomorrow').length;
+  const avisos=shown=>sec('hoy-avisos',avisosOn()?'Próximos avisos':'Próximas con hora','',pending.filter(t=>t.due&&taskTime(t)&&daysUntil(t.due)>=1&&daysUntil(t.due)<=7&&!shown.has(t.id)).slice(0,3),'week');
   if(main){
-    const soon=pending.filter(t=>t.due&&taskTime(t)&&daysUntil(t.due)>=1&&daysUntil(t.due)<=7).slice(0,3);
-    sec('hoy-avisos',avisosOn()?'Próximos avisos':'Próximas con hora','',soon,'week');
+    avisos(new Set());
     // Mañana · N y, sin la columna de la derecha, Esperando respuesta · N
     const link=(txt,fn)=>{const b=el('button','linkbtn',txt);b.type='button';b.onclick=fn;links.append(b)};
-    const tom=pending.filter(t=>groupOf(t)==='tomorrow').length;
     if(tom)link('Mañana · '+tom+' ›',()=>showGroup('tomorrow'));
     if(wait&&!WIDE.matches)link('Esperando respuesta · '+wait+' ›',()=>showGroup('waiting'));
   }else{
-    // Lo que sigue: las próximas con fecha (2 en el celular, 3 en la compu), en lugar de Próximos avisos (para no
-    // repetir filas). "Ver todas ›" lleva al grupo de la primera, como antes "Mañana · N ›".
+    // Lo que sigue: las próximas con fecha (2 en el celular, 3 en la compu). "Ver todas ›" lleva al grupo de la primera.
     const next=pending.filter(t=>t.due&&daysUntil(t.due)>=1).slice(0,BOTTOMNAV.matches?2:3);
     let all=null;
     if(next.length){all=el('button','gbtn','Ver todas ›');all.type='button';all.onclick=()=>showGroup(groupOf(next[0]))}
     sec('hoy-next','Lo que sigue','',next,'week',all,true);
-    // Los accesos (sin la columna de la derecha: ahí Sin fecha y Esperando ya están a la vista), solo los que tienen algo
+    // Debajo, Próximos avisos sigue (sin repetir filas): las de hora de esta semana no dejan de estar a la vista
+    avisos(new Set(next.map(t=>t.id)));
+    // Los accesos: Mañana (con cuántas hay, como antes "Mañana · N ›") y, sin la columna de la derecha (ahí ya están a
+    // la vista), Sin fecha y Esperando respuesta. Solo los que tienen algo.
     const entry=(txt,n,fn)=>{
       const b=el('button','entry');b.type='button';b.setAttribute('aria-label',txt+', '+n+(n===1?' tarea':' tareas'));
       b.append(el('span',null,txt),el('span','n',String(n)),el('span','go','›'));b.onclick=fn;links.append(b);
     };
     const none=pending.filter(t=>!t.due).length;
+    if(tom)entry('Mañana',tom,()=>showGroup('tomorrow'));
     if(!WIDE.matches){if(none)entry('Sin fecha',none,()=>showGroup('none'));if(wait)entry('Esperando respuesta',wait,()=>showGroup('waiting'))}
   }
   return {ids,main};
