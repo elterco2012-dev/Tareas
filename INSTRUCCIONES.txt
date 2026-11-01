@@ -201,8 +201,9 @@ USO DIARIO
   de fuente; en el celular, Chrome los agranda con Configuracion > Accesibilidad > Tamaño del texto. Probada al
   130 %: no se corta nada ni hay que deslizar a los costados.
 - Filas compactas: el renglon de abajo del titulo (la fecha, "pateada", quien la pidio, la repeticion, "sin subir")
-  va en un solo renglon mientras entra. Si no entra, primero se acorta el nombre de la persona con "…" (tocandolo
-  igual filtra por esa persona) y lo que siga baja a otro renglon: nunca se esconde nada. En el celular la fecha va
+  va en un solo renglon mientras entra. Si no entra, primero se acorta el nombre de la persona con "…" (siempre se
+  leen unas 6 letras; si ni eso entra, baja entero; tocandolo igual filtra por esa persona) y lo que siga baja a otro
+  renglon: nunca se esconde nada. En el celular la fecha va
   corta ("Vie 23/10", sin "· en 9 dias": el grupo ya dice "Mas adelante") y la fila tiene menos aire arriba y abajo.
 - Anotadas al pasar: lo que cargas sin elegir fecha (sin escribir una fecha ni tocar los botones de fecha), en el
   celular o en la compu, queda para hoy con un punto azul adelante. Cualquier decision lo saca. La primera vez,
