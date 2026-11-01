@@ -143,6 +143,35 @@ gh=makeGH(items());
 ok(await seen(p,'#addForm')&&await p.evaluate(()=>document.activeElement.id)==='title','?nueva=1: the sheet open, ready to write');
 await ctx.close();
 
+// ===== Celular: Idea =====
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,PHONE,APP,INIT));
+await p.locator('#fabAdd').tap();await sleep(200);
+ok(JSON.stringify(await p.evaluate(()=>[...document.querySelectorAll('#typeRow .chip')].map(b=>b.textContent)))===JSON.stringify(['Tarea','Recordatorio','Nota','Idea']),'type: Tarea · Recordatorio · Nota · Idea');
+await p.locator('#ideaChip').tap();await sleep(100);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Idea'])&&!(await seen(p,'#dueRow'))&&await p.getAttribute('#title','placeholder')==='Escribí una idea…','Idea: no Para, "Escribí una idea…"');
+await type(p,'app para el consorcio');
+ok(/Idea: sin fecha ni aviso/.test(await p.innerText('#detected')),'"Entendí: Idea: sin fecha ni aviso"');
+await p.locator('#addBtn').tap();await sleep(400);
+let idea=byT(gh,'app para el consorcio');
+ok(idea&&idea.kind==='nota'&&idea.idea===true&&/Idea guardada/.test(await p.innerText('#toastMsg')),'saved as a note marked as an idea ("Idea guardada")');
+await p.locator('#fabAdd').tap();await sleep(200);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Tarea']),'next time: back to Tarea');
+// "idea:" la elige sola; Nota la pasa a nota común; Idea otra vez la vuelve a tarea
+await type(p,'idea: huerta en el balcón');
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Idea']),'"idea:" picks Idea');
+await p.locator('#noteChip').tap();await sleep(100);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Nota']),'Nota turns it into a plain note');
+await p.locator('#ideaChip').tap();await sleep(100);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Idea']),'Idea again');
+await p.locator('#ideaChip').tap();await sleep(100);
+ok(JSON.stringify(await pressed(p))===JSON.stringify(['Tarea']),'tapping Idea again: a task');
+await p.locator('#noteChip').tap();await sleep(100);await p.locator('#addBtn').tap();await sleep(400);
+const plain=gh.items.find(x=>/huerta en el balcón/.test(x.title));
+ok(plain&&plain.kind==='nota'&&!plain.idea,'saved as a plain note (no idea mark) '+JSON.stringify(plain&&{t:plain.title,i:plain.idea}));
+ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+await ctx.close();
+
 // ===== Compu: el campo arriba, con los mismos chips =====
 gh=makeGH(items());
 ({ctx,p}=await device(b,gh,{viewport:{width:1000,height:800}},APP,SEEN));
