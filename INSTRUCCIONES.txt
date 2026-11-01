@@ -86,7 +86,8 @@ LA HOJA PARA ANOTAR
     al principio, una Nota; "idea:", una Idea (una nota marcada como idea). Un toque lo cambia: Tarea saca la hora (sin aviso); Recordatorio sin hora queda a
     las 9:00 (o sin hora si es para hoy y ya paso el aviso de las 9).
   - Para: Hoy · Mañana · Lunes · Sin fecha. Ninguno aparece marcado de entrada: si no elegis, se ve "Sin fecha elegida:
-    queda en Hoy como anotada al pasar". Tocar el elegido lo saca.
+    queda en Hoy como anotada al pasar". Tocar el elegido lo saca. Los domingos, Mañana y Lunes son el mismo dia:
+    queda marcado solo el que tocaste.
   - Avisar (solo en Recordatorio): 9:00 · 12:00 · 15:00 · 18:00. Se marca solo la que elegís a mano, y esa manda sobre la hora escrita (la escrita se ve en "Entendi:").
   En Notas la hoja arranca en Nota. Desde Buscar, el "+" lleva a Hoy.
 
@@ -104,7 +105,9 @@ EL DETALLE DE UNA TAREA O NOTA
   punto azul hasta que elijas); Aviso (9:00, 12:00, 15:00, 18:00 u otra hora, "Sin hora", y con hora "Posponer..." y
   "Al calendario"); Prioridad; Pedida por (con las personas de siempre, cada una con su inicial); Se repite y Detalle.
   Abajo: "⋯" (el mismo menu de la fila), "Esperando..." (o "Ya respondio") y "Terminar". Lo que hayas cambiado se
-  guarda antes.
+  guarda antes. Los domingos, en Para cuando queda marcado uno solo de Mañana y Lunes (son el mismo dia).
+- Si el detalle no entra en la pantalla, se desliza hacia abajo y el titulo se ve entero (tambien si giras el celular
+  o cambias el ancho de la ventana). Un Detalle largo se desliza dentro de su cuadro.
 - Nota: el titulo, el texto, "Es una idea", "Fijar arriba" y el color (sin color o uno de 5 tonos), y cuando se edito
   por ultima vez. Las fijadas van primero en Notas; la nota toma su color (una idea sin color, amarillo) y dice
   "Fijada" o "Idea". Abajo, "Convertir en tarea": queda para hoy, anotada al pasar, con "Deshacer". Lo que anotes con
