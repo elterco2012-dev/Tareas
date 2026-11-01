@@ -239,5 +239,31 @@ for(const [name,opts,phone] of [['wide computer (panel)',{viewport:{width:1280,h
   ok(p.errs.length===0,name+': no page errors '+JSON.stringify(p.errs));
   await ctx.close();
 }
-await b.close();console.log('fails',L.fails);
+// Si cambia el ancho con el detalle abierto (el celular se gira, la ventana de la compu se agranda y el detalle pasa
+// a ser el panel), el título se vuelve a acomodar
+const whole=p=>p.evaluate(()=>{const e=$('eTitle');return {sh:e.scrollHeight,ch:e.clientHeight}});
+for(const [name,opts,to,phone] of [['phone turned upright',{viewport:{width:832,height:384},isMobile:true,hasTouch:true},{width:384,height:832},true],['computer window made wider (window → panel)',{viewport:{width:1000,height:800}},{width:1280,height:800}]]){
+  gh=makeGH([T('t',LONG,{due:day(0)})]);
+  ({ctx,p}=await device(b,gh,opts,APP,SEEN));
+  await go(p,'tareas');const r0=row(p,'Revisar con el contador').locator('.body');if(phone)await r0.tap();else await r0.click();await sleep(400);
+  await p.setViewportSize(to);await sleep(500);
+  const r=await whole(p);
+  ok(r.sh<=r.ch+1,name+': the title is still shown whole '+JSON.stringify(r));
+  ok(p.errs.length===0,name+': no page errors '+JSON.stringify(p.errs));
+  await ctx.close();
+}
+await b.close();
+// Con barras de desplazamiento como las de Windows (ocupan lugar): al crecer el título aparece la barra del detalle, el
+// título queda más angosto y necesita un renglón más, que no se tiene que cortar. (Las pruebas las ocultan; acá no.)
+{const b2=await L.launch({ignoreDefaultArgs:['--hide-scrollbars']});
+ for(const [name,opts] of [['wide computer (panel)',{viewport:{width:1280,height:800}}],['narrow computer (window)',{viewport:{width:1000,height:704}}]]){
+   gh=makeGH([T('t','Revisar con el contador la liquidación de ganancias del año pasado y mandarle',{due:day(0)})]);
+   ({ctx,p}=await device(b2,gh,opts,APP,SEEN));
+   await go(p,'tareas');await row(p,'Revisar con el contador').locator('.body').click();await sleep(400);
+   const r=await p.evaluate(()=>{const e=$('eTitle'),d=document.querySelector('#editForm .dbody');return {sh:e.scrollHeight,ch:e.clientHeight,scrollbar:d.offsetWidth-d.clientWidth}});
+   ok(r.sh<=r.ch+1,name+', with Windows-like scrollbars: the title is shown whole when the detail opens '+JSON.stringify(r));
+   await ctx.close();
+ }
+ await b2.close()}
+console.log('fails',L.fails);
 })().catch(e=>{console.error(e);process.exit(1)});

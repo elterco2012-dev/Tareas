@@ -106,7 +106,8 @@ EL DETALLE DE UNA TAREA O NOTA
   "Al calendario"); Prioridad; Pedida por (con las personas de siempre, cada una con su inicial); Se repite y Detalle.
   Abajo: "⋯" (el mismo menu de la fila), "Esperando..." (o "Ya respondio") y "Terminar". Lo que hayas cambiado se
   guarda antes. Los domingos, en Para cuando queda marcado uno solo de Mañana y Lunes (son el mismo dia).
-- Si el detalle no entra en la pantalla, se desliza hacia abajo: el titulo y el texto se ven siempre enteros.
+- Si el detalle no entra en la pantalla, se desliza hacia abajo y el titulo se ve entero (tambien si giras el celular
+  o cambias el ancho de la ventana). Un Detalle largo se desliza dentro de su cuadro.
 - Nota: el titulo, el texto, "Es una idea", "Fijar arriba" y el color (sin color o uno de 5 tonos), y cuando se edito
   por ultima vez. Las fijadas van primero en Notas; la nota toma su color (una idea sin color, amarillo) y dice
   "Fijada" o "Idea". Abajo, "Convertir en tarea": queda para hoy, anotada al pasar, con "Deshacer". Lo que anotes con
