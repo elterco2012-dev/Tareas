@@ -111,5 +111,4 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
 - Mejoras chicas posibles, no pedidas todavía:
   - algunos botones de menos de 44 px (por ejemplo, el nombre de la persona en la fila);
   - que el Tab quede atrapado dentro de las ventanas abiertas.
-- Pendiente del lado del dueño: probar el workflow de respaldo, activar la verificación en dos pasos y la regla de
-  protección de la rama.
+- Pendiente del lado del dueño: activar la verificación en dos pasos y la regla de protección de la rama.
