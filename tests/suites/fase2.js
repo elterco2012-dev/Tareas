@@ -30,7 +30,8 @@ ok(meta[0]==='Alta'&&/^Venció/.test(meta[1])&&/pateada 3×/.test(meta[2])&&meta
 ok(await row(p,'Pagar el seguro').locator('.meta .person .pini').count()===1,'the person has the circle with her initial next to the name');
 const tp=await row(p,'Turno dentista').evaluate(r=>{const t=r.querySelector('.tcol button.time'),m=r.querySelector('.more'),c=r.querySelector('.chk');return {t:t&&t.textContent,al:t&&t.getAttribute('aria-label'),right:t&&t.getBoundingClientRect().left>r.querySelector('.body').getBoundingClientRect().left,mw:Math.round(m.getBoundingClientRect().width),mh:Math.round(m.getBoundingClientRect().height),ma:m.getAttribute('aria-label'),cw:Math.round(c.getBoundingClientRect().width),ca:c.getAttribute('aria-label'),inMeta:!!r.querySelector('.meta .time')}});
 ok(tp.t==='23:30'&&tp.al==='Aviso a las 23:30. Posponer'&&tp.right&&!tp.inMeta,'the time is a pill on the right, not in the detail line '+JSON.stringify(tp));
-ok(tp.mw===42&&tp.mh>=52&&tp.ma==='Más acciones: Turno dentista'&&tp.cw===52&&tp.ca==='Terminar: Turno dentista','⋯ 42×52 and the circle 52, with labels');
+// (filas compactas: en el celular el ⋯ mide 44×48, el mínimo de 44 para el dedo, y el círculo 48; ver filas-compactas.js)
+ok(tp.mw===44&&tp.mh>=48&&tp.ma==='Más acciones: Turno dentista'&&tp.cw===48&&tp.ca==='Terminar: Turno dentista','⋯ 44×48 and the circle 48, with labels '+JSON.stringify({mw:tp.mw,mh:tp.mh,cw:tp.cw}));
 ok(await row(p,'Turno dentista').locator('.notes').count()===1,'optional detail line');
 await row(p,'Pagar el seguro').locator('.meta .person').tap();await sleep(300);
 ok(await p.isVisible('#filterBar')&&(await p.innerText('#filterName'))==='Laura','tapping the person filters by her');
@@ -49,7 +50,8 @@ ok(JSON.stringify(heads)===JSON.stringify(['Fijadas1','Otras2']),'sections Fijad
 const g=await p.evaluate(()=>{const c=[...document.querySelectorAll('#notesSec .ngrid')].pop().children;return {cols:getComputedStyle(c[0].parentNode).gridTemplateColumns.split(' ').length,sameRow:Math.abs(c[0].getBoundingClientRect().top-c[1].getBoundingClientRect().top)<2}});
 ok(g.cols===2&&g.sameRow,'phone: 2 columns '+JSON.stringify(g));
 const tw=await row(p,'Código del portón').evaluate(r=>({t:Math.round(r.querySelector('.body').getBoundingClientRect().width),c:Math.round(r.getBoundingClientRect().width),ico:getComputedStyle(r.querySelector('.nico')).display}));
-ok(tw.ico==='none'&&tw.t>=tw.c-60,'cards: no icon, the text uses the card width '+JSON.stringify(tw));
+// (el texto ocupa la tarjeta menos el ⋯, que mide 44 px: hasta 64 px de diferencia)
+ok(tw.ico==='none'&&tw.t>=tw.c-64,'cards: no icon, the text uses the card width '+JSON.stringify(tw));
 ok(await row(p,'Código del portón').evaluate(r=>r.classList.contains('nc-verde'))&&await row(p,'Viaje a Mendoza').evaluate(r=>r.classList.contains('nc-amarillo')),'cards take their color (an idea without color, amber)');
 const chips=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .nfilter .chip')].map(b=>b.textContent||b.getAttribute('aria-label')));
 ok(JSON.stringify(chips)===JSON.stringify(['Todas','Ideas','Verde']),'filters: Todas, Ideas and the colors in use '+JSON.stringify(chips));

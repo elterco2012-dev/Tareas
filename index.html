@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-ZPKofb7HnhALu/GYs1zxk3WgwpAnXRw9Ti5yvT5ANY8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-O4bi8pQ3ZOrgLb53apuPKu3DMQOoONqKlWNdVAMm9DM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -211,15 +211,32 @@ body.scr-ajustes .cols,body.scr-ajustes #addForm,body.scr-ajustes #searchHome,bo
 .body{flex:1;min-width:0;padding:14px 0 13px;cursor:pointer}
 .ttext{font-size:1rem;line-height:1.38;color:var(--text);overflow-wrap:anywhere;text-wrap:pretty}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:3px;font-size:0.8438rem;color:var(--muted)}
-.meta .person{display:inline-flex;align-items:center}
-.meta .person .pini{margin-right:5px}
+/* La persona se acorta con "…" antes de bajar sola a otro renglón: ocupa lo que queda, desde unas 6 letras (4em, más
+   los 23 px del círculo) hasta su nombre entero. Si ni eso entra, baja entera. Lo que siga sin entrar también baja:
+   nada se esconde (ni la repetición ni "sin subir") */
+.meta .person{display:inline-flex;align-items:center;flex:1 1 calc(23px + 4em);min-width:0;max-width:max-content}
+.meta .person .pini{flex:none;margin-right:5px}
+.meta .person .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* En el celular la persona tiene 8 px de relleno para el dedo (ver "Zonas de toque"): se suman al mínimo. Y si hay dos
+   en el mismo renglón, la segunda no pisa la zona de la primera */
+@media (pointer:coarse){
+  .meta .person{flex-basis:calc(39px + 4em)}
+  .meta .person+.person{margin-left:-2px}
+}
 .meta .over{color:var(--red);font-weight:600}
 .alta{font-size:0.7188rem;font-weight:800;color:var(--red);background:var(--red-soft);border-radius:6px;padding:2px 6px}
 .unsynced{color:var(--amber)}
 .notes{margin-top:3px;font-size:0.8438rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.more{flex:none;width:42px;height:52px;background:none;border:0;border-radius:10px;color:var(--muted);font-size:1.25rem;line-height:1;padding:0}
+.more{flex:none;width:44px;height:52px;background:none;border:0;border-radius:10px;color:var(--muted);font-size:1.25rem;line-height:1;padding:0}
 /* La hora, a la derecha del texto: una píldora (en rojo si ya pasó) que abre Posponer */
 .tcol{flex:none;display:flex;align-items:flex-start;padding-top:13px;margin-left:6px}
+/* En el celular, la fila con menos aire arriba y abajo (la letra y los toques no se achican: el círculo 48 px, el ⋯ 44×48) */
+@media (max-width:520px){
+  .task .body{padding:12px 0 11px}
+  .task>.chk{width:48px;height:48px}
+  .task>.more{height:48px}
+  .task .tcol{padding-top:11px}
+}
 .tcol .time{font-size:0.8438rem;font-weight:650;font-variant-numeric:tabular-nums;color:var(--text2);background:var(--sf2);border:0;border-radius:999px;padding:3px 10px;line-height:1.3}
 .tcol .time.past{color:var(--red);background:var(--red-soft)}
 .tcol button.time{cursor:pointer;position:relative}
@@ -456,7 +473,7 @@ label.fcol .inp,.modal .big{font-size:0.9375rem;font-weight:400;padding:10px 12p
 .ngrid .body{padding:12px 0 14px}
 .ngrid .ttext{font-size:0.9375rem;font-weight:600}
 .ngrid .notes{white-space:normal;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;line-height:1.4}
-.ngrid .more{width:40px;height:44px}
+.ngrid .more{width:44px;height:44px}
 .nfilter{margin-bottom:14px}
 .nfilter .ncolchip{width:40px;padding:0;border:1px solid var(--border)}
 .nfilter .ncolchip.nc-amarillo{background:var(--n1)}.nfilter .ncolchip.nc-verde{background:var(--n2)}.nfilter .ncolchip.nc-azul{background:var(--n3)}.nfilter .ncolchip.nc-rosa{background:var(--n4)}.nfilter .ncolchip.nc-lila{background:var(--n5)}
@@ -989,11 +1006,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.1-2"></script>
+<script src="sync-core.js?v=2026.11.1-4"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.1-2';
+const APP_VERSION='2026.11.1-4';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1013,6 +1030,8 @@ const REPEAT_LABEL={daily:'diaria',weekdays:'lun a vie',weekly:'semanal',monthly
 const PRIO={Alta:0,Media:1,Baja:2};
 const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
 const WIDE=window.matchMedia?matchMedia('(min-width:1200px)'):{matches:false,addEventListener(){}};
+// El ancho de un celular (en las filas, la fecha va corta)
+const NARROW=window.matchMedia?matchMedia('(max-width:520px)'):{matches:false,addEventListener(){}};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
 const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Alt ↑ ↓','mover'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','ordenar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
@@ -2674,7 +2693,7 @@ $('hintOk').onclick=()=>{const v=hintsSeen();hintKeys.forEach(k=>{v[k]=1});store
 // ini: con el círculo de su inicial (color fijo por persona) junto al nombre
 function personBtn(name,label,ini){
   const b=el('button','person');b.type='button';b.title='Ver solo las de '+name;
-  if(ini)b.append(personIni(name));b.append(label);
+  if(ini)b.append(personIni(name));b.append(el('span','nm',label));   // (el nombre aparte: se acorta con "…" si no entra)
   b.onclick=e=>{e.stopPropagation();setPersonFilter(name)};
   return b;
 }
@@ -2720,7 +2739,7 @@ function taskRow(t,gid,unsynced){
     if(t.lastNudge){const nd=Math.max(0,-daysUntil(ymd(new Date(t.lastNudge))));meta.append(el('span',late?'late':null,'reclamado '+ago(nd)+(t.nudges>1?' ('+t.nudges+'º)':'')))}
     if(t.followUp)meta.append(el('span',late?'late':null,'mirar '+(daysUntil(t.followUp)<=0?'hoy':shortDue(t.followUp).toLowerCase())));
     if(t.waitingOn)who.push(t.waitingOn);
-  }else if(showDue)meta.append(el('span',gid==='over'?'over':null,dueLabel(t.due)));
+  }else if(showDue)meta.append(el('span',gid==='over'?'over':null,NARROW.matches?shortDue(t.due):dueLabel(t.due)));   // (en el celular, sin " · en 9 días": el grupo ya dice Más adelante)
   if((t.postponed||0)>=3)meta.append(el('span','late','pateada '+t.postponed+'×'));
   if(t.requester&&!who.some(n=>samePerson(n,t.requester)))who.push(t.requester);
   who.forEach(n=>meta.append(personBtn(n,n,true)));
@@ -4575,7 +4594,7 @@ const firstSync=sync();        // y después trae lo último de GitHub
 // otra app (Chrome arma la dirección con title/text/url) o la revisión de la semana del Telegram (?revisar=1)
 const LAUNCH_URL=location.href,params=new URLSearchParams(location.search);
 if(LAUNCH_KEYS.some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
-WIDE.addEventListener('change',renderList);
+WIDE.addEventListener('change',renderList);NARROW.addEventListener('change',renderList);
 // La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
