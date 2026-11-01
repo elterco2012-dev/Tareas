@@ -203,5 +203,41 @@ await p.keyboard.press('Escape');await sleep(200);
 ok(!(await seen(p,'#editOv')),'Esc closes it');
 ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
 await ctx.close();
+
+// ===== Un solo chip de fecha elegido: el domingo, Mañana y Lunes son el mismo día =====
+// En el detalle y en el alta: va el que tocaste; si no tocaste ninguno, el primero que coincide (Hoy, Mañana, Lunes)
+gh=makeGH([T('m','Tarea para mañana',{due:'2026-10-19'})]);
+({ctx,p}=await device(b,gh,{viewport:{width:1300,height:900},clock:new Date('2026-10-18T13:00:00Z')},APP,SEEN));   // domingo 18/10, 10:00
+await go(p,'tareas');await row(p,'Tarea para mañana').locator('.body').click();await sleep(300);
+const one=async(s,want,m)=>{const v=await pressed(p,s);ok(JSON.stringify(v)===JSON.stringify(want),m+' '+JSON.stringify(v))};
+await one('#eChips .chip',['Mañana'],'sunday, detail of a task for tomorrow (Monday): only Mañana is chosen, not Lunes too');
+await p.click('#eChips .chip[data-v="week"]');await sleep(100);
+await one('#eChips .chip',['Lunes'],'sunday, detail: tapping Lunes leaves only Lunes chosen');
+await p.click('#eChips .chip[data-v="1"]');await sleep(100);
+await one('#eChips .chip',['Mañana'],'sunday, detail: tapping Mañana again leaves only Mañana chosen');
+await p.keyboard.press('Escape');await sleep(200);
+ok(item(gh,'m').due==='2026-10-19','sunday, detail: the date stays the same (Monday 19/10)');
+await go(p,'hoy');await p.fill('#title','Mandar remitos');await p.dispatchEvent('#title','input');
+await p.click('#chips .chip[data-v="week"]');await sleep(100);
+await one('#chips .chip',['Lunes'],'sunday, new task: tapping Lunes leaves only Lunes chosen');
+await p.click('#chips .chip[data-v="1"]');await sleep(100);
+await one('#chips .chip',['Mañana'],'sunday, new task: tapping Mañana leaves only Mañana chosen');
+await p.click('#chips .chip[data-v="1"]');await sleep(100);
+await p.fill('#title','Mandar remitos mañana');await p.dispatchEvent('#title','input');await sleep(100);
+await one('#chips .chip',['Mañana'],'sunday, new task: "mañana" in the text chooses only Mañana');
+ok(p.errs.length===0,'sunday: no page errors '+JSON.stringify(p.errs));
+await ctx.close();
+
+// ===== El título largo se ve entero al abrir el detalle (no se achica cuando el detalle no entra en la pantalla) =====
+const LONG='Revisar con el contador la liquidación de ganancias del año pasado y mandarle los comprobantes que faltan del banco';
+for(const [name,opts,phone] of [['wide computer (panel)',{viewport:{width:1280,height:800}}],['narrow computer (window)',{viewport:{width:1000,height:600}}],['phone (sheet)',PHONE,true]]){
+  gh=makeGH([T('t',LONG,{due:day(0),requester:'Laura',notes:'Comprobantes: luz, gas, banco\nhttps://empresa.atlassian.net/browse/WB-3438\nVer también el mail del contador'})]);
+  ({ctx,p}=await device(b,gh,opts,APP,SEEN));
+  await go(p,'tareas');const r0=row(p,'Revisar con el contador').locator('.body');if(phone)await r0.tap();else await r0.click();await sleep(400);
+  const r=await p.evaluate(()=>{const e=$('eTitle'),d=document.querySelector('#editForm .dbody');return {sh:e.scrollHeight,ch:e.clientHeight,top:d.scrollTop,scrolls:d.scrollHeight>d.clientHeight}});
+  ok(r.sh<=r.ch+1&&r.top===0,name+': a long title is shown whole when the detail opens '+JSON.stringify(r));
+  ok(p.errs.length===0,name+': no page errors '+JSON.stringify(p.errs));
+  await ctx.close();
+}
 await b.close();console.log('fails',L.fails);
 })().catch(e=>{console.error(e);process.exit(1)});

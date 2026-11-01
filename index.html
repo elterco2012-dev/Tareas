@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-hB7whttPWhV6Uecr/BDnu3sp6YoUouZh8YHEqlS/EJ4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-MEVRnM+k+XjeQcY/KY8HpDtnWbA6MlB/Xs/qHZ4QG+8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -420,6 +420,8 @@ label.fcol .inp,.modal .big{font-size:0.9375rem;font-weight:400;padding:10px 12p
 .dicon:hover{background:var(--hover)}
 #eSave{color:var(--text)}
 .dbody{flex:1;min-height:0;overflow-y:auto;padding:4px 18px 18px;display:flex;flex-direction:column;gap:18px}
+/* Lo de adentro no se achica cuando no entra (se baja): si no, el título y el detalle quedaban de un renglón */
+#editForm .dbody>*{flex-shrink:0}
 .dbody .edone{margin-top:0}
 .dtitle{display:block;width:100%;font:inherit;font-size:1.1875rem;font-weight:650;line-height:1.35;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:var(--text);resize:none;outline:none;padding:4px 0 6px;overflow:hidden}
 .dtitle:focus{border-bottom-color:var(--accent)}
@@ -987,11 +989,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.31-1"></script>
+<script src="sync-core.js?v=2026.11.1-1"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.31-1';
+const APP_VERSION='2026.11.1-1';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1126,6 +1128,12 @@ function doneWhen(iso){
 }
 // Valor de un chip: '0' hoy, '1' mañana, 'week' próximo lunes, '' sin fecha
 function dueFor(v){return v===''?null:v==='week'?nextMonday():addDays(Number(v))}
+// El chip de fecha que va elegido (en el alta y en el detalle), uno solo: el domingo, Mañana y Lunes son el mismo día.
+// Va el que tocaste, si es de esa fecha; si no, el primero que coincide (Hoy, Mañana, Lunes, Sin fecha)
+function dueChip(sel,due,tapped){
+  const bs=[...document.querySelectorAll(sel+' .chip')],is=b=>(dueFor(b.dataset.v)||null)===(due||null);
+  return bs.find(b=>b.dataset.v===tapped&&is(b))||bs.find(is)||null;
+}
 
 const GROUPS=[
   {id:'over',title:'Vencidas',test:n=>n!==null&&n<0},
@@ -2274,7 +2282,8 @@ function renderAdd(){
   const raw=$('title').value,info=capInfo(raw),nd=info.nd,p=info.p,eff=info.due;
   // Para: ningún chip marcado de entrada (sin elegir, queda en Hoy como anotada al pasar); la fecha del texto pisa el chip
   const picked=chipTouched||p.due!==undefined;
-  document.querySelectorAll('#chips .chip').forEach(b=>{const on=!nd&&picked&&dueFor(b.dataset.v)===eff;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
+  const pick=!nd&&picked?dueChip('#chips',eff,chipTouched?chip:null):null;
+  document.querySelectorAll('#chips .chip').forEach(b=>{const on=b===pick;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   document.querySelectorAll('#typeRow .chip').forEach(b=>{const on=b.dataset.k===info.kind;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   $('dueRow').classList.toggle('hidden',nd);
   $('inboxLine').classList.toggle('hidden',!(raw.trim()&&!nd&&p.due===undefined&&!chipTouched&&!p.time&&!p.waiting));
@@ -4076,7 +4085,8 @@ function syncEdit(){
 function renderEdit(){
   if(!edit)return;
   const set=(b,on)=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))};
-  document.querySelectorAll('#eChips .chip').forEach(b=>set(b,(dueFor(b.dataset.v)||'')===edit.due));
+  const pick=dueChip('#eChips',edit.due,edit.dueV);
+  document.querySelectorAll('#eChips .chip').forEach(b=>set(b,b===pick));
   $('eDue').value=edit.due;
   // Anotada al pasar: la línea del punto azul, hasta que se elija otra fecha
   $('eInbox').classList.toggle('hidden',!(edit.inbox&&!edit.isNote&&!edit.done&&(edit.due||null)===edit.orig.due));
@@ -4137,8 +4147,9 @@ function closeEdit(){
   if(!otherOverlay())$('wrap').inert=false;
   if(proc)setTimeout(renderProc,0);
 }
-document.querySelectorAll('#eChips .chip').forEach(b=>b.addEventListener('click',()=>{edit.due=dueFor(b.dataset.v)||'';editChanged()}));
-$('eDue').addEventListener('change',()=>{if($('eDue').validity.badInput)return;edit.due=$('eDue').value;editChanged()});   // a medio escribir: todavía no
+// (dueV: el chip que tocaste, para que quede elegido ese cuando dos son el mismo día)
+document.querySelectorAll('#eChips .chip').forEach(b=>b.addEventListener('click',()=>{edit.due=dueFor(b.dataset.v)||'';edit.dueV=b.dataset.v;editChanged()}));
+$('eDue').addEventListener('change',()=>{if($('eDue').validity.badInput)return;edit.due=$('eDue').value;edit.dueV=null;editChanged()});   // a medio escribir: todavía no
 document.querySelectorAll('#eTimeChips .chip').forEach(b=>b.addEventListener('click',()=>{$('eTime').value=$('eTime').value===b.dataset.t?'':b.dataset.t;editChanged()}));
 $('eNoTime').onclick=()=>{$('eTime').value='';editChanged()};
 ['input','change'].forEach(ev=>$('eTime').addEventListener(ev,editChanged));
