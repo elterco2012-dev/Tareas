@@ -82,8 +82,8 @@ LA HOJA PARA ANOTAR
   ya escucha. Agregar (o Enter) la cierra; Atras, tocar afuera o Esc tambien, y lo escrito queda para la proxima vez.
   En la compu, el campo sigue arriba de la lista, con lo mismo debajo, siempre a la vista.
 - Debajo del campo: "Entendi:" (antes "Detectado") con lo que se va a cargar, y despues:
-  - el tipo: Tarea · Recordatorio · Nota. Se elige solo: una hora o "recordame..." es un Recordatorio; "nota:" o
-    "idea:" al principio, una Nota. Un toque lo cambia: Tarea saca la hora (sin aviso); Recordatorio sin hora queda a
+  - el tipo: Tarea · Recordatorio · Nota · Idea. Se elige solo: una hora o "recordame..." es un Recordatorio; "nota:"
+    al principio, una Nota; "idea:", una Idea (una nota marcada como idea). Un toque lo cambia: Tarea saca la hora (sin aviso); Recordatorio sin hora queda a
     las 9:00 (o sin hora si es para hoy y ya paso el aviso de las 9).
   - Para: Hoy · Mañana · Lunes · Sin fecha. Ninguno aparece marcado de entrada: si no elegis, se ve "Sin fecha elegida:
     queda en Hoy como anotada al pasar". Tocar el elegido lo saca.
@@ -205,8 +205,8 @@ USO DIARIO
   hace rato. Una tecla o un toque por decision y pasa sola a la siguiente; al final dice cuantas ordenaste y con
   cuantas quedo Hoy. N la pasa a notas (si no era para hacer). "Deshacer" (o Z) vuelve a la tarjeta de antes.
 - Notas: lo que no es para hacer (un dato, una idea, el talle de alguien). Escribi "nota:" o "idea:" al principio
-  ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca "Nota" (en el tipo, debajo del campo) y
-  escribi o dicta. El texto se guarda tal cual: no busca fechas, horas ni "@persona". No guardes claves ni
+  ("nota: talle de zapatillas de Juan 42", "idea: viaje a Mendoza"), o toca "Nota" o "Idea" (en el tipo, debajo del
+  campo) y escribi o dicta. Una idea es una nota marcada como idea: en Notas, el chip "Ideas" muestra solo esas. El texto se guarda tal cual: no busca fechas, horas ni "@persona". No guardes claves ni
   contraseñas: cada cambio queda en el historial de GitHub y en la copia diaria. Van en la pantalla Notas (estando
   ahi, el boton "Nota" ya aparece elegido); al buscar aparecen las que coinciden. No tienen casilla: toca una para
   editarla. No cuentan en Hoy, Ordenar, la revision de la semana, el numero del icono, el resumen ni los

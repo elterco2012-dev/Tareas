@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-mv70eqZv83Pb8bbXolglwNlUkj1OC3y10Hrr9atOzMI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-hB7whttPWhV6Uecr/BDnu3sp6YoUouZh8YHEqlS/EJ4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -702,6 +702,7 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
       <button type="button" class="chip" data-k="tarea" aria-pressed="false">Tarea</button>
       <button type="button" class="chip" data-k="rec" aria-pressed="false" title="Con hora y aviso">Recordatorio</button>
       <button type="button" id="noteChip" class="chip" data-k="nota" aria-pressed="false" title="Guardar como nota (sin fecha ni aviso)">Nota</button>
+      <button type="button" id="ideaChip" class="chip" data-k="idea" aria-pressed="false" title="Guardar como idea (una nota marcada como idea)">Idea</button>
       <button type="button" id="noteToggle" class="notebtn">+ Detalle</button>
     </div>
     <div id="dueRow" class="chiprow" role="group" aria-label="Para cuándo">
@@ -986,11 +987,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.10.27-2"></script>
+<script src="sync-core.js?v=2026.10.31-1"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.10.27-2';
+const APP_VERSION='2026.10.31-1';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1030,6 +1031,7 @@ const NOTE_RE=/^\s*(?:nota|idea)\s*:\s*/i,IDEA_RE=/^\s*idea\s*:/i,isNote=t=>!!t&
 const NOTE_SVG='<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="2.5" width="12" height="13" rx="2"/><line x1="6" y1="6.5" x2="12" y2="6.5"/><line x1="6" y1="9.5" x2="12" y2="9.5"/><line x1="6" y1="12.5" x2="9.5" y2="12.5"/></svg>';
 let capKind=null,capTime=null,capOpen=false;   // el tipo elegido a mano en el alta (tarea o recordatorio), la hora de "Avisar" y la hoja del celular
 let asNote=false,noteCarry=false;   // el botón Nota del alta (noteCarry: quedó prendido por Notas, con texto, al salir)
+let capIdea=null;   // Idea (true) o Nota (false) elegidas a mano; sin elegir, "idea:" al principio la hace idea
 function findLive(id){return tasks.find(x=>x.id===id)||notes.find(x=>x.id===id)}
 let heldDraft=null;   // el borrador de antes, si se entró con "Dictar tarea" o compartiendo
 const STANDALONE=!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
@@ -2253,12 +2255,14 @@ function renderHeader(){
 // Lo que está en el alta se va a guardar como nota: el botón Nota, o "nota:" / "idea:" al principio (salvo que se
 // haya elegido Tarea o Recordatorio a mano)
 function noteDraft(v){return asNote||!capKind&&NOTE_RE.test(v)}
+// Una nota del alta es una idea si se eligió Idea, o si empieza con "idea:" (salvo que se haya elegido Nota)
+const ideaDraft=v=>noteDraft(v)&&(capIdea??IDEA_RE.test(v));
 // Lo que se va a guardar con lo escrito: el tipo (tarea, recordatorio o nota), la fecha y la hora.
 // El tipo se adivina (una hora o "recordame…" es un recordatorio) y se puede cambiar con un toque: Tarea saca la hora;
 // Recordatorio sin hora usa la regla de "recordame" (9:00, o sin hora si es para hoy y ya pasó el aviso de las 9).
 function capInfo(raw){
   // Una nota no se interpreta (ni fecha, ni hora, ni quién): se guarda el texto tal cual
-  if(noteDraft(raw))return {nd:true,kind:'nota',p:{title:raw.replace(NOTE_RE,'')},due:undefined};
+  if(noteDraft(raw))return {nd:true,kind:ideaDraft(raw)?'idea':'nota',p:{title:raw.replace(NOTE_RE,'')},due:undefined};
   let p=parse(raw,dueFor(chip));
   const kind=capKind||(p.time||p.remind?'rec':'tarea');
   if(kind==='tarea'&&(p.time||p.remind))p={...p,time:null,remind:false};
@@ -2278,7 +2282,7 @@ function renderAdd(){
   document.querySelectorAll('#timeChips .chip').forEach(b=>{const on=info.kind==='rec'&&b.dataset.t===capTime;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   const det=$('detected');det.replaceChildren();
   const tags=[];
-  if(nd&&p.title.trim())tags.push('Nota: sin fecha ni aviso');
+  if(nd&&p.title.trim())tags.push((info.kind==='idea'?'Idea':'Nota')+': sin fecha ni aviso');
   if(p.due)tags.push(shortDue(p.due));
   if(p.priority)tags.push('Prioridad '+p.priority.toLowerCase());
   // Con la hora, cuándo llega el aviso por Telegram (o que no llega). Recordatorio sin hora: a las 9.
@@ -2315,7 +2319,7 @@ function openCap(focus=true){
   renderAdd();scheduleFabs();
 }
 // Para, tipo y aviso sin elegir (lo nuevo no hereda lo elegido para otra cosa)
-function freshCap(){chip='0';chipTouched=false;capKind=null;capTime=null}
+function freshCap(){chip='0';chipTouched=false;capKind=null;capTime=null;capIdea=null}
 function closeCap(){
   if(!capOpen)return;
   cancelAutoSave();if(listening)stopVoice(true);   // lo escrito queda como borrador, no se guarda solo
@@ -3254,12 +3258,12 @@ $('addForm').addEventListener('submit',e=>{
   if(info.nd){
     const text=raw.replace(NOTE_RE,'').trim();if(!text)return;
     const nt={id:crypto.randomUUID(),src:SRC,kind:'nota',title:voiceFilled?cap(text):text,requester:'',priority:'Media',due:null,time:null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
-    if(IDEA_RE.test(raw))nt.idea=true;
+    if(ideaDraft(raw))nt.idea=true;
     act({type:'add',task:nt});
     if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
-    toast('Nota guardada',()=>actMany([{type:'delete',id:nt.id}]),'Deshacer',6000,[['Ver',()=>showNote(nt.id)]]);
+    toast(nt.idea?'Idea guardada':'Nota guardada',()=>actMany([{type:'delete',id:nt.id}]),'Deshacer',6000,[['Ver',()=>showNote(nt.id)]]);
     hideSuggest();
-    $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+    $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';capIdea=null;capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
     if(refocus)$('title').focus();
     closeCap();renderAdd();
     return;
@@ -3280,13 +3284,13 @@ $('addForm').addEventListener('submit',e=>{
   const av=avisoTag(task.due,task.time);
   toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:'')+(av?' · '+av[0].toLowerCase():''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
-  $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+  $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';capIdea=null;capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
   if(refocus)$('title').focus();
   closeCap();renderAdd();
 });
 $('title').addEventListener('input',()=>{
   if(rec){rec.onresult=null;stopVoice(true)}   // escribir mientras escucha corta el dictado
-  if(!$('title').value.trim()){voiceFilled=false;if(noteCarry){noteCarry=false;asNote=scr==='notas'}}
+  if(!$('title').value.trim()){voiceFilled=false;if(noteCarry){noteCarry=false;asNote=scr==='notas';capIdea=null}}
   cancelAutoSave();saveDraft();
   suggSel=-1;renderAdd();renderSuggest();
 });
@@ -3298,14 +3302,14 @@ $('note').addEventListener('focus',()=>cancelAutoSave());
 // Con la fecha elegida en los chips y de dónde vino el texto (compartido, dictado), así vuelve igual
 function saveDraft(){
   const t=$('title').value,n=$('note').value;
-  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,nt:asNote,k:capKind,tm:capTime,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
+  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,nt:asNote,id:capIdea,k:capKind,tm:capTime,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
 }
 function restoreDraft(){
   const d=load(K_DRAFT,null);
   if(!d||!(Date.now()-d.at<12*3600000)||$('title').value.trim())return;
   const i=$('title');i.value=d.t||'';if(d.n){setNote(true);$('note').value=d.n}
   if(d.ct&&typeof d.c==='string'){chip=d.c;chipTouched=true}
-  asNote=!!d.nt;capKind=d.k==='tarea'||d.k==='rec'?d.k:null;capTime=typeof d.tm==='string'&&HM_RE.test(d.tm)?d.tm:null;sharedFill=!!d.sf;voiceFilled=!!d.vf;
+  asNote=!!d.nt;capIdea=typeof d.id==='boolean'?d.id:null;capKind=d.k==='tarea'||d.k==='rec'?d.k:null;capTime=typeof d.tm==='string'&&HM_RE.test(d.tm)?d.tm:null;sharedFill=!!d.sf;voiceFilled=!!d.vf;
   try{i.setSelectionRange(i.value.length,i.value.length)}catch{}
   renderAdd();
 }
@@ -3338,17 +3342,23 @@ $('addForm').addEventListener('focusout',()=>{
 const capChanged=()=>{if(autoSave)startAutoSave();renderAdd();saveDraft();if(!dock)$('title').focus()};
 document.querySelectorAll('#chips .chip').forEach(b=>b.addEventListener('click',()=>{
   if(chipTouched&&chip===b.dataset.v&&b.classList.contains('on')){chip='0';chipTouched=false}else{chip=b.dataset.v;chipTouched=true}
-  asNote=false;capChanged();
+  asNote=false;capIdea=null;capChanged();
 }));
-// Tipo: Tarea, Recordatorio o Nota. Nota: lo que escribas (o dictes) se guarda como nota; tocarla de nuevo vuelve a tarea.
+// Tipo: Tarea, Recordatorio, Nota o Idea. Nota: lo que escribas (o dictes) se guarda como nota; tocarla de nuevo vuelve
+// a tarea. Idea: una nota marcada como idea (lo mismo que empezar con "idea:"); tocarla de nuevo, vuelve a tarea.
 document.querySelectorAll('#typeRow .chip').forEach(b=>b.addEventListener('click',()=>{
-  const k=b.dataset.k;noteCarry=false;
-  if(k==='nota'){asNote=!asNote;capKind=null}else{asNote=false;capKind=k}
+  const k=b.dataset.k,v=$('title').value,idea=ideaDraft(v);noteCarry=false;
+  if(k==='idea'){
+    if(idea){asNote=false;capIdea=null;capKind=NOTE_RE.test(v)?'tarea':null}else{asNote=true;capIdea=true;capKind=null}
+  }else if(k==='nota'){
+    if(idea){asNote=true;capIdea=false}else{asNote=!asNote;capIdea=asNote?false:null}
+    capKind=null;
+  }else{asNote=false;capIdea=null;capKind=k}
   if(k!=='rec')capTime=null;
   hideSuggest();capChanged();
 }));
 // Avisar (Recordatorio): 9:00 · 12:00 · 15:00 · 18:00; tocar la elegida la saca
-document.querySelectorAll('#timeChips .chip').forEach(b=>b.addEventListener('click',()=>{capTime=capTime===b.dataset.t?null:b.dataset.t;capKind='rec';asNote=false;capChanged()}));
+document.querySelectorAll('#timeChips .chip').forEach(b=>b.addEventListener('click',()=>{capTime=capTime===b.dataset.t?null:b.dataset.t;capKind='rec';asNote=false;capIdea=null;capChanged()}));
 function setNote(on){
   $('note').classList.toggle('hidden',!on);$('noteToggle').textContent=on?'Quitar detalle':'+ Detalle';
   if(!on)$('note').value='';
@@ -3493,7 +3503,7 @@ function openBulk(lines,offs){
     row.append(cb,inp);list.append(row);
   });
   const d=dueFor(chip);
-  $('bulkHint').textContent=asNote?'Se guardan como notas (sin fecha ni aviso).':'Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'. Las que empiecen con "nota:" o "idea:" van a notas.';
+  $('bulkHint').textContent=asNote?(capIdea===true?'Se guardan como ideas (sin fecha ni aviso).':'Se guardan como notas (sin fecha ni aviso).'):'Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'. Las que empiecen con "nota:" o "idea:" van a notas.';
   $('bulkOv').classList.remove('hidden');$('wrap').inert=true;
   renderBulk();
 }
@@ -3517,7 +3527,7 @@ $('bulkForm').addEventListener('submit',e=>{
   e.preventDefault();
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
-    if(asNote||NOTE_RE.test(line)){const text=line.replace(NOTE_RE,'').trim()||line;return {id:crypto.randomUUID(),src:SRC,kind:'nota',title:text,requester:'',priority:'Media',due:null,time:null,notes:'',done:false,createdAt:now,completedAt:null,...(IDEA_RE.test(line)?{idea:true}:{})}}
+    if(asNote||NOTE_RE.test(line)){const text=line.replace(NOTE_RE,'').trim()||line;return {id:crypto.randomUUID(),src:SRC,kind:'nota',title:text,requester:'',priority:'Media',due:null,time:null,notes:'',done:false,createdAt:now,completedAt:null,...(capIdea===true&&asNote||capIdea!==false&&IDEA_RE.test(line)?{idea:true}:{})}}
     const p0=parse(line,def),due=p0.due!==undefined?p0.due:def,p=withRemindTime(p0,due);
     const task={id:crypto.randomUUID(),src:SRC,title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:'',done:false,createdAt:now,completedAt:null};
     if(p.repeat)task.repeat=p.repeat;
@@ -3528,7 +3538,7 @@ $('bulkForm').addEventListener('submit',e=>{
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
   actMany(ops);
-  $('title').value='';asNote=scr==='notas';capKind=null;capTime=null;saveDraft();renderAdd();closeCap();
+  $('title').value='';asNote=scr==='notas';capIdea=null;capKind=null;capTime=null;saveDraft();renderAdd();closeCap();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   const nn=added.filter(isNote).length,nt=added.length-nn,cnt=(n,a,b)=>n+' '+(n===1?a:b);
   toast((nt?cnt(nt,'tarea','tareas'):'')+(nt&&nn?' y ':'')+(nn?cnt(nn,'nota','notas'):'')+(added.length===1?' agregada':' agregadas'),()=>{
@@ -3548,7 +3558,7 @@ const STOP_SVG='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="tru
 function updateAddBtn(force){
   const b=$('addBtn'),v=$('title').value,mode=listening?'listening':autoSave?'saving':SR&&(!v.trim()||voiceFilled&&!noteDraft(v)&&parse(v,dueFor(chip)).bare)?'mic':'add';
   renderDock();scheduleFabs();
-  $('title').placeholder=mode==='listening'?'Escuchando…':noteDraft(v)?'Escribí una nota…':'¿Qué tenés que hacer?';
+  $('title').placeholder=mode==='listening'?'Escuchando…':noteDraft(v)?(ideaDraft(v)?'Escribí una idea…':'Escribí una nota…'):'¿Qué tenés que hacer?';
   if(b.dataset.mode===mode&&!force)return;
   if(mode==='saving'){b.dataset.mode=mode;b.type='button';b.classList.remove('listening');b.textContent='Guardar · '+autoSave.n;b.setAttribute('aria-label','Guardar ahora');b.title='Guardar ahora';return}
   b.dataset.mode=mode;b.type=mode==='add'?'submit':'button';
@@ -3709,7 +3719,7 @@ function goScreen(s,o={}){
   if(from==='ajustes'){confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'))}
   if(personFilter&&s!=='tareas'&&s!=='buscar'&&s!=='ajustes'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
-  if(!$('title').value.trim()&&(s==='notas'||from==='notas'))asNote=s==='notas';
+  if(!$('title').value.trim()&&(s==='notas'||from==='notas')){asNote=s==='notas';capIdea=null}
   else if(from==='notas'&&asNote)noteCarry=true;
   scr=s;applyScreen();
   if(o.tap)tapHistory();
@@ -4566,7 +4576,7 @@ function fillShared(params){
     openBulk([...extra.slice(0,1),...lines,...extra.slice(1)]);
     return;
   }
-  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,k:capKind,tm:capTime,at:Date.now()};
+  if(($('title').value.trim()||$('note').value.trim())&&!sharedFill)heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,id:capIdea,k:capKind,tm:capTime,at:Date.now()};
   asNote=false;freshCap();   // lo compartido es una tarea, salvo que empiece con nota: o idea:
   const parts=[];[cleanShared(title),cleanShared(text),url].forEach(x=>{if(x&&!parts.some(y=>y.includes(x)))parts.push(x)});
   const sp=splitLong(parts.join(' ').replace(/\s+/g,' '));
@@ -4597,7 +4607,7 @@ function handleLaunch(params,initial){
   if(initial){if(shared||voz)heldDraft=load(K_DRAFT,null);else restoreDraft()}
   // "Dictar" con la app abierta y algo escrito: lo escrito queda guardado aparte y vuelve después de dictar
   else if(voz&&($('title').value.trim()||$('note').value.trim())){
-    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,k:capKind,tm:capTime,at:Date.now()};
+    heldDraft={t:$('title').value,n:$('note').value,c:chip,ct:chipTouched,nt:asNote,id:capIdea,k:capKind,tm:capTime,at:Date.now()};
     $('title').value='';$('note').value='';setNote(false);asNote=false;freshCap();sharedFill=false;voiceFilled=false;renderAdd();
   }
   // En el celular, la app instalada abre mostrando la lista, sin el teclado (salvo que en Sincronización › Este
