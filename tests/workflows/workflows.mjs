@@ -208,7 +208,7 @@ put([T('a','Sin fecha nueva',{due:null,createdAt:'2026-10-10T12:00:00Z'}),T('b',
 tg=[];r=await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5',APP_URL:'https://yo.github.io/organizador-web'});
 ok(tg.length===1&&tg[0].text==='Revisión de la semana: 2 sin fecha (1 con más de un mes), 1 esperando respuesta, 1 pateada 3 veces o más.\nEsta semana terminaste 1 tarea.\nRevisalas en 2 minutos: https://yo.github.io/organizador-web/?revisar=1','weekly message: '+JSON.stringify(tg[0]&&tg[0].text));
 tg=[];r=await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5',APP_URL:''});
-ok(tg.length===1&&tg[0].text.endsWith('Abrí la app y tocá "Revisión de la semana" (abajo, junto a Terminadas).'),'weekly without APP_URL: '+JSON.stringify(tg[0]&&tg[0].text));
+ok(tg.length===1&&tg[0].text.endsWith('Abrí la app y tocá "Revisión de la semana" (en Ajustes › Herramientas, o en Tareas, abajo, junto a Terminadas).'),'weekly without APP_URL: '+JSON.stringify(tg[0]&&tg[0].text));
 // Solo mail (sin Telegram): la revisión llega por mail
 tg=[];mails=[];r=await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5',TELEGRAM_TOKEN:'',TELEGRAM_CHAT_ID:'',...MAIL});
 ok(r.code===0&&tg.length===0&&mails.length===1&&mails[0].includes('Revisión de la semana: 2 sin fecha')&&mails[0].includes('Subject: =?UTF-8?B?'+Buffer.from('Mis tareas: revisión de la semana').toString('base64')),'weekly, mail only → sent by mail: code '+r.code+' '+r.err);
@@ -311,7 +311,7 @@ tg=[];r=log(await run('res.mjs',LUNES,{PROGRAMA:'0 10 * * *'}));
 ok(tg.length===1&&tg[0].text.startsWith('⚠ Ayer no salió 1 aviso'),'Monday with a daily summary: only Sunday (Saturday was already counted): '+JSON.stringify(tg[0]&&tg[0].text.slice(0,80)));
 // Con el aviso del token: primero el token, después los recordatorios
 fs.writeFileSync(repo+'/ajustes.json',JSON.stringify({tokens:{abc123:'2026-10-21'}}));tg=[];r=log(await run('res.mjs',LUNES,{PROGRAMA:'0 10 * * 1-5'}));
-ok(tg[0]&&tg[0].text.startsWith('⚠ El token de GitHub de la app vence en 2 días (21/10). Generá uno nuevo y cargalo en Sincronización, con su fecha.\n⚠ Desde el viernes no salieron 3 avisos'+PERD+'\n\nBuen día.'),'token warning, then the missed reminders: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,200)));
+ok(tg[0]&&tg[0].text.startsWith('⚠ El token de GitHub de la app vence en 2 días (21/10). Generá uno nuevo y cargalo en Ajustes › Cuenta, con su fecha.\n⚠ Desde el viernes no salieron 3 avisos'+PERD+'\n\nBuen día.'),'token warning, then the missed reminders: '+JSON.stringify(tg[0]&&tg[0].text.slice(0,200)));
 fs.rmSync(repo+'/ajustes.json');
 // La revisión de los viernes no lo lleva
 put([T('f0','Del jueves',{due:'2026-10-15',time:'15:00'}),T('sf','Sin fecha',{due:null})]);fs.writeFileSync(ENV,'{}');tg=[];r=log(await run('res.mjs','2026-10-16T18:45:00Z',{PROGRAMA:'45 18 * * 5'}));

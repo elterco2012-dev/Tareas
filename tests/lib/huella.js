@@ -71,5 +71,7 @@ module.exports={FILES,fingerprint,versions,nextVersion,setVersion,cspNeeded};
 if(require.main===module){
   const v=versions();
   if(process.argv.includes('--bump')){const n=nextVersion(v.sw);setVersion(n);console.log('Versión '+n+' · huella '+fingerprint())}
+  // Mientras se trabaja: solo los hashes de la CSP (sin subir la versión), para probar la app con los cambios
+  else if(process.argv.includes('--csp')){setCsp();console.log('CSP al día')}
   else console.log(JSON.stringify({...v,huellaActual:fingerprint()},null,1));
 }
