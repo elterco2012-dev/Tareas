@@ -434,4 +434,11 @@ fs.rmSync(ENV);
  ok(rlogs&&![...titulos,'Comprar cartuchos','Vieja terminada 2025','Terminada en 2026'].some(t=>rlogs.includes(t)),'resp: no task titles in the logs');
  ok(!rlogs.includes(TOKEN)&&!rlogs.includes(BASIC)&&!rlogs.includes('SECRETO123'),'resp: the token never appears in stdout/stderr');
  ok(!fs.readFileSync(bare+'/config','utf8').includes(TOKEN)&&!(G(bare,['log','--all','--format=%B'])||'').includes(TOKEN),'resp: the token is not stored in the backup repo')}
+// Versión de Node: las tres plantillas usan la misma, con soporte (GitHub dejó de dar soporte a Node 20, el de
+// checkout@v4 y setup-node@v4), y las mismas acciones, en una versión que corre con Node 24 (v5 o más nueva)
+{const w=['recordatorios.yml','resumen.yml','respaldo.yml'].map(f=>{const t=fs.readFileSync(path.join(ROOT,'repo-datos','.github','workflows',f),'utf8').replace(/\r\n/g,'\n');
+  return {node:[...t.matchAll(/^ +node-version: (\S+)$/gm)].map(m=>m[1]).join(),uses:[...t.matchAll(/^ +- uses: (\S+)$/gm)].map(m=>m[1]).join()}});
+ ok(w.every(x=>x.node===w[0].node)&&Number(w[0].node)>=24,'templates: the same Node version, 24 or newer: '+w.map(x=>x.node));
+ const m=w[0].uses.match(/^actions\/checkout@v(\d+),actions\/setup-node@v(\d+)$/);
+ ok(w.every(x=>x.uses===w[0].uses)&&!!m&&+m[1]>=5&&+m[2]>=5,'templates: the same actions (checkout, setup-node), v5 or newer (they run on Node 24): '+w.map(x=>x.uses).join(' | '))}
 console.log('fails',fails);process.exit(fails?1:0);

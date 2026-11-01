@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false   # no deja guardado el token del repositorio de datos
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
       - name: Copiar al repositorio de respaldo
         env:
           RESPALDO_TOKEN: ${{ secrets.RESPALDO_TOKEN }}
