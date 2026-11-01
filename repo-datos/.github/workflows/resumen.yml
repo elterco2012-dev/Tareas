@@ -74,7 +74,7 @@ jobs:
             if(esp)items.push(esp+' esperando respuesta');
             if(pateadas)items.push(pateadas+(pateadas===1?' pateada':' pateadas')+' 3 veces o más');
             const url=(E.APP_URL||'').trim();
-            const semanal='Revisión de la semana: '+items.join(', ')+'.'+(hechas?'\nEsta semana terminaste '+hechas+(hechas===1?' tarea.':' tareas.'):'')+'\n'+(url?'Revisalas en 2 minutos: '+url.replace(/\/?$/,'/')+'?revisar=1':'Abrí la app y tocá "Revisión de la semana" (abajo, junto a Terminadas).');
+            const semanal='Revisión de la semana: '+items.join(', ')+'.'+(hechas?'\nEsta semana terminaste '+hechas+(hechas===1?' tarea.':' tareas.'):'')+'\n'+(url?'Revisalas en 2 minutos: '+url.replace(/\/?$/,'/')+'?revisar=1':'Abrí la app y tocá "Revisión de la semana" (en Ajustes › Herramientas, o en Tareas, abajo, junto a Terminadas).');
             console.log(semanal);
             await enviar(semanal,'revisión de la semana');
           }
@@ -90,7 +90,7 @@ jobs:
             for(const f of Object.values(tok)){
               const d=dias(String(f),hoy);if(!(d<=7&&d>=-3))continue;
               const dm=diaMes(f);
-              aviso='⚠ El token de GitHub de la app '+(d<0?'venció el '+dm:d===0?'vence hoy':d===1?'vence mañana':'vence en '+d+' días ('+dm+')')+'. Generá uno nuevo y cargalo en Sincronización, con su fecha.';
+              aviso='⚠ El token de GitHub de la app '+(d<0?'venció el '+dm:d===0?'vence hoy':d===1?'vence mañana':'vence en '+d+' días ('+dm+')')+'. Generá uno nuevo y cargalo en Ajustes › Cuenta, con su fecha.';
             }
           }catch{}
           // Recordatorios a la hora que no salieron ayer (los lunes, desde el viernes): se comparan las tareas con lo

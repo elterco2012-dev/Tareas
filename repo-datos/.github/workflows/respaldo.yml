@@ -48,7 +48,7 @@ jobs:
           const hoy=new Intl.DateTimeFormat('en-CA',{timeZone:zona,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
           const automatico=E.GITHUB_EVENT_NAME==='schedule';
           const ver='Ver INSTRUCCIONES.md, sección "Copia de seguridad diaria".';
-          const recuperar='Para recuperar las tareas: primero abrí la app en el dispositivo que las tenga más al día y, en Sincronización, tocá "Volver a subir la copia de este dispositivo"; si no se puede, seguí "Cómo recuperar las tareas" en INSTRUCCIONES.md (sección "Copia de seguridad diaria").';
+          const recuperar='Para recuperar las tareas: primero abrí la app en el dispositivo que las tenga más al día y, en Ajustes › Sincronización, tocá "Volver a subir la copia de este dispositivo"; si no se puede, seguí "Cómo recuperar las tareas" en INSTRUCCIONES.md (sección "Copia de seguridad diaria").';
           const fallar=m=>{console.error(m);process.exit(1)};
           // En el registro de GitHub no quedan los títulos de las tareas (lo pueden leer servicios como cron-job.org):
           // solo cuántas son y los nombres de los archivos.
