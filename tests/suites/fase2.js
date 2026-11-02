@@ -53,7 +53,8 @@ const tw=await row(p,'Código del portón').evaluate(r=>({t:Math.round(r.querySe
 // (el texto ocupa la tarjeta menos el ⋯, que mide 44 px: hasta 64 px de diferencia)
 ok(tw.ico==='none'&&tw.t>=tw.c-64,'cards: no icon, the text uses the card width '+JSON.stringify(tw));
 ok(await row(p,'Código del portón').evaluate(r=>r.classList.contains('nc-verde'))&&await row(p,'Viaje a Mendoza').evaluate(r=>r.classList.contains('nc-amarillo')),'cards take their color (an idea without color, amber)');
-const chips=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .nfilter .chip')].map(b=>b.textContent||b.getAttribute('aria-label')));
+// (el texto del chip, sin el número que Todas e Ideas tienen desde notas-filtro.js; los colores, por su etiqueta)
+const chips=await p.evaluate(()=>[...document.querySelectorAll('#notesSec .nfilter .chip')].map(b=>(b.firstChild&&b.firstChild.nodeType===3?b.firstChild.textContent:'')||b.getAttribute('aria-label')));
 ok(JSON.stringify(chips)===JSON.stringify(['Todas','Ideas','Verde']),'filters: Todas, Ideas and the colors in use '+JSON.stringify(chips));
 await p.locator('#notesSec .nfilter .chip',{hasText:'Ideas'}).tap();await sleep(200);
 ok(await p.locator('#notesSec .task').count()===1&&await row(p,'Viaje a Mendoza').count()===1,'Ideas shows only ideas');

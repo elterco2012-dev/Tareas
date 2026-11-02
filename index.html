@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-G+Kj7doei2HjGnIXMQLuuEA4MQRUVQFRifMyZx5w61E='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-y7UtZ7zqsoS7sIdyL9kvNLz/j5dNUoNzpBm7TRHVDPo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -481,6 +481,9 @@ label.fcol .inp,.modal .big{font-size:0.9375rem;font-weight:400;padding:10px 12p
 .nfilter .ncolchip{width:40px;padding:0;border:1px solid var(--border)}
 .nfilter .ncolchip.nc-amarillo{background:var(--n1)}.nfilter .ncolchip.nc-verde{background:var(--n2)}.nfilter .ncolchip.nc-azul{background:var(--n3)}.nfilter .ncolchip.nc-rosa{background:var(--n4)}.nfilter .ncolchip.nc-lila{background:var(--n5)}
 .nfilter .ncolchip[aria-pressed="true"]{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
+/* Cuántas hay, en Todas e Ideas */
+.nfilter .chip .n{margin-left:6px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--faint)}
+.nfilter .chip[aria-pressed="true"] .n{color:var(--accent-text)}
 /* Notas con color (las ideas sin color, ámbar); "Fijada" e "Idea" también en texto */
 .task.note.nc-amarillo,.swipe .task.note.nc-amarillo{background:var(--n1)}
 .task.note.nc-verde{background:var(--n2)}.task.note.nc-azul{background:var(--n3)}.task.note.nc-rosa{background:var(--n4)}.task.note.nc-lila{background:var(--n5)}
@@ -1019,11 +1022,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.1-6"></script>
+<script src="sync-core.js?v=2026.11.1-7"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.1-6';
+const APP_VERSION='2026.11.1-7';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -2370,7 +2373,7 @@ function closeCap(){
   const a=document.activeElement;if(a&&$('addForm').contains(a))a.blur();
   hideSuggest();
   // Sin nada escrito, la próxima vez arranca de cero (en Notas, como nota)
-  if(!$('title').value.trim()&&!$('note').value.trim()){freshCap();asNote=scr==='notas';noteCarry=false;setNote(false)}
+  if(!$('title').value.trim()&&!$('note').value.trim()){freshCap();noteStart();noteCarry=false;setNote(false)}
   saveDraft();renderAdd();scheduleFabs();
 }
 $('capScrim').addEventListener('pointerdown',e=>{downOn=e.target});
@@ -2528,7 +2531,7 @@ function renderList(){
   // En Notas: los chips para filtrar (Todas, Ideas y los colores que se usan). Las notas van en grilla: Fijadas y
   // Otras, o Recientes si no hay fijadas.
   if(scr==='notas'&&notes.length&&!personFilter)ns.append(noteFilterRow());
-  const nshown=nlist.filter(t=>noteFilter==='todas'||(noteFilter==='ideas'?!!t.idea:noteColor(t)===noteFilter)||scr!=='notas');
+  const nshown=nlist.filter(t=>noteMatches(t)||scr!=='notas');
   // (buscando, un solo grupo "Notas")
   const pinned=scr==='notas'?nshown.filter(t=>t.pinned):[],rest=nshown.filter(t=>!pinned.includes(t));
   [[pinned,'Fijadas'],[rest,scr!=='notas'?'Notas':pinned.length?'Otras':'Recientes']].forEach(([list,title])=>{
@@ -2665,13 +2668,30 @@ function renderSearchHome(on){
 function foldedGroups(){const v=load(K_FOLD,[]);return new Set(Array.isArray(v)?v:[])}
 function setFold(id,shut){if(id==='notes'){store(K_NOTES_OPEN,!shut);return}const f=foldedGroups();if(shut)f.add(id);else f.delete(id);store(K_FOLD,[...f])}
 // Filtro de Notas: Todas, Ideas o un color (solo los que se usan)
-let noteFilter='todas';
+// Se recuerda en este dispositivo (K_NOTES_FILTER), así las ideas quedan a un toque aunque la app se vuelva a abrir. Si
+// el guardado ya no aplica, vuelve a Todas: un color que no usa ninguna nota, o Ideas sin ninguna idea al entrar a Notas
+// (elegido a mano con 0 ideas, dice "No hay ideas.", como siempre).
+const K_NOTES_FILTER='filtroNotas';
+let noteFilter='todas',noteFilterFresh=true;   // (fresh: recién se entró a Notas; se lee el guardado al iniciar)
+function savedNoteFilter(){const v=load(K_NOTES_FILTER,'todas');return v==='ideas'||NOTE_COLORS.includes(v)?v:'todas'}
+function setNoteFilter(v){noteFilter=v;store(K_NOTES_FILTER,v)}
+// Cómo arranca el alta (vacía): en Notas, como nota; con el filtro en Ideas, como idea (lo que anotás ahí se ve)
+function noteStart(){asNote=scr==='notas';capIdea=asNote&&noteFilter==='ideas'?true:null}
+const noteMatches=t=>noteFilter==='todas'||(noteFilter==='ideas'?!!t.idea:noteColor(t)===noteFilter);
+// Lo que se agrega (o se quiere ver) en Notas y el filtro no muestra: Notas pasa a Todas, así no parece que se perdió
+function showInNotes(items){if(scr==='notas'&&noteFilter!=='todas'&&items.some(t=>isNote(t)&&!noteMatches(t)))setNoteFilter('todas')}
 function noteFilterRow(){
   const row=el('div','chiprow nfilter');row.setAttribute('role','group');row.setAttribute('aria-label','Filtrar notas');
-  const used=NOTE_COLORS.filter(c=>notes.some(t=>noteColor(t)===c));
-  if(!used.includes(noteFilter)&&noteFilter!=='ideas')noteFilter='todas';
-  const chip=(v,label,cls)=>{const b=el('button','chip'+(cls?' '+cls:''),label);b.type='button';b.setAttribute('aria-pressed',String(noteFilter===v));b.onclick=()=>{noteFilter=noteFilter===v&&v!=='todas'?'todas':v;renderList()};return b};
-  row.append(chip('todas','Todas'),chip('ideas','Ideas'));
+  const used=NOTE_COLORS.filter(c=>notes.some(t=>noteColor(t)===c)),ideas=notes.filter(t=>t.idea).length;
+  if(noteFilterFresh){noteFilterFresh=false;if(noteFilter==='ideas'&&!ideas)setNoteFilter('todas')}
+  if(noteFilter!=='todas'&&noteFilter!=='ideas'&&!used.includes(noteFilter))setNoteFilter('todas');
+  // (Todas e Ideas, con cuántas hay; los colores, sin número)
+  const chip=(v,label,cls,n)=>{
+    const b=el('button','chip'+(cls?' '+cls:''),label);b.type='button';b.setAttribute('aria-pressed',String(noteFilter===v));
+    if(n!=null){b.append(el('span','n',String(n)));b.setAttribute('aria-label',label+', '+n)}
+    b.onclick=()=>{setNoteFilter(noteFilter===v&&v!=='todas'?'todas':v);if(!$('title').value.trim())noteStart();renderList();renderAdd()};return b;
+  };
+  row.append(chip('todas','Todas','',notes.length),chip('ideas','Ideas','',ideas));
   used.forEach(c=>{const b=chip(c,'','ncolchip nc-'+c);b.setAttribute('aria-label',c[0].toUpperCase()+c.slice(1));b.title=b.getAttribute('aria-label');row.append(b)});
   return row;
 }
@@ -2692,6 +2712,7 @@ function noteRow(t){
 // "Ver" después de guardar una nota: va a Notas y la muestra
 function showNote(id){
   if(scr!=='notas')goScreen('notas',{tap:true});
+  {const t=notes.find(x=>x.id===id);if(t)showInNotes([t])}   // ("Ver" de una nota que el filtro no muestra: a Todas)
   renderList();
   const r=document.querySelector('#notesSec .task[data-id="'+CSS.escape(id)+'"]');
   if(r){r.scrollIntoView({block:'center',behavior:'smooth'});if(FINE){sel=id;renderList()}}
@@ -3327,11 +3348,11 @@ $('addForm').addEventListener('submit',e=>{
     const text=raw.replace(NOTE_RE,'').trim();if(!text)return;
     const nt={id:crypto.randomUUID(),src:SRC,kind:'nota',title:voiceFilled?cap(text):text,requester:'',priority:'Media',due:null,time:null,notes:$('note').value.trim(),done:false,createdAt:new Date().toISOString(),completedAt:null};
     if(ideaDraft(raw))nt.idea=true;
-    act({type:'add',task:nt});
+    showInNotes([nt]);act({type:'add',task:nt});
     if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
     toast(nt.idea?'Idea guardada':'Nota guardada',()=>actMany([{type:'delete',id:nt.id}]),'Deshacer',6000,[['Ver',()=>showNote(nt.id)]]);
     hideSuggest();
-    $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';capIdea=null;capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+    $('title').value='';$('note').value='';setNote(false);chip='0';noteStart();capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
     if(refocus)$('title').focus();
     closeCap();renderAdd();
     return;
@@ -3352,13 +3373,13 @@ $('addForm').addEventListener('submit',e=>{
   const av=avisoTag(task.due,task.time);
   toast(addedMsg(task.due)+(task.time?' · '+task.time:'')+(task.requester?' · @'+task.requester:'')+(av?' · '+av[0].toLowerCase():''),()=>actMany([{type:'delete',id:task.id}]),'Deshacer',more.length>1?8000:6000,more);
   hideSuggest();
-  $('title').value='';$('note').value='';setNote(false);chip='0';asNote=scr==='notas';capIdea=null;capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
+  $('title').value='';$('note').value='';setNote(false);chip='0';noteStart();capKind=null;capTime=null;voiceFilled=false;chipTouched=false;sharedFill=false;saveDraft();
   if(refocus)$('title').focus();
   closeCap();renderAdd();
 });
 $('title').addEventListener('input',()=>{
   if(rec){rec.onresult=null;stopVoice(true)}   // escribir mientras escucha corta el dictado
-  if(!$('title').value.trim()){voiceFilled=false;if(noteCarry){noteCarry=false;asNote=scr==='notas';capIdea=null}}
+  if(!$('title').value.trim()){voiceFilled=false;if(noteCarry){noteCarry=false;noteStart()}}
   cancelAutoSave();saveDraft();
   suggSel=-1;renderAdd();renderSuggest();
 });
@@ -3605,8 +3626,8 @@ $('bulkForm').addEventListener('submit',e=>{
   closeBulk();
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
-  actMany(ops);
-  $('title').value='';asNote=scr==='notas';capIdea=null;capKind=null;capTime=null;saveDraft();renderAdd();closeCap();
+  showInNotes(added);actMany(ops);
+  $('title').value='';noteStart();capKind=null;capTime=null;saveDraft();renderAdd();closeCap();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   const nn=added.filter(isNote).length,nt=added.length-nn,cnt=(n,a,b)=>n+' '+(n===1?a:b);
   toast((nt?cnt(nt,'tarea','tareas'):'')+(nt&&nn?' y ':'')+(nn?cnt(nn,'nota','notas'):'')+(added.length===1?' agregada':' agregadas'),()=>{
@@ -3787,8 +3808,9 @@ function goScreen(s,o={}){
   if(from==='ajustes'){confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'))}
   if(personFilter&&s!=='tareas'&&s!=='buscar'&&s!=='ajustes'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
-  if(!$('title').value.trim()&&(s==='notas'||from==='notas')){asNote=s==='notas';capIdea=null}
+  if(!$('title').value.trim()&&(s==='notas'||from==='notas')){asNote=s==='notas';capIdea=asNote&&noteFilter==='ideas'?true:null}
   else if(from==='notas'&&asNote)noteCarry=true;
+  if(s==='notas')noteFilterFresh=true;   // (al entrar, se mira si el filtro guardado sigue sirviendo)
   scr=s;applyScreen();
   if(o.tap)tapHistory();
   renderHeader();renderAdd();renderList();
@@ -4624,7 +4646,7 @@ function placeHbtns(){
   const sb=$('searchBtn'),nav=$('nav');if(SIDEBAR.matches){if(nav.firstElementChild!==sb)nav.prepend(sb)}else if(sb.nextElementSibling!==$('navFoot'))nav.insertBefore(sb,$('navFoot'));
 }
 SIDEBAR.addEventListener('change',placeHbtns);placeHbtns();
-applyScreen();asNote=scr==='notas';   // (recargando en Notas, el alta también propone una nota)
+applyScreen();noteFilter=savedNoteFilter();noteStart();   // (recargando en Notas, el alta también propone una nota, o una idea si el filtro es Ideas)
 cfg=load(K_CFG,{})||{};
 {const g=load(K_GUARD,null);fileGuard=g&&g.repo===cfg.owner+'/'+cfg.repo?{kind:g.kind,sha:g.sha||null}:null}
 loadCache();
