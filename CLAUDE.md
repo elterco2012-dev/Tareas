@@ -49,12 +49,17 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   - En el celular hay una barra abajo; desde 900 px, una barra lateral (`SIDEBAR`). Desde 1200 px (`WIDE`), una
     columna derecha `#side` con Esperando y Sin fecha.
   - Buscar y Ajustes son pantallas que se cierran (a la pantalla de antes) y que el botón Atrás deja en Hoy.
+  - Hoy (`renderHoy()`): sin nada vencido, para reclamar ni para hoy (`!main`), `#empty.clear` (renglón con ✓),
+    "Lo que sigue" (2 con la barra abajo, `BOTTOMNAV`; 3 desde 900 px), Próximos avisos sin repetir y la tarjeta
+    `#hoyLinks.entries` (Mañana, Sin fecha y Esperando). Con algo para hoy, los links de siempre.
 - **Botón Atrás**: `syncBack()` y `backClose()`, con entradas `{pantalla}` y la guarda `{tareas:'atras'}` mientras
   hay algo abierto (`BACKABLE`).
   - Chrome saltea las entradas creadas sin un toque: por eso existen `gestured` y `waitTap`. Con el dedo, el toque
     cuenta al levantarlo.
 - **Alta** (`#addForm`): en el celular es una hoja desde abajo (`capOpen`, `openCap()`/`closeCap()`); en la compu, arriba.
-  - `capInfo()` decide el tipo, la fecha y la hora, con `capKind`, `capTime`, `asNote` y `capIdea`.
+  - `capInfo()` decide el tipo, la fecha y la hora, con `capKind`, `capTime`, `asNote` y `capIdea` (`capIdea` es solo
+    lo elegido a mano; la Idea que propone Notas con el filtro Ideas la calcula `ideaHere()` en el momento).
+  - Los chips de fecha (alta y detalle) marcan uno solo con `dueChip()`: el domingo, Mañana y Lunes son el mismo día.
   - El intérprete de lenguaje natural es `parse()`.
   - Hay borrador local (`K_DRAFT`), dictado con guardado a los 3 s, compartir desde otras apps y pegar varias líneas.
 - **Detalle** (`#editOv`/`#editForm`): es una hoja en el celular, un panel en `#side` en la compu ancha y una ventana
@@ -62,7 +67,13 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   - `openEdit()` lo abre, `placeEdit()` decide dónde va, `commitEdit()` guarda solo lo cambiado y `editThen()` corre
     las acciones del pie.
   - Se guarda al cerrar; Descartar no guarda. El borrador local es `K_DDRAFT`.
-- **Fila**: `taskRow()` y `noteRow()`. Las notas van en grilla (`.ngrid`, Fijadas/Otras/Recientes) con el filtro `noteFilter`.
+  - Lo de adentro no se achica (`#editForm .dbody>*{flex-shrink:0}`): se desliza. `fitTitle()` mide dos veces (por las
+    barras de Windows) y un `ResizeObserver` lo vuelve a acomodar si cambia el ancho.
+- **Fila**: `taskRow()` y `noteRow()`.
+  - En `.meta`, la persona (`.person .nm`) se acorta con "…" hasta unas 6 letras y lo que no entra baja de renglón:
+    **nunca se esconde nada** (sobre todo "sin subir"). Hasta 520 px (`NARROW`) la fecha va corta. ⋯ de 44 px.
+  - Las notas van en grilla (`.ngrid`, Fijadas/Otras/Recientes) con el filtro `noteFilter`, guardado por dispositivo
+    (`K_NOTES_FILTER`, `checkNoteFilter()`). `showInNotes()` pasa a Todas lo que se agrega y el filtro no muestra.
 - **Posponer**: `openPos()`, desde la hora de la fila o desde el aviso de Telegram (`?tarea=`).
 - **Otras ventanas**: el menú ⋯ (`openMenu`), Ordenar (`openProc`, tecla P), el Informe y la ayuda de atajos
   (`openHelp`, tecla ?).
@@ -78,9 +89,16 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   dice cuál y por qué.
 - Cada cambio nuevo lleva su prueba, en una batería del tema o en una nueva.
 - CI (`.github/workflows/test.yml`) corre `npm test` en cada PR y en cada push a `main`.
+- Playwright oculta las barras de desplazamiento. Para probar con barras como las de Windows (ocupan lugar), un
+  navegador aparte con `L.launch({ignoreDefaultArgs:['--hide-scrollbars']})` (ver el final de `detalle.js`).
+- En un contexto de celular, una captura de página entera (`fullPage`) puede apagar después `pointer:coarse`: medir
+  antes de esa captura.
 
 ## Cómo se trabaja una entrega
-1. Rama de trabajo desde `main`.
+1. Rama de trabajo desde `main`. Si la rama asignada ya tuvo un PR unido, se rehace desde `main`
+   (`git checkout -B <rama> origin/main`). El push forzado está bloqueado: antes de subir, se une la rama remota vieja
+   (`git merge origin/<rama>`) quedándose con lo propio (`git checkout --ours` en los conflictos de versión) y se
+   comprueba que el árbol quedó igual al commit propio. Conviene hacerlo antes de largar `npm test`.
 2. Implementar de a poco y correr las baterías del tema.
 3. Escribir pruebas para lo nuevo.
 4. Pedir una revisión independiente: un agente que busque defectos reales y los pruebe con Playwright. Corregir lo
@@ -103,12 +121,29 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   - Fase 2: fila nueva, notas en grilla y Ajustes como pantalla.
   - Fase 3: ayuda de atajos, letra grande (rem) y contraste.
 - Después: botón Idea en el alta (Tarea · Recordatorio · Nota · Idea).
+- 1/11/2026, versión 2026.11.1-9:
+  - Workflows (plantilla y Mis-tareas): Node 24 y `actions/checkout@v7` y `actions/setup-node@v7` (PR #25). La copia
+    diaria anda (GitHub la corre entre las 9 y las 10, no a las 3:17).
+  - Mejoras de Claude Design, con ajustes (PRs #26 a #29):
+    - Domingo con un solo chip de fecha y el título del detalle entero.
+    - Filas compactas sin esconder nada.
+    - Hoy nunca vacío, sin el acceso "Todas las tareas" y sin sacar Próximos avisos ni Mañana.
+    - Notas recuerda el filtro, con números en Todas e Ideas.
+  - Las propuestas de Design no conocen el código: antes de implementar, verificar el problema y la causa en la app
+    (con una sonda de Playwright) y avisar al dueño lo que no conviene. No se hicieron los chips "Otra fecha…" y "Otra
+    hora…" del detalle: poco beneficio y, en la compu, la fecha se escribiría sin verla.
 - Sin verificar en un celular real:
   - que la hoja para anotar y el detalle queden arriba del teclado;
   - que el primer Atrás después de abrir con "Nueva tarea" cierre la hoja;
-  - la letra al 130 % con el ajuste de Chrome del celular;
-  - que la barra de desplazamiento de Windows no cierre el panel del detalle.
+  - la letra al 130 % con el ajuste de Chrome del celular (también las filas compactas);
+  - que la barra de desplazamiento de Windows no cierre el panel del detalle (con barras visibles, el título ya se
+    probó en Chromium sobre Linux);
+  - Hoy sin nada para hoy, deslizar en "Lo que sigue" y el filtro de Notas recordado al reabrir la app.
 - Mejoras chicas posibles, no pedidas todavía:
-  - algunos botones de menos de 44 px (por ejemplo, el nombre de la persona en la fila);
-  - que el Tab quede atrapado dentro de las ventanas abiertas.
+  - el nombre de la persona en la fila mide menos de 44 px de alto;
+  - que el Tab quede atrapado dentro de las ventanas abiertas;
+  - en el panel de la compu ancha (1280×800), el pie del detalle ("Terminar") queda debajo de la pantalla;
+  - el aviso "Cambios guardados · Deshacer" puede tapar unos segundos "Convertir en tarea";
+  - en la compu, el nombre a veces se acorta aunque la fila igual ocupe dos renglones;
+  - el CI de la app (`test.yml`) sigue con `checkout` y `setup-node` v4 (aviso de Node 20).
 - Pendiente del lado del dueño: activar la verificación en dos pasos y la regla de protección de la rama.
