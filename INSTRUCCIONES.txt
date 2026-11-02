@@ -75,7 +75,8 @@ PANTALLAS
   ninguna), las mas nuevas primero. Arriba, chips para ver Todas, solo las Ideas o las de un color; Todas e Ideas dicen
   cuantas hay. El filtro que elegis queda guardado en cada dispositivo: si dejaste Ideas, la proxima vez Notas abre en
   Ideas (si ya no hay ideas, o nadie usa ese color, vuelve a Todas). Estando ahi, lo que anotas arranca como nota (o
-  como idea, con el filtro en Ideas); si anotas algo que el filtro no muestra, pasa a Todas para que lo veas.
+  como idea, con el filtro en Ideas; "nota:" al principio o tocar Nota la deja como nota comun); si anotas algo que el
+  filtro no muestra, pasa a Todas para que lo veas.
 - Buscar: el campo de busqueda (ver "Buscar" mas abajo). Con el campo vacio muestra las personas: un toque busca
   todo lo de esa persona. "Cerrar" (o Esc) vuelve a la pantalla de antes.
 - Ajustes (la rueda, al lado del punto de estado; el punto tambien la abre) es una pantalla con cuatro grupos:

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-y7UtZ7zqsoS7sIdyL9kvNLz/j5dNUoNzpBm7TRHVDPo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-EzzW6PcAjH+z8ib69DhH+VbeEIQ1L9NXtcCoZ0E/fVY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -1022,11 +1022,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.1-7"></script>
+<script src="sync-core.js?v=2026.11.1-8"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.1-7';
+const APP_VERSION='2026.11.1-8';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -2301,7 +2301,11 @@ function renderHeader(){
 // haya elegido Tarea o Recordatorio a mano)
 function noteDraft(v){return asNote||!capKind&&NOTE_RE.test(v)}
 // Una nota del alta es una idea si se eligió Idea, o si empieza con "idea:" (salvo que se haya elegido Nota)
-const ideaDraft=v=>noteDraft(v)&&(capIdea??IDEA_RE.test(v));
+// Con Notas mostrando el filtro Ideas, lo que se anota ahí se propone como idea (se calcula en el momento: no es una
+// elección), salvo "nota:" al principio o Nota/Idea elegidas a mano (capIdea), que siempre ganan
+const NOTA_RE=/^\s*nota\s*:/i;
+const ideaHere=v=>scr==='notas'&&noteFilter==='ideas'&&notes.length>0&&!NOTA_RE.test(v);
+const ideaDraft=v=>noteDraft(v)&&(capIdea??(IDEA_RE.test(v)||ideaHere(v)));
 // Lo que se va a guardar con lo escrito: el tipo (tarea, recordatorio o nota), la fecha y la hora.
 // El tipo se adivina (una hora o "recordame…" es un recordatorio) y se puede cambiar con un toque: Tarea saca la hora;
 // Recordatorio sin hora usa la regla de "recordame" (9:00, o sin hora si es para hoy y ya pasó el aviso de las 9).
@@ -2675,8 +2679,8 @@ const K_NOTES_FILTER='filtroNotas';
 let noteFilter='todas',noteFilterFresh=true;   // (fresh: recién se entró a Notas; se lee el guardado al iniciar)
 function savedNoteFilter(){const v=load(K_NOTES_FILTER,'todas');return v==='ideas'||NOTE_COLORS.includes(v)?v:'todas'}
 function setNoteFilter(v){noteFilter=v;store(K_NOTES_FILTER,v)}
-// Cómo arranca el alta (vacía): en Notas, como nota; con el filtro en Ideas, como idea (lo que anotás ahí se ve)
-function noteStart(){asNote=scr==='notas';capIdea=asNote&&noteFilter==='ideas'?true:null}
+// Cómo arranca el alta (vacía): en Notas, como nota (con el filtro en Ideas, ideaHere la propone como idea)
+function noteStart(){asNote=scr==='notas';capIdea=null}
 const noteMatches=t=>noteFilter==='todas'||(noteFilter==='ideas'?!!t.idea:noteColor(t)===noteFilter);
 // Lo que se agrega (o se quiere ver) en Notas y el filtro no muestra: Notas pasa a Todas, así no parece que se perdió
 function showInNotes(items){if(scr==='notas'&&noteFilter!=='todas'&&items.some(t=>isNote(t)&&!noteMatches(t)))setNoteFilter('todas')}
@@ -2689,7 +2693,7 @@ function noteFilterRow(){
   const chip=(v,label,cls,n)=>{
     const b=el('button','chip'+(cls?' '+cls:''),label);b.type='button';b.setAttribute('aria-pressed',String(noteFilter===v));
     if(n!=null){b.append(el('span','n',String(n)));b.setAttribute('aria-label',label+', '+n)}
-    b.onclick=()=>{setNoteFilter(noteFilter===v&&v!=='todas'?'todas':v);if(!$('title').value.trim())noteStart();renderList();renderAdd()};return b;
+    b.onclick=()=>{setNoteFilter(noteFilter===v&&v!=='todas'?'todas':v);renderList();renderAdd()};return b;
   };
   row.append(chip('todas','Todas','',notes.length),chip('ideas','Ideas','',ideas));
   used.forEach(c=>{const b=chip(c,'','ncolchip nc-'+c);b.setAttribute('aria-label',c[0].toUpperCase()+c.slice(1));b.title=b.getAttribute('aria-label');row.append(b)});
@@ -3059,6 +3063,7 @@ function toTask(t){
 // Tarea → nota: sin fecha, hora, repetición ni espera, así no aparece en Hoy ni avisa. Deshacer devuelve todo.
 // (Deja de ser parte de una serie que se repite: la próxima de la serie se puede volver a crear)
 function toNote(t){
+  showInNotes([{...t,kind:'nota'}]);   // (en Notas con un filtro que no la mostraría, por ejemplo desde Ordenar: a Todas)
   const patch={kind:'nota',time:null};
   if(t.due)patch.due=null;
   if(t.repeat)patch.repeat=null;
@@ -3592,7 +3597,7 @@ function openBulk(lines,offs){
     row.append(cb,inp);list.append(row);
   });
   const d=dueFor(chip);
-  $('bulkHint').textContent=asNote?(capIdea===true?'Se guardan como ideas (sin fecha ni aviso).':'Se guardan como notas (sin fecha ni aviso).'):'Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'. Las que empiecen con "nota:" o "idea:" van a notas.';
+  $('bulkHint').textContent=asNote?(capIdea===true||capIdea==null&&ideaHere('')?'Se guardan como ideas (sin fecha ni aviso).':'Se guardan como notas (sin fecha ni aviso).'):'Las que no digan una fecha quedan '+(d?'para '+(daysUntil(d)<=1?dueLabel(d).toLowerCase():'el '+shortDue(d).toLowerCase()):'sin fecha')+'. Las que empiecen con "nota:" o "idea:" van a notas.';
   $('bulkOv').classList.remove('hidden');$('wrap').inert=true;
   renderBulk();
 }
@@ -3616,7 +3621,7 @@ $('bulkForm').addEventListener('submit',e=>{
   e.preventDefault();
   const def=dueFor(chip),now=new Date().toISOString();
   const added=bulkItems().map(line=>{
-    if(asNote||NOTE_RE.test(line)){const text=line.replace(NOTE_RE,'').trim()||line;return {id:crypto.randomUUID(),src:SRC,kind:'nota',title:text,requester:'',priority:'Media',due:null,time:null,notes:'',done:false,createdAt:now,completedAt:null,...(capIdea===true&&asNote||capIdea!==false&&IDEA_RE.test(line)?{idea:true}:{})}}
+    if(asNote||NOTE_RE.test(line)){const text=line.replace(NOTE_RE,'').trim()||line;return {id:crypto.randomUUID(),src:SRC,kind:'nota',title:text,requester:'',priority:'Media',due:null,time:null,notes:'',done:false,createdAt:now,completedAt:null,...(capIdea===true&&asNote||capIdea!==false&&(IDEA_RE.test(line)||ideaHere(line))?{idea:true}:{})}}
     const p0=parse(line,def),due=p0.due!==undefined?p0.due:def,p=withRemindTime(p0,due);
     const task={id:crypto.randomUUID(),src:SRC,title:p.title,requester:p.requester||'',priority:p.priority||'Media',...whenFields(p,due),notes:'',done:false,createdAt:now,completedAt:null};
     if(p.repeat)task.repeat=p.repeat;
@@ -3808,7 +3813,7 @@ function goScreen(s,o={}){
   if(from==='ajustes'){confirmClear=false;confirmAccept=false;releaseFocus($('syncOv'))}
   if(personFilter&&s!=='tareas'&&s!=='buscar'&&s!=='ajustes'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
-  if(!$('title').value.trim()&&(s==='notas'||from==='notas')){asNote=s==='notas';capIdea=asNote&&noteFilter==='ideas'?true:null}
+  if(!$('title').value.trim()&&(s==='notas'||from==='notas')){asNote=s==='notas';capIdea=null}
   else if(from==='notas'&&asNote)noteCarry=true;
   if(s==='notas')noteFilterFresh=true;   // (al entrar, se mira si el filtro guardado sigue sirviendo)
   scr=s;applyScreen();

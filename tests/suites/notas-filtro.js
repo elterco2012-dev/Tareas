@@ -72,6 +72,62 @@ for(const [name,opts] of [['phone',{viewport:{width:390,height:844},isMobile:tru
  ok(await chosen(p)==='Ideas'&&/No hay ideas/.test(await p.innerText('#notesSec')),'tapping "Ideas 0" by hand: "No hay ideas.", as before');
  ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
  await ctx.close()}
+// ===== Lo que encontró la revisión: el alta propone Idea solo si Notas muestra de verdad el filtro Ideas, y
+// "nota:" al principio o lo elegido a mano le ganan =====
+const typeNow=p=>p.evaluate(()=>[...document.querySelectorAll('#typeRow .chip')].filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>b.textContent).join());
+const PC={viewport:{width:1280,height:800}};
+const SEEN_IDEAS=()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas',JSON.stringify({gestos:1,punto:1}));localStorage.setItem('tipVisto','9');localStorage.setItem('filtroNotas','"ideas"')}};
+{const gh=makeGH(items());
+ const {ctx,p}=await device(b,gh,PC,APP,SEEN_IDEAS);
+ await go(p,'notas');
+ ok(await chosen(p)==='Ideas'&&await typeNow(p)==='Idea','Notas on Ideas: the empty entry proposes Idea');
+ // "nota:" al principio gana: es una nota común (y Notas pasa a Todas para mostrarla)
+ await p.fill('#title','nota: Patente del auto');await p.dispatchEvent('#title','input');await sleep(100);
+ ok(await typeNow(p)==='Nota','"nota:" at the start: the type shows Nota, even on Ideas');
+ await p.press('#title','Enter');await sleep(400);
+ let it=gh.items.find(x=>x.title==='Patente del auto');
+ ok(it&&it.kind==='nota'&&!it.idea&&await chosen(p)==='Todas','"nota: Patente del auto" on Ideas is saved as a plain note, and Notas shows it (Todas) '+JSON.stringify(it&&{idea:it.idea}));
+ // Varias líneas pegadas en Notas › Ideas: "nota:" es nota, "idea:" es idea y las demás, ideas
+ await p.locator('#notesSec .nfilter .chip',{hasText:'Ideas'}).click();await sleep(200);
+ await p.evaluate(()=>openBulk(['nota: Uno','idea: Dos','Tres']));await sleep(200);await p.click('#bulkOk');await sleep(400);
+ const k=['Uno','Dos','Tres'].map(t=>{const x=gh.items.find(y=>y.title===t);return x?(x.kind==='nota'?(x.idea?'idea':'nota'):'tarea'):'-'});
+ ok(JSON.stringify(k)==='["nota","idea","idea"]','pasted lines on Ideas: "nota:" stays a note, the rest are ideas '+JSON.stringify(k));
+ // Se borra la última idea: al volver a Notas queda Todas y el alta propone Nota (no Idea)
+ await p.evaluate(()=>{for(const t of notes.filter(n=>n.idea))act({type:'edit',id:t.id,patch:{deletedAt:new Date().toISOString()}})});await sleep(300);
+ await go(p,'hoy');await go(p,'notas');
+ ok(await chosen(p)==='Todas'&&await typeNow(p)==='Nota','the last idea deleted: Notas is on Todas and the entry proposes Nota, not Idea');
+ await p.fill('#title','Clave del wifi');await p.press('#title','Enter');await sleep(400);
+ it=gh.items.find(x=>x.title==='Clave del wifi');
+ ok(it&&it.kind==='nota'&&!it.idea,'... and what is written there is saved as a plain note '+JSON.stringify(it&&{idea:it.idea}));
+ ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+ await ctx.close()}
+// "Ver" del aviso: Notas pasa a Todas y el alta propone Nota
+{const gh=makeGH(items());
+ const {ctx,p}=await device(b,gh,PC,APP,SEEN_IDEAS);
+ await p.fill('#title','nota: Medidas del placard');await p.press('#title','Enter');await sleep(300);
+ await p.locator('#toast button',{hasText:'Ver'}).click();await sleep(400);
+ ok(await p.evaluate(()=>document.body.dataset.screen)==='notas'&&await chosen(p)==='Todas'&&(await shown(p)).includes('Medidas del placard')&&await typeNow(p)==='Nota','"Ver" from the toast: Notas on Todas, the note is visible, the entry proposes Nota');
+ await ctx.close()}
+// Notas sin ninguna nota (la fila de filtros no está) con Ideas guardado: el alta propone Nota, y la primera es nota común
+{const gh=makeGH([T('t1','Llamar al banco')]);
+ const {ctx,p}=await device(b,gh,PC,APP,SEEN_IDEAS);
+ await go(p,'notas');
+ ok(await typeNow(p)==='Nota','no notes at all (saved Ideas): the entry proposes Nota');
+ await p.fill('#title','Primera nota');await p.press('#title','Enter');await sleep(400);
+ const it=gh.items.find(x=>x.title==='Primera nota');
+ ok(it&&it.kind==='nota'&&!it.idea,'... and the first one is saved as a plain note '+JSON.stringify(it&&{idea:it.idea}));
+ await ctx.close()}
+// Ordenar (P) en Notas › Ideas: una tarea pasada a nota (N) se ve al cerrar (Notas pasa a Todas)
+{const gh=makeGH([...items(),T('i1','Talle de remeras',{due:L.day(0),inbox:true})]);
+ const {ctx,p}=await device(b,gh,PC,APP,SEEN_IDEAS);
+ await go(p,'notas');await p.evaluate(()=>document.activeElement&&document.activeElement.blur());
+ await p.keyboard.press('p');await sleep(300);
+ ok(await p.isVisible('#procOv'),'P opens Ordenar from Notas');
+ await p.keyboard.press('n');await sleep(300);await p.keyboard.press('Escape');await sleep(300);
+ const it=gh.items.find(x=>x.id==='i1');
+ ok(it&&it.kind==='nota'&&await chosen(p)==='Todas'&&(await shown(p)).includes('Talle de remeras'),'a task turned into a note from Ordenar on Ideas: Notas shows it (Todas) '+JSON.stringify({kind:it&&it.kind,f:await chosen(p)}));
+ await ctx.close()}
+
 // Un valor guardado que no es un filtro (editado a mano): Todas
 {const gh=makeGH(items());
  const {ctx,p}=await device(b,gh,{viewport:{width:1280,height:800}},APP,()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h','1');localStorage.setItem('pistasVistas',JSON.stringify({gestos:1,punto:1}));localStorage.setItem('tipVisto','9');localStorage.setItem('filtroNotas','{"x":1}')}});
