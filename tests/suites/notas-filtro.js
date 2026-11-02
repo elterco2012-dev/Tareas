@@ -101,6 +101,25 @@ const SEEN_IDEAS=()=>{if(!sessionStorage.getItem('h')){sessionStorage.setItem('h
  ok(it&&it.kind==='nota'&&!it.idea,'... and what is written there is saved as a plain note '+JSON.stringify(it&&{idea:it.idea}));
  ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
  await ctx.close()}
+// Al volver a Notas sin ideas, el alta ya dice Nota en el mismo momento (no queda "Idea" de antes hasta tocar el campo),
+// y lo escrito en Notas › Ideas sigue siendo idea si se sale a Hoy con el texto
+{const gh=makeGH(items());
+ const {ctx,p}=await device(b,gh,PC,APP,SEEN_IDEAS);
+ await go(p,'notas');
+ await p.evaluate(()=>{for(const t of notes.filter(n=>n.idea))act({type:'edit',id:t.id,patch:{deletedAt:new Date().toISOString()}})});await sleep(300);
+ const now=await p.evaluate(()=>{goScreen('hoy');goScreen('notas');return [...document.querySelectorAll('#typeRow .chip')].filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>b.textContent).join()});
+ ok(now==='Nota','back to Notas with no ideas left: the entry says Nota right away '+now);
+ await p.locator('#notesSec .nfilter .chip',{hasText:'Ideas'}).click();await sleep(100);
+ await p.evaluate(()=>act({type:'add',task:{id:'nueva-idea',kind:'nota',idea:true,title:'Otra idea',priority:'Media',due:null,time:null,done:false,createdAt:new Date().toISOString(),completedAt:null}}));await sleep(300);
+ await p.fill('#title','Regalo para Ana');await p.dispatchEvent('#title','input');await sleep(100);
+ ok(await typeNow(p)==='Idea','Notas › Ideas: what is being written shows Idea');
+ await go(p,'hoy');
+ ok(await typeNow(p)==='Idea','... after going to Hoy with the text, it still says Idea');
+ await p.press('#title','Enter');await sleep(400);
+ const it=gh.items.find(x=>x.title==='Regalo para Ana');
+ ok(it&&it.kind==='nota'&&it.idea===true,'... and it is saved as an idea '+JSON.stringify(it&&{idea:it.idea}));
+ ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs));
+ await ctx.close()}
 // "Ver" del aviso: Notas pasa a Todas y el alta propone Nota
 {const gh=makeGH(items());
  const {ctx,p}=await device(b,gh,PC,APP,SEEN_IDEAS);

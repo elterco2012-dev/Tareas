@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-EzzW6PcAjH+z8ib69DhH+VbeEIQ1L9NXtcCoZ0E/fVY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-NEgBgSOEsOBSUrbINQUArJ3ryityD4uYHk/0DfenGw0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -1022,11 +1022,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.1-8"></script>
+<script src="sync-core.js?v=2026.11.1-9"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.1-8';
+const APP_VERSION='2026.11.1-9';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -2320,6 +2320,7 @@ function capInfo(raw){
   return {nd:false,kind,p:withRemindTime(p,due),due};
 }
 function renderAdd(){
+  checkNoteFilter();
   const raw=$('title').value,info=capInfo(raw),nd=info.nd,p=info.p,eff=info.due;
   // Para: ningún chip marcado de entrada (sin elegir, queda en Hoy como anotada al pasar); la fecha del texto pisa el chip
   const picked=chipTouched||p.due!==undefined;
@@ -2684,11 +2685,17 @@ function noteStart(){asNote=scr==='notas';capIdea=null}
 const noteMatches=t=>noteFilter==='todas'||(noteFilter==='ideas'?!!t.idea:noteColor(t)===noteFilter);
 // Lo que se agrega (o se quiere ver) en Notas y el filtro no muestra: Notas pasa a Todas, así no parece que se perdió
 function showInNotes(items){if(scr==='notas'&&noteFilter!=='todas'&&items.some(t=>isNote(t)&&!noteMatches(t)))setNoteFilter('todas')}
+// El filtro guardado, corregido si ya no aplica. Se mira antes de dibujar el alta (que propone Idea según el filtro) y la
+// fila de filtros: los dos ven lo mismo. Solo en Notas con notas (donde está la fila).
+function checkNoteFilter(){
+  if(scr!=='notas'||!notes.length||personFilter)return;
+  if(noteFilterFresh){noteFilterFresh=false;if(noteFilter==='ideas'&&!notes.some(t=>t.idea))setNoteFilter('todas')}
+  if(noteFilter!=='todas'&&noteFilter!=='ideas'&&!notes.some(t=>noteColor(t)===noteFilter))setNoteFilter('todas');
+}
 function noteFilterRow(){
   const row=el('div','chiprow nfilter');row.setAttribute('role','group');row.setAttribute('aria-label','Filtrar notas');
+  checkNoteFilter();
   const used=NOTE_COLORS.filter(c=>notes.some(t=>noteColor(t)===c)),ideas=notes.filter(t=>t.idea).length;
-  if(noteFilterFresh){noteFilterFresh=false;if(noteFilter==='ideas'&&!ideas)setNoteFilter('todas')}
-  if(noteFilter!=='todas'&&noteFilter!=='ideas'&&!used.includes(noteFilter))setNoteFilter('todas');
   // (Todas e Ideas, con cuántas hay; los colores, sin número)
   const chip=(v,label,cls,n)=>{
     const b=el('button','chip'+(cls?' '+cls:''),label);b.type='button';b.setAttribute('aria-pressed',String(noteFilter===v));
@@ -3396,7 +3403,7 @@ $('note').addEventListener('focus',()=>cancelAutoSave());
 // Con la fecha elegida en los chips y de dónde vino el texto (compartido, dictado), así vuelve igual
 function saveDraft(){
   const t=$('title').value,n=$('note').value;
-  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,nt:asNote,id:capIdea,k:capKind,tm:capTime,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
+  if(t.trim()||n.trim())store(K_DRAFT,{t,n,c:chip,ct:chipTouched,nt:asNote,id:capIdea??(asNote&&ideaHere(t)?true:null),k:capKind,tm:capTime,sf:sharedFill,vf:voiceFilled,at:Date.now()});else if(heldDraft)store(K_DRAFT,heldDraft);else try{localStorage.removeItem(K_DRAFT)}catch{}
 }
 function restoreDraft(){
   const d=load(K_DRAFT,null);
@@ -3814,7 +3821,7 @@ function goScreen(s,o={}){
   if(personFilter&&s!=='tareas'&&s!=='buscar'&&s!=='ajustes'){personFilter=null;$('filterBar').classList.add('hidden')}   // el filtro por persona es de Tareas (y se puede buscar adentro)
   // En Notas, lo que anotás arranca como nota (si el campo está vacío; si tiene algo, sigue como estaba hasta que se borre)
   if(!$('title').value.trim()&&(s==='notas'||from==='notas')){asNote=s==='notas';capIdea=null}
-  else if(from==='notas'&&asNote)noteCarry=true;
+  else if(from==='notas'&&asNote){noteCarry=true;if(capIdea==null&&ideaHere($('title').value))capIdea=true}   // (la Idea que se veía queda elegida)
   if(s==='notas')noteFilterFresh=true;   // (al entrar, se mira si el filtro guardado sigue sirviendo)
   scr=s;applyScreen();
   if(o.tap)tapHistory();
