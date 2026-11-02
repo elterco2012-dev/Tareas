@@ -64,6 +64,11 @@ PANTALLAS
   mirar el…" o pasaron 3 dias sin respuesta, como en el Telegram de la mañana), Para hoy (primero las que tienen
   hora) y Proximos avisos (hasta 3 con hora, de mañana a 7 dias; dice "Proximas con hora" si no tenes los avisos
   por Telegram). Al final, "Mañana · N" y "Esperando respuesta · N" llevan a esa parte de Tareas.
+- Hoy nunca queda vacio: si no hay nada vencido, para reclamar ni para hoy, dice "Nada para hoy." con un ✓ y debajo
+  muestra "Lo que sigue", las proximas con fecha (2 en el celular, 3 en la compu), que se terminan, se posponen y se
+  abren como cualquier tarea; "Ver todas ›" lleva a ese grupo de Tareas. Debajo siguen los Proximos avisos de la
+  semana (sin repetir los de Lo que sigue). Abajo, una tarjeta lleva a "Mañana", "Sin fecha" y "Esperando respuesta",
+  con cuantas hay (en la compu con la ventana ancha, Sin fecha y Esperando ya estan a la vista, a la derecha).
 - Tareas: la lista completa, con todos los grupos, Esperando, Terminadas (con Informe y Revision de la semana) y la
   Papelera.
 - Notas: las notas en tarjetas (2 columnas en el celular): Fijadas arriba y Otras (o Recientes si no fijaste

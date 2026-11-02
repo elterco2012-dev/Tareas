@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-O4bi8pQ3ZOrgLb53apuPKu3DMQOoONqKlWNdVAMm9DM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-G+Kj7doei2HjGnIXMQLuuEA4MQRUVQFRifMyZx5w61E='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -106,6 +106,9 @@ h1{margin:0;font-size:1.875rem;line-height:1.15;letter-spacing:-.01em;font-weigh
 
 /* Lista */
 .emptycard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 16px;text-align:center;color:var(--muted);font-size:0.9375rem}
+/* Hoy sin nada para hoy: un renglón con un ✓ verde (el ✓ es decorativo: los lectores de pantalla leen solo el texto) */
+.emptycard.clear{display:flex;align-items:center;gap:12px;min-height:3.5rem;padding:12px 14px;margin-bottom:18px;text-align:left;font-size:1rem;font-weight:600;color:var(--text)}
+.emptycard.clear::before{content:"✓";content:"✓"/"";flex:none;display:flex;align-items:center;justify-content:center;width:1.75rem;height:1.75rem;border-radius:50%;background:var(--green-soft);color:var(--green-text);font-size:0.875rem;font-weight:700}
 .grp{margin-bottom:18px}
 .ghead{display:flex;align-items:baseline;gap:6px;padding:0 4px 7px;font-size:0.9375rem;font-weight:650;color:var(--text2)}
 .ghead.over{color:var(--red)}
@@ -545,6 +548,16 @@ body:not(.scr-hoy) .top .sub{display:none}
 .ordrow:hover .go{text-decoration:underline}
 .hoylinks{display:flex;flex-wrap:wrap;gap:0 18px}
 .hoylinks .linkbtn{margin:0;min-height:44px;padding:6px 4px}
+/* Con Hoy vacío, los accesos van en una tarjeta: un renglón de 48 px por acceso, con su número y "›" */
+.hoylinks.entries{display:block;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.hoylinks.entries:empty{display:none}
+.hoylinks .entry{display:flex;align-items:center;gap:6px;width:100%;min-height:3rem;padding:0 14px;background:none;border:0;text-align:left;font-size:0.9375rem;font-weight:600;color:var(--text2);cursor:pointer}
+.hoylinks .entry+.entry{border-top:1px solid var(--divider)}
+.hoylinks .entry .n{font-weight:500;color:var(--faint);font-variant-numeric:tabular-nums}
+.hoylinks .entry .go{margin-left:auto;font-size:1.125rem;font-weight:500;color:var(--muted)}
+.hoylinks .entry:hover{background:var(--hover)}
+.hoylinks .entry:active{background:var(--sf2)}
+.hoylinks .entry:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .searchhome{display:flex;flex-direction:column;gap:10px;padding:2px 2px 0}
 .searchhome .chiprow{margin-top:6px}
 .searchhome .chip{min-height:40px}
@@ -1006,11 +1019,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.1-4"></script>
+<script src="sync-core.js?v=2026.11.1-6"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.1-4';
+const APP_VERSION='2026.11.1-6';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1032,6 +1045,8 @@ const FINE=!!(window.matchMedia&&matchMedia('(pointer:fine)').matches);
 const WIDE=window.matchMedia?matchMedia('(min-width:1200px)'):{matches:false,addEventListener(){}};
 // El ancho de un celular (en las filas, la fecha va corta)
 const NARROW=window.matchMedia?matchMedia('(max-width:520px)'):{matches:false,addEventListener(){}};
+// Con la barra de pantallas abajo (celular o ventana angosta): Lo que sigue muestra 2 en lugar de 3
+const BOTTOMNAV=window.matchMedia?matchMedia('(max-width:899.98px)'):{matches:false,addEventListener(){}};
 const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DONE_DAYS=7;
 const SHORTCUTS=[['N','nueva'],['/','buscar'],['↑ ↓','elegir'],['Alt ↑ ↓','mover'],['Espacio','terminar'],['E','editar'],['H M L','hoy, mañana, lunes'],['F','otra fecha'],['S','sin fecha'],['W','esperando'],['Q','quién'],['!','alta'],['.','menú'],['P','ordenar'],['⇧ P','revisión de la semana'],['Supr','borrar']];
@@ -2539,6 +2554,7 @@ function renderList(){
     [nothing,personFilter?'No hay tareas pendientes pedidas por '+personFilter+'.':'Nada pendiente. Buen trabajo.'];
   $('empty').textContent=emptyTxt;
   $('empty').classList.toggle('hidden',!emptyOn);
+  $('empty').classList.toggle('clear',scr==='hoy'&&emptyOn);   // en Hoy, un renglón con un ✓ (debajo va Lo que sigue)
   if(sel&&!visibleIds.includes(sel))sel=null;
   if(menuId&&!tasks.some(t=>t.id===menuId&&!t.done)&&!notes.some(t=>t.id===menuId))closeMenu();
 
@@ -2571,15 +2587,18 @@ function renderList(){
 // Vencidas · Para reclamar (las esperas que ya toca mirar, como en el Telegram de la mañana) · Para hoy (primero las
 // que tienen hora) · Próximos avisos (hasta 3 con hora, de mañana a 7 días). Al final, Mañana y Esperando, que llevan
 // a Tareas. Las secciones se pliegan aparte de los grupos de Tareas (plegar Hoy en Tareas no vacía el inicio).
+// Sin nada vencido, para reclamar ni para hoy, Hoy no queda vacío: "Nada para hoy." (#empty) es un renglón con un ✓ y
+// debajo van Lo que sigue y una tarjeta con los accesos a Sin fecha y Esperando respuesta.
 function hoyReclamar(){return tasks.filter(t=>!t.done&&t.waiting&&waitingLate(t)).sort((a,b)=>(a.waitingSince||'').localeCompare(b.waitingSince||''))}
 function renderHoy(pending,unsynced,folded,noFold){
   const list=$('hoyList');list.replaceChildren();
   const ids=new Set();let main=0;
-  const sec=(id,title,cls,items,gid,btn)=>{
+  // fixed: una sección que no se pliega (Lo que sigue: plegada, Hoy volvería a quedar vacío)
+  const sec=(id,title,cls,items,gid,btn,fixed)=>{
     items.forEach(t=>ids.add(t.id));
     if(!items.length)return;
-    const grp=el('div','grp'),shut=folded.has(id),head=el('div','ghead'+(cls?' '+cls:''));
-    head.append(...foldHead(id,title,items,shut,noFold));
+    const grp=el('div','grp'),shut=!fixed&&folded.has(id),head=el('div','ghead'+(cls?' '+cls:''));
+    head.append(...foldHead(id,title,items,shut,noFold||fixed));
     if(btn)head.append(btn);
     grp.append(head);
     if(!shut){
@@ -2597,14 +2616,35 @@ function renderHoy(pending,unsynced,folded,noFold){
   sec('hoy-reclamar','Para reclamar','',recl,'waiting');
   sec('hoy-today','Para hoy','today',today,'today');
   main=over.length+recl.length+today.length;
-  const soon=pending.filter(t=>t.due&&taskTime(t)&&daysUntil(t.due)>=1&&daysUntil(t.due)<=7).slice(0,3);
-  sec('hoy-avisos',avisosOn()?'Próximos avisos':'Próximas con hora','',soon,'week');
-  // Mañana · N y, sin la columna de la derecha, Esperando respuesta · N
-  const links=$('hoyLinks');links.replaceChildren();
-  const link=(txt,fn)=>{const b=el('button','linkbtn',txt);b.type='button';b.onclick=fn;links.append(b)};
-  const tom=pending.filter(t=>groupOf(t)==='tomorrow').length,wait=tasks.filter(t=>!t.done&&t.waiting).length;
-  if(tom)link('Mañana · '+tom+' ›',()=>showGroup('tomorrow'));
-  if(wait&&!WIDE.matches)link('Esperando respuesta · '+wait+' ›',()=>showGroup('waiting'));
+  const wait=tasks.filter(t=>!t.done&&t.waiting).length;
+  const links=$('hoyLinks');links.replaceChildren();links.classList.toggle('entries',!main);
+  // Próximos avisos: hasta 3 con hora, de mañana a 7 días (sin las que ya están en Lo que sigue)
+  const tom=pending.filter(t=>groupOf(t)==='tomorrow').length;
+  const avisos=shown=>sec('hoy-avisos',avisosOn()?'Próximos avisos':'Próximas con hora','',pending.filter(t=>t.due&&taskTime(t)&&daysUntil(t.due)>=1&&daysUntil(t.due)<=7&&!shown.has(t.id)).slice(0,3),'week');
+  if(main){
+    avisos(new Set());
+    // Mañana · N y, sin la columna de la derecha, Esperando respuesta · N
+    const link=(txt,fn)=>{const b=el('button','linkbtn',txt);b.type='button';b.onclick=fn;links.append(b)};
+    if(tom)link('Mañana · '+tom+' ›',()=>showGroup('tomorrow'));
+    if(wait&&!WIDE.matches)link('Esperando respuesta · '+wait+' ›',()=>showGroup('waiting'));
+  }else{
+    // Lo que sigue: las próximas con fecha (2 en el celular, 3 en la compu). "Ver todas ›" lleva al grupo de la primera.
+    const next=pending.filter(t=>t.due&&daysUntil(t.due)>=1).slice(0,BOTTOMNAV.matches?2:3);
+    let all=null;
+    if(next.length){all=el('button','gbtn','Ver todas ›');all.type='button';all.onclick=()=>showGroup(groupOf(next[0]))}
+    sec('hoy-next','Lo que sigue','',next,'week',all,true);
+    // Debajo, Próximos avisos sigue (sin repetir filas): las de hora de esta semana no dejan de estar a la vista
+    avisos(new Set(next.map(t=>t.id)));
+    // Los accesos: Mañana (con cuántas hay, como antes "Mañana · N ›") y, sin la columna de la derecha (ahí ya están a
+    // la vista), Sin fecha y Esperando respuesta. Solo los que tienen algo.
+    const entry=(txt,n,fn)=>{
+      const b=el('button','entry');b.type='button';b.setAttribute('aria-label',txt+', '+n+(n===1?' tarea':' tareas'));
+      b.append(el('span',null,txt),el('span','n',String(n)),el('span','go','›'));b.onclick=fn;links.append(b);
+    };
+    const none=pending.filter(t=>!t.due).length;
+    if(tom)entry('Mañana',tom,()=>showGroup('tomorrow'));
+    if(!WIDE.matches){if(none)entry('Sin fecha',none,()=>showGroup('none'));if(wait)entry('Esperando respuesta',wait,()=>showGroup('waiting'))}
+  }
   return {ids,main};
 }
 // Un grupo de Tareas, abierto y a la vista (desde los links de Hoy)
@@ -4594,7 +4634,7 @@ const firstSync=sync();        // y después trae lo último de GitHub
 // otra app (Chrome arma la dirección con title/text/url) o la revisión de la semana del Telegram (?revisar=1)
 const LAUNCH_URL=location.href,params=new URLSearchParams(location.search);
 if(LAUNCH_KEYS.some(k=>params.has(k)))history.replaceState(null,'',location.pathname+location.hash);
-WIDE.addEventListener('change',renderList);NARROW.addEventListener('change',renderList);
+WIDE.addEventListener('change',renderList);NARROW.addEventListener('change',renderList);BOTTOMNAV.addEventListener('change',renderList);
 // La columna de la derecha queda a la vista mientras bajás solo si entra entera en la pantalla
 function fitSide(){const sd=$('side');sd.classList.toggle('tall',WIDE.matches&&sd.offsetHeight>innerHeight-32)}
 let fitTimer=null;window.addEventListener('resize',()=>{clearTimeout(fitTimer);fitTimer=setTimeout(fitSide,150)});
