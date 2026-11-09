@@ -142,15 +142,17 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
 - 9/11/2026 (PRs #31 y #32):
   - Lo que faltaba de la 1a: filtros de Tareas (no se recuerdan, por decisión del dueño) y Buscar con personas e
     iniciales y atajos. "Ordenar por" no se hace: choca con el orden a mano.
-  - El pie del detalle siempre a la vista: el panel de la compu ancha entra entero y el aviso no tapa la ventana.
+  - El pie del detalle siempre a la vista: el panel de la compu ancha entra entero (sin pasar del final de la lista) y
+    el aviso no tapa la ventana. Un clic en la barra de desplazamiento de la página ya no cierra el panel (pasaba en
+    Chromium con barras visibles; probado así).
   - El nombre de la persona en la fila queda en 26 px de alto para el dedo (decisión del dueño): para 44 px había que
     agrandar las filas o pisar el título. Para filtrar con botones grandes está Buscar › "Quién te lo pidió".
 - Sin verificar en un celular real:
   - que la hoja para anotar y el detalle queden arriba del teclado;
   - que el primer Atrás después de abrir con "Nueva tarea" cierre la hoja;
   - la letra al 130 % con el ajuste de Chrome del celular (también las filas compactas);
-  - que la barra de desplazamiento de Windows no cierre el panel del detalle (con barras visibles, el título ya se
-    probó en Chromium sobre Linux);
+  - el panel del detalle con las barras de Windows (con barras visibles, en Chromium sobre Linux, el título se ve
+    entero y la barra de la página ya no lo cierra);
   - Hoy sin nada para hoy, deslizar en "Lo que sigue" y el filtro de Notas recordado al reabrir la app.
 - Mejoras chicas posibles, no pedidas todavía:
   - que el Tab quede atrapado dentro de las ventanas abiertas (aprobada como entrega 3);

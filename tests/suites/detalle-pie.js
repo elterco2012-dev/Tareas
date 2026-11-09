@@ -48,7 +48,11 @@ for(const [w,h] of [[1280,800],[1280,720],[1440,900],[1200,640]]){
   await p.mouse.move(400,600);await p.mouse.wheel(0,600);await sleep(400);
   const c=await controls(p),h1=await p.evaluate(()=>Math.round(document.getElementById('editForm').getBoundingClientRect().height));
   ok(c.footFree&&c.headFree&&h1>h0&&h1>=800-32-1,'long list, page scrolled: the panel grows to the full height and its footer stays on screen '+JSON.stringify({h0,h1,c}));
-  await p.mouse.wheel(0,-2000);await sleep(400);
+  // Hasta el final de la página: el panel no pasa del final de la lista, así se ven el encabezado y el pie
+  await p.mouse.wheel(0,20000);await sleep(500);
+  const cEnd=await controls(p);
+  ok(cEnd.footFree&&cEnd.headFree,'long list, end of the page: header and footer of the panel are on screen '+JSON.stringify(cEnd));
+  await p.mouse.wheel(0,-20000);await sleep(400);
   const c2=await controls(p);
   ok(c2.footFree&&c2.headFree,'scrolled back to the top: the footer is on screen again '+JSON.stringify(c2));
   // Si el alta crece (lo que entiende al escribir), el panel baja y se achica: el pie sigue a la vista
@@ -65,6 +69,39 @@ for(const [w,h] of [[1280,800],[1280,720],[1440,900],[1200,640]]){
   ok(await p.evaluate(()=>!document.body.classList.contains('detpanel')&&!document.getElementById('editOv').style.getPropertyValue('--pmax'))&&c4.footFree&&c4.headFree,'narrowed to 1000 px with the detail open: a window, footer and header on screen '+JSON.stringify(c4));
   ok(p.errs.length===0,'long list: no page errors '+JSON.stringify(p.errs));
   await ctx.close();
+}
+
+{
+  // Con una lista corta, la página no crece mientras bajás: Fin llega abajo de una vez, con el panel entero a la vista
+  const gh=makeGH(items());
+  const {ctx,p}=await device(b,gh,{viewport:{width:1280,height:800}},APP,SEEN);
+  await go(p,'tareas');await row(p,'Llamar al banco').locator('.ttext').click();await sleep(400);
+  await p.evaluate(()=>document.activeElement&&document.activeElement.blur());
+  const doc=()=>p.evaluate(()=>({h:document.documentElement.scrollHeight,y:Math.round(scrollY)}));
+  const d0=await doc();
+  await p.keyboard.press('End');await sleep(500);const d1=await doc();
+  await p.keyboard.press('End');await sleep(500);const d2=await doc();
+  const c=await controls(p);
+  ok(d1.h===d0.h&&d2.y===d1.y&&await p.evaluate(()=>!!edit),'short list: the page does not grow while scrolling, End reaches the bottom at once '+JSON.stringify({d0,d1,d2}));
+  ok(c.footFree&&c.headFree,'short list, at the bottom: header and footer of the panel are on screen '+JSON.stringify(c));
+  ok(p.errs.length===0,'short list: no page errors '+JSON.stringify(p.errs));
+  await ctx.close();
+}
+{
+  // Con barras de desplazamiento como las de Windows (ocupan lugar): un clic en la barra de la página no cierra el panel
+  const b2=await L.launch({ignoreDefaultArgs:['--hide-scrollbars']});
+  const many=Array.from({length:30},(_,i)=>T('x'+i,'Tarea de relleno '+(i+1),{due:day(2)}));
+  const gh=makeGH(items(many));
+  const {ctx,p}=await device(b2,gh,{viewport:{width:1280,height:800}},APP,SEEN);
+  await go(p,'tareas');await row(p,'Llamar al banco').locator('.ttext').click();await sleep(400);
+  const bar=await p.evaluate(()=>({cw:document.documentElement.clientWidth,iw:innerWidth}));
+  await p.mouse.click(Math.round((bar.cw+bar.iw)/2),500);await sleep(400);
+  ok(bar.iw>bar.cw&&await p.evaluate(()=>!!edit&&document.body.classList.contains('detpanel')),'visible scrollbars: a click on the page scrollbar keeps the panel open '+JSON.stringify(bar));
+  // y un clic en un lugar vacío de la página sí lo cierra (como antes)
+  await p.evaluate(()=>scrollTo(0,0));await sleep(300);await p.mouse.click(700,275);await sleep(400);
+  ok(await p.evaluate(()=>!edit),'a click on an empty spot of the page still closes the panel');
+  ok(p.errs.length===0,'visible scrollbars: no page errors '+JSON.stringify(p.errs));
+  await ctx.close();await b2.close();
 }
 
 // ===== Compu: la ventana del detalle no queda debajo del aviso =====
