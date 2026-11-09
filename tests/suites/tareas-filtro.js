@@ -143,13 +143,21 @@ ok(await chosen(p)==='Todas'&&v.main.includes('Llegó del celu'),'Tareas with Al
 await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
 await go(p,'buscar');await arrive('n2','Otra del celu');await p.click('#toastUndo');await sleep(400);v=await view(p);
 ok(await screen(p)==='tareas'&&await chosen(p)==='Todas'&&v.main.includes('Otra del celu'),'from Buscar (Alta kept), "Ver": Tareas with Todas, the new one is there');
+// "2 nuevas · Ver" con Alta, una Alta (se ve) y otra Media (escondida): vuelve a Todas y se ven las dos
+await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+gh.items.push(T('n3','Nueva alta',{due:day(0),src:'cel',order:9,priority:'Alta'}),T('n4','Nueva media',{due:day(0),src:'cel',order:10}));gh.sha++;await p.evaluate(()=>sync());
+await L.until(async()=>/2 nuevas/.test(await p.textContent('#toastMsg'))&&await p.isVisible('#toastUndo'),{timeout:4000});
+await p.click('#toastUndo');await sleep(400);v=await view(p);
+ok(await chosen(p)==='Todas'&&v.main.includes('Nueva alta')&&v.main.includes('Nueva media'),'Alta, "2 nuevas · Ver" (one shown, one hidden): back to Todas, both are there '+JSON.stringify({f:await chosen(p)}));
+await p.click('#taskFilter .chip >> text=Todas');await sleep(100);
 // ! con Alta: la fila se va y la elegida pasa a la siguiente (como H, M, L y S)
 await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
 await p.evaluate(()=>document.activeElement&&document.activeElement.blur());await p.keyboard.press('j');await sleep(150);
 const selT=()=>p.evaluate(()=>{const r=document.querySelector('.task.sel .ttext');return r&&r.textContent});
 ok(await selT()==='Pagar el seguro','keyboard: j selects the first Alta');
+const second=(await view(p)).main[1];
 await p.keyboard.press('!');await sleep(300);
-ok(await selT()==='Llamar al banco'&&!(await view(p)).main.includes('Pagar el seguro')&&await p.evaluate(()=>tasks.find(t=>t.id==='o1').priority)==='Media','! with Alta: it leaves the list and the next one is selected '+await selT());
+ok(await selT()===second&&!(await view(p)).main.includes('Pagar el seguro')&&await p.evaluate(()=>tasks.find(t=>t.id==='o1').priority)==='Media','! with Alta: it leaves the list and the next one is selected '+await selT());
 // Lo que se agrega en Tareas y el filtro no muestra: vuelve a Todas (lo que sí muestra, deja el filtro)
 await p.click('#taskFilter .chip >> text=Con hora');await sleep(200);
 await p.fill('#title','Comprar pan');await p.press('#title','Enter');await sleep(400);v=await view(p);
@@ -160,6 +168,16 @@ ok(await chosen(p)==='Con hora'&&v.main.some(x=>x.startsWith('Llamar a Pedro')),
 await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
 await p.evaluate(()=>openBulk(['Lavar el auto','Pagar la luz']));await sleep(200);await p.click('#bulkOk');await sleep(400);v=await view(p);
 ok(await chosen(p)==='Todas'&&v.main.includes('Lavar el auto')&&v.main.includes('Pagar la luz'),'pasting several lines with Alta: back to Todas, all of them visible');
+// Desde Buscar, con Alta guardado para la vuelta: lo que vuelve a pendientes o se recupera de la Papelera se ve al volver
+await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+await go(p,'buscar');await p.fill('#search','Mandar');await sleep(300);
+await p.locator('#doneList .drow',{hasText:'Mandar remitos'}).first().locator('.chk').click();await sleep(400);
+await p.click('#searchClose');await sleep(300);v=await view(p);
+ok(await screen(p)==='tareas'&&await chosen(p)==='Todas'&&v.main.includes('Mandar remitos'),'Buscar (Alta kept), back to pending, close: Tareas with Todas, the row is there '+JSON.stringify({s:await screen(p),f:await chosen(p)}));
+await p.click('#taskFilter .chip >> text=Todas');await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+await go(p,'buscar');await p.evaluate(()=>restore({id:'x1',title:'Borrada',deletedAt:new Date().toISOString()}));await sleep(300);
+await p.click('#searchClose');await sleep(300);v=await view(p);
+ok(await screen(p)==='tareas'&&await chosen(p)==='Todas'&&v.main.includes('Borrada'),'Buscar (Alta kept), restored from the Papelera, close: Tareas with Todas, the row is there');
 ok(p.errs.length===0,'computer 1000: no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 

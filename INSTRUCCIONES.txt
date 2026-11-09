@@ -74,8 +74,8 @@ PANTALLAS
   (en sus grupos de siempre; Terminadas y la Papelera se ven solo con Todas) y se combinan con el filtro por persona.
   Tocar el elegido vuelve a Todas. No se guardan: al volver a abrir la app, al pasar por Hoy o Notas, o al llegar
   desde un acceso (Mañana, Ver todas, la Papelera de Ajustes), Tareas muestra Todas. Tambien vuelve a Todas si
-  agregas algo que el filtro no mostraria, si tocas "Ver" en el aviso de nuevas o si ya no queda nada pendiente: lo
-  nuevo nunca queda escondido. En la compu con la ventana ancha, la columna de la derecha tambien se filtra, y con
+  agregas algo que el filtro no mostraria (o vuelve a pendientes, o lo recuperas de la Papelera, tambien desde
+  Buscar), si tocas "Ver" en el aviso de nuevas o si ya no queda nada pendiente: lo nuevo nunca queda escondido. En la compu con la ventana ancha, la columna de la derecha tambien se filtra, y con
   Esperando esa lista pasa al centro.
 - Notas: las notas en tarjetas (2 columnas en el celular): Fijadas arriba y Otras (o Recientes si no fijaste
   ninguna), las mas nuevas primero. Arriba, chips para ver Todas, solo las Ideas o las de un color; Todas e Ideas dicen
