@@ -52,6 +52,10 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   - Hoy (`renderHoy()`): sin nada vencido, para reclamar ni para hoy (`!main`), `#empty.clear` (renglón con ✓),
     "Lo que sigue" (2 con la barra abajo, `BOTTOMNAV`; 3 desde 900 px), Próximos avisos sin repetir y la tarjeta
     `#hoyLinks.entries` (Mañana, Sin fecha y Esperando). Con algo para hoy, los links de siempre.
+  - Tareas: filtro `taskFilter` (Todas · Con hora · Alta · Esperando, `#taskFilter`), que no se guarda. `tfPasses()`
+    dice qué pasa; `showInTasks()` vuelve a Todas si lo agregado, lo que vuelve o lo de "Ver" no pasaría (como
+    `showInNotes()`). Con un filtro, `body.tfon` esconde Terminadas y la Papelera.
+  - Buscar vacío: "Quién te lo pidió" (`#searchPeople`, con inicial) y "Atajos" (`#searchQuick`, abren Tareas filtrado).
 - **Botón Atrás**: `syncBack()` y `backClose()`, con entradas `{pantalla}` y la guarda `{tareas:'atras'}` mientras
   hay algo abierto (`BACKABLE`).
   - Chrome saltea las entradas creadas sin un toque: por eso existen `gestured` y `waitTap`. Con el dedo, el toque
@@ -69,6 +73,9 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   - Se guarda al cerrar; Descartar no guarda. El borrador local es `K_DDRAFT`.
   - Lo de adentro no se achica (`#editForm .dbody>*{flex-shrink:0}`): se desliza. `fitTitle()` mide dos veces (por las
     barras de Windows) y un `ResizeObserver` lo vuelve a acomodar si cambia el ancho.
+  - El panel de la compu ancha mide desde donde empieza (debajo del alta) hasta abajo: `fitPanel()` pone `--pmax` al
+    abrir, al desplazar y si cambia lo de arriba de las columnas. En la compu, la ventana deja libre abajo el lugar del
+    aviso (arriba taparía Descartar); en el celular, con una hoja abierta, el aviso va arriba.
 - **Fila**: `taskRow()` y `noteRow()`.
   - En `.meta`, la persona (`.person .nm`) se acorta con "…" hasta unas 6 letras y lo que no entra baja de renglón:
     **nunca se esconde nada** (sobre todo "sin subir"). Hasta 520 px (`NARROW`) la fecha va corta. ⋯ de 44 px.
@@ -132,6 +139,12 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
   - Las propuestas de Design no conocen el código: antes de implementar, verificar el problema y la causa en la app
     (con una sonda de Playwright) y avisar al dueño lo que no conviene. No se hicieron los chips "Otra fecha…" y "Otra
     hora…" del detalle: poco beneficio y, en la compu, la fecha se escribiría sin verla.
+- 9/11/2026 (PRs #31 y #32):
+  - Lo que faltaba de la 1a: filtros de Tareas (no se recuerdan, por decisión del dueño) y Buscar con personas e
+    iniciales y atajos. "Ordenar por" no se hace: choca con el orden a mano.
+  - El pie del detalle siempre a la vista: el panel de la compu ancha entra entero y el aviso no tapa la ventana.
+  - El nombre de la persona en la fila queda en 26 px de alto para el dedo (decisión del dueño): para 44 px había que
+    agrandar las filas o pisar el título. Para filtrar con botones grandes está Buscar › "Quién te lo pidió".
 - Sin verificar en un celular real:
   - que la hoja para anotar y el detalle queden arriba del teclado;
   - que el primer Atrás después de abrir con "Nueva tarea" cierre la hoja;
@@ -140,10 +153,7 @@ Respondé siempre en español rioplatense, claro y sin jerga técnica innecesari
     probó en Chromium sobre Linux);
   - Hoy sin nada para hoy, deslizar en "Lo que sigue" y el filtro de Notas recordado al reabrir la app.
 - Mejoras chicas posibles, no pedidas todavía:
-  - el nombre de la persona en la fila mide menos de 44 px de alto;
-  - que el Tab quede atrapado dentro de las ventanas abiertas;
-  - en el panel de la compu ancha (1280×800), el pie del detalle ("Terminar") queda debajo de la pantalla;
-  - el aviso "Cambios guardados · Deshacer" puede tapar unos segundos "Convertir en tarea";
+  - que el Tab quede atrapado dentro de las ventanas abiertas (aprobada como entrega 3);
   - en la compu, el nombre a veces se acorta aunque la fila igual ocupe dos renglones;
-  - el CI de la app (`test.yml`) sigue con `checkout` y `setup-node` v4 (aviso de Node 20).
+  - el CI de la app (`test.yml`) sigue con `checkout` y `setup-node` v4 (aviso de Node 20; aprobada como entrega 4).
 - Pendiente del lado del dueño: activar la verificación en dos pasos y la regla de protección de la rama.
