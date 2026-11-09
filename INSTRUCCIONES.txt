@@ -70,15 +70,22 @@ PANTALLAS
   semana (sin repetir los de Lo que sigue). Abajo, una tarjeta lleva a "Mañana", "Sin fecha" y "Esperando respuesta",
   con cuantas hay (en la compu con la ventana ancha, Sin fecha y Esperando ya estan a la vista, a la derecha).
 - Tareas: la lista completa, con todos los grupos, Esperando, Terminadas (con Informe y Revision de la semana) y la
-  Papelera.
+  Papelera. Arriba, los filtros Todas · Con hora · Alta · Esperando, con cuantas hay en cada uno: muestran solo esas
+  (en sus grupos de siempre; Terminadas y la Papelera se ven solo con Todas) y se combinan con el filtro por persona.
+  Tocar el elegido vuelve a Todas. No se guardan: al volver a abrir la app, al pasar por Hoy o Notas, o al llegar
+  desde un acceso (Mañana, Ver todas, la Papelera de Ajustes), Tareas muestra Todas. Tambien vuelve a Todas si
+  agregas algo que el filtro no mostraria (o vuelve a pendientes, o lo recuperas de la Papelera, tambien desde
+  Buscar), si tocas "Ver" en el aviso de nuevas o si ya no queda nada pendiente: lo nuevo nunca queda escondido. En la compu con la ventana ancha, la columna de la derecha tambien se filtra, y con
+  Esperando esa lista pasa al centro.
 - Notas: las notas en tarjetas (2 columnas en el celular): Fijadas arriba y Otras (o Recientes si no fijaste
   ninguna), las mas nuevas primero. Arriba, chips para ver Todas, solo las Ideas o las de un color; Todas e Ideas dicen
   cuantas hay. El filtro que elegis queda guardado en cada dispositivo: si dejaste Ideas, la proxima vez Notas abre en
   Ideas (si ya no hay ideas, o nadie usa ese color, vuelve a Todas). Estando ahi, lo que anotas arranca como nota (o
   como idea, con el filtro en Ideas; "nota:" al principio o tocar Nota la deja como nota comun); si anotas algo que el
   filtro no muestra, pasa a Todas para que lo veas.
-- Buscar: el campo de busqueda (ver "Buscar" mas abajo). Con el campo vacio muestra las personas: un toque busca
-  todo lo de esa persona. "Cerrar" (o Esc) vuelve a la pantalla de antes.
+- Buscar: el campo de busqueda (ver "Buscar" mas abajo). Con el campo vacio muestra "Quien te lo pidio" (las
+  personas, con su inicial: un toque busca todo lo de esa persona) y "Atajos": Con hora · Prioridad alta · Esperando,
+  que abren Tareas con ese filtro (aparecen los que tienen algo). "Cerrar" (o Esc) vuelve a la pantalla de antes.
 - Ajustes (la rueda, al lado del punto de estado; el punto tambien la abre) es una pantalla con cuatro grupos:
   Sincronizacion (el estado, "Sincronizar ahora", "Ver historial en GitHub", "Descargar copia", el control de los
   avisos y lo que falta subir), Este dispositivo (Apariencia, el teclado al abrir, el numero en el icono y la
