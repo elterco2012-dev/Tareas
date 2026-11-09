@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-Pw6F6eQPRRE2joDXg44aTvGXQTzEvitHUgGUGTSs7MM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-ilmXz9EjGmWIM0sLHLC4g6xE7yC91Xm/FpyUw3MZQy8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -132,6 +132,7 @@ h1{margin:0;font-size:1.875rem;line-height:1.15;letter-spacing:-.01em;font-weigh
 /* Zonas de toque más grandes en el celular */
 @media (pointer:coarse){
   .chip{min-height:40px}
+  #searchPeople .chip,#searchQuick .chip{min-height:44px}
   .meta .person{padding:4px 8px;margin:-4px -8px}
   .ghead .gbtn,.linkbtn,.donebtn,.toast button,.filterbar button,.tokenbar button{min-height:44px}
   .mhead .xbtn{width:44px;height:44px}
@@ -484,9 +485,11 @@ label.fcol .inp,.modal .big{font-size:0.9375rem;font-weight:400;padding:10px 12p
 /* Cuántas hay, en Todas e Ideas (y en los filtros de Tareas) */
 .nfilter .chip .n,.tfilter .chip .n{margin-left:6px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--faint)}
 .nfilter .chip[aria-pressed="true"] .n,.tfilter .chip[aria-pressed="true"] .n{color:var(--accent-text)}
-/* Filtros de Tareas: arriba de la lista; con uno elegido, Terminadas y la Papelera no se ven (solo con Todas) */
+/* Filtros de Tareas: arriba de la lista; con uno elegido (body.tfon), Terminadas y la Papelera no se ven (solo con
+   Todas). Con menos relleno, los cuatro entran en un renglón en un celular de 390 px */
 .tfilter{margin:0 0 14px}
-body.tfilter .donesec{display:none}
+.tfilter .chip{padding-left:10px;padding-right:10px}
+body.tfon .donesec{display:none}
 /* Buscar: el círculo de la inicial en los chips de personas */
 #searchPeople .chip{display:inline-flex;align-items:center}
 #searchPeople .chip .pini{margin-right:6px}
@@ -1031,11 +1034,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.9-1"></script>
+<script src="sync-core.js?v=2026.11.9-2"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.9-1';
+const APP_VERSION='2026.11.9-2';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -1974,7 +1977,7 @@ function showArrived(ids){
     const secs=ts.map(t=>t.waiting?(waitingLate(t)?'hoy-reclamar':null):{over:'hoy-over',today:'hoy-today'}[groupOf(t)]||null).filter(Boolean);
     if(secs.length){secs.forEach(x=>setFold(x,false));renderList();r=row()}
   }
-  if(!r&&ts.length){if(scr!=='tareas')goScreen('tareas',{tap:true});ts.forEach(t=>setFold(t.waiting?'waiting':groupOf(t),false));renderList();r=row()}
+  if(!r&&ts.length){if(scr!=='tareas')goScreen('tareas',{tap:true});showInTasks(ts);ts.forEach(t=>setFold(t.waiting?'waiting':groupOf(t),false));renderList();r=row()}
   if(r)r.scrollIntoView({block:'center',behavior:'smooth'});
 }
 // Se desvanecen recién cuando la ventana tiene el foco: si llegaron mientras no estabas, siguen marcadas.
@@ -2490,6 +2493,10 @@ function setPersonFilter(name){if(name&&scr!=='tareas'&&scr!=='buscar')goScreen(
 // (una tarea escondida por un filtro olvidado es peor que una nota escondida). Se combina con el filtro por persona.
 let taskFilter='todas';
 const TASK_FILTERS=[['todas','Todas'],['hora','Con hora'],['alta','Alta'],['esperando','Esperando']];
+// Si una tarea pasa el filtro f: con Esperando, solo las que esperan; con los otros, ninguna que espera
+const tfPasses=(t,f)=>f==='todas'||(f==='esperando'?!!t.waiting:!t.waiting&&(f==='hora'?!!taskTime(t):f==='alta'&&t.priority==='Alta'));
+// Lo que se agrega (o se quiere ver, con "Ver") en Tareas y el filtro no muestra: vuelve a Todas, como en Notas
+function showInTasks(items){if(scr==='tareas'&&taskFilter!=='todas'&&items.some(t=>!isNote(t)&&!t.done&&!tfPasses(t,taskFilter)))taskFilter='todas'}
 function renderTaskFilter(on,counts){
   const row=$('taskFilter');row.classList.toggle('hidden',!on);
   if(!on){row.replaceChildren();return}
@@ -2511,9 +2518,10 @@ function renderList(){
   const unsynced=new Set(configured()?getOutbox().filter(o=>errorKind==='offline'||!(o.ts>late)).map(o=>o.id||(o.task&&o.task.id)):[]);
   const pending=tasks.filter(t=>!t.done&&!t.waiting&&match(t)).sort(cmpPending);
   // El filtro de Tareas (solo en esa pantalla): con Esperando no pasa ninguna de las otras
-  const tf=scr==='tareas'?taskFilter:'todas';
-  const tfPass=t=>tf==='todas'||tf==='hora'&&!!taskTime(t)||tf==='alta'&&t.priority==='Alta';
-  document.body.classList.toggle('tfilter',tf!=='todas');   // (Terminadas y la Papelera, solo con Todas)
+  // Sin nada pendiente no hay chips: vuelve a Todas (si no, Terminadas y la Papelera quedarían escondidas sin cómo volver)
+  if(!tasks.some(t=>!t.done))taskFilter='todas';
+  const tf=scr==='tareas'?taskFilter:'todas',tfPass=t=>tfPasses(t,tf);
+  document.body.classList.toggle('tfon',tf!=='todas');   // (Terminadas y la Papelera, solo con Todas)
   const box=$('groups');box.replaceChildren();visibleIds=[];
   // Cada pantalla dibuja solo lo suyo (una tarea nunca tiene dos filas): Tareas, la lista completa; Buscar, lo que
   // coincide (como la lista completa, con las notas, las terminadas y la papelera); Hoy y Notas, lo de ellas
@@ -3418,7 +3426,7 @@ $('addForm').addEventListener('submit',e=>{
   // Anotada al pasar, sin elegir fecha (ni en el texto ni en los chips), en el celular o en la compu: queda para hoy,
   // marcada para ordenar
   if(p.due===undefined&&!p.time&&!chipTouched&&!p.waiting)task.inbox=true;
-  act({type:'add',task});
+  showInTasks([task]);act({type:'add',task});
   if(COARSE&&navigator.vibrate)try{navigator.vibrate(15)}catch{}
   // "Agregada para mañana · 15:00 · @Laura", con Deshacer y Cambiar (por si se entendió mal).
   // Con hora o "recordame…", también un toque la pasa al calendario del teléfono para que avise.
@@ -3680,7 +3688,7 @@ $('bulkForm').addEventListener('submit',e=>{
   closeBulk();
   if(!added.length)return;
   const ops=added.map(task=>({type:'add',task}));
-  showInNotes(added);actMany(ops);
+  showInNotes(added);showInTasks(added);actMany(ops);
   $('title').value='';noteStart();capKind=null;capTime=null;saveDraft();renderAdd();closeCap();
   // Deshacer: se borran todas. Se encola siempre el borrado, porque la subida puede estar en curso
   const nn=added.filter(isNote).length,nt=added.length-nn,cnt=(n,a,b)=>n+' '+(n===1?a:b);
@@ -4556,7 +4564,7 @@ document.addEventListener('keydown',e=>{
     case 'r':if(t&&t.waiting){e.preventDefault();nudge(t)}break;
     case 'f':if(t){e.preventDefault();askDate(t)}break;
     case 'q':if(t){e.preventDefault();askWho(t)}break;
-    case '!':if(t){e.preventDefault();togglePrio(t)}break;
+    case '!':if(t){e.preventDefault();if(scr==='tareas'&&taskFilter==='alta'&&t.priority==='Alta')sel=next();togglePrio(t)}break;   // (con Alta, la fila se va: sigue la siguiente)
     case '.':if(any){e.preventDefault();openMenu(any.id,true)}break;
     case 'p':if(FINE){e.preventDefault();openProc(e.shiftKey)}break;   // Shift+P: la revisión de la semana
     case 'delete':case 'backspace':if(any){e.preventDefault();const nx=next();sel=nx;del(any)}break;

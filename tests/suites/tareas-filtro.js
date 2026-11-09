@@ -39,6 +39,8 @@ await go(p,'tareas');
 let c=await chips(p),v=await view(p);
 ok(JSON.stringify(c&&c.map(x=>[x.t,x.n,x.label]))===JSON.stringify([['Todas','6','Todas, 6'],['Con hora','2','Con hora, 2'],['Alta','3','Alta, 3'],['Esperando','1','Esperando, 1']])&&c[0].on,'Tareas: Todas 6 · Con hora 2 · Alta 3 · Esperando 1, Todas chosen '+JSON.stringify(c));
 ok(c.every(x=>x.h>=44),'phone: the chips are 44 px tall '+JSON.stringify(c.map(x=>x.h)));
+const tops=await p.evaluate(()=>[...document.querySelectorAll('#taskFilter .chip')].map(b=>Math.round(b.getBoundingClientRect().top)));
+ok(new Set(tops).size===1,'phone 390: the four chips fit in one row '+JSON.stringify(tops));
 ok(v.done&&v.trash&&v.main.includes('Presupuesto techo')&&v.main.length===7,'Todas: everything as before (groups, Esperando, Terminadas, Papelera) '+JSON.stringify(v));
 await tap('#taskFilter .chip',{hasText:'Con hora'});await sleep(200);v=await view(p);
 ok(await chosen(p)==='Con hora'&&JSON.stringify(v.main)==='["Turno dentista","Llamar al banco"]'&&!v.done&&!v.trash,'Con hora: only the tasks with a time, in their groups; no Terminadas or Papelera '+JSON.stringify(v));
@@ -74,10 +76,12 @@ ok(await chosen(p)==='Todas','reopening the app: Todas (the filter is not rememb
 await go(p,'buscar');await sleep(200);
 const sh=await p.evaluate(()=>{const h=document.getElementById('searchHome');return {lbls:[...h.querySelectorAll('.lbl')].filter(x=>x.getBoundingClientRect().height).map(x=>x.textContent),
   people:[...document.querySelectorAll('#searchPeople .chip')].map(x=>({t:x.textContent,ini:!!x.querySelector('.pini')})),
-  quick:[...document.querySelectorAll('#searchQuick .chip')].filter(x=>x.getBoundingClientRect().height).map(x=>x.textContent)}});
+  quick:[...document.querySelectorAll('#searchQuick .chip')].filter(x=>x.getBoundingClientRect().height).map(x=>x.textContent),
+  hs:[...document.querySelectorAll('#searchPeople .chip,#searchQuick .chip')].map(x=>Math.round(x.getBoundingClientRect().height))}});
 ok(JSON.stringify(sh.lbls)==='["Quién te lo pidió","Atajos"]','Buscar, empty field: "Quién te lo pidió" and "Atajos" '+JSON.stringify(sh.lbls));
 ok(sh.people.length===2&&sh.people.every(x=>x.ini),'people chips carry the circle with the initial '+JSON.stringify(sh.people));
 ok(JSON.stringify(sh.quick)==='["Con hora","Prioridad alta","Esperando"]','Atajos: Con hora · Prioridad alta · Esperando '+JSON.stringify(sh.quick));
+ok(sh.hs.length===5&&sh.hs.every(h=>h>=44),'phone: the people and Atajos chips are 44 px tall '+JSON.stringify(sh.hs));
 await tap('#searchQuick .chip',{hasText:'Prioridad alta'});await sleep(400);v=await view(p);
 ok(await screen(p)==='tareas'&&await chosen(p)==='Alta'&&JSON.stringify(v.main)==='["Pagar el seguro","Llamar al banco","Ordenar el placard"]','"Prioridad alta" opens Tareas filtered by Alta');
 await p.goBack();await sleep(400);
@@ -118,6 +122,57 @@ gh=makeGH([T('d1','Mandar remitos',{done:true,completedAt:ago(1)})]);
 ({ctx,p}=await device(b,gh,{viewport:{width:1280,height:800}},APP,SEEN));
 await go(p,'tareas');
 ok(await chips(p)===null&&(await view(p)).empty==='Nada pendiente. Buen trabajo.','nothing pending: no chips, the usual message');
+await ctx.close();
+
+// ===== Lo que encontró la revisión independiente =====
+// Compu (1000 px): con un filtro, nada más cambia de tamaño (la clase del body no es la de la fila de chips)
+gh=makeGH(items());
+({ctx,p}=await device(b,gh,{viewport:{width:1000,height:800}},APP,SEEN));
+await go(p,'tareas');
+const sizes=()=>p.evaluate(()=>({form:Math.round(document.getElementById('addForm').getBoundingClientRect().height),chips:[...document.querySelectorAll('#addForm .chip')].map(x=>Math.round(x.getBoundingClientRect().height)).join(),
+  mb:getComputedStyle(document.body).marginBottom,top:Math.round(document.getElementById('taskFilter').getBoundingClientRect().top)}));
+const s0=await sizes();
+await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+const s1=await sizes();
+ok(JSON.stringify(s0)===JSON.stringify(s1)&&s0.form>0,'computer: with a filter on, the add form, its chips and the list do not move '+JSON.stringify([s0,s1]));
+// "1 nueva · Ver" con un filtro que la esconde: vuelve a Todas y se ve (en Tareas y desde Buscar)
+const arrive=async(id,title)=>{gh.items.push(T(id,title,{due:day(0),src:'cel',order:9}));gh.sha++;await p.evaluate(()=>sync());
+  await L.until(async()=>/nueva/.test(await p.textContent('#toastMsg'))&&await p.isVisible('#toastUndo'),{timeout:4000})};
+await arrive('n1','Llegó del celu');await p.click('#toastUndo');await sleep(400);v=await view(p);
+ok(await chosen(p)==='Todas'&&v.main.includes('Llegó del celu'),'Tareas with Alta, "1 nueva · Ver": back to Todas, the new one is there '+JSON.stringify({f:await chosen(p)}));
+await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+await go(p,'buscar');await arrive('n2','Otra del celu');await p.click('#toastUndo');await sleep(400);v=await view(p);
+ok(await screen(p)==='tareas'&&await chosen(p)==='Todas'&&v.main.includes('Otra del celu'),'from Buscar (Alta kept), "Ver": Tareas with Todas, the new one is there');
+// ! con Alta: la fila se va y la elegida pasa a la siguiente (como H, M, L y S)
+await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+await p.evaluate(()=>document.activeElement&&document.activeElement.blur());await p.keyboard.press('j');await sleep(150);
+const selT=()=>p.evaluate(()=>{const r=document.querySelector('.task.sel .ttext');return r&&r.textContent});
+ok(await selT()==='Pagar el seguro','keyboard: j selects the first Alta');
+await p.keyboard.press('!');await sleep(300);
+ok(await selT()==='Llamar al banco'&&!(await view(p)).main.includes('Pagar el seguro')&&await p.evaluate(()=>tasks.find(t=>t.id==='o1').priority)==='Media','! with Alta: it leaves the list and the next one is selected '+await selT());
+// Lo que se agrega en Tareas y el filtro no muestra: vuelve a Todas (lo que sí muestra, deja el filtro)
+await p.click('#taskFilter .chip >> text=Con hora');await sleep(200);
+await p.fill('#title','Comprar pan');await p.press('#title','Enter');await sleep(400);v=await view(p);
+ok(await chosen(p)==='Todas'&&v.main.includes('Comprar pan'),'adding in Tareas with Con hora a task without a time: back to Todas, the row is there '+JSON.stringify({f:await chosen(p)}));
+await p.click('#taskFilter .chip >> text=Con hora');await sleep(200);
+await p.fill('#title','Llamar a Pedro mañana a las 9');await p.press('#title','Enter');await sleep(400);v=await view(p);
+ok(await chosen(p)==='Con hora'&&v.main.some(x=>x.startsWith('Llamar a Pedro')),'adding one with a time: Con hora stays, the row is there '+JSON.stringify(v.main));
+await p.click('#taskFilter .chip >> text=Alta');await sleep(200);
+await p.evaluate(()=>openBulk(['Lavar el auto','Pagar la luz']));await sleep(200);await p.click('#bulkOk');await sleep(400);v=await view(p);
+ok(await chosen(p)==='Todas'&&v.main.includes('Lavar el auto')&&v.main.includes('Pagar la luz'),'pasting several lines with Alta: back to Todas, all of them visible');
+ok(p.errs.length===0,'computer 1000: no page errors '+JSON.stringify(p.errs));
+await ctx.close();
+
+// Celular: terminar la última pendiente con un filtro puesto. Sin chips, vuelve a Todas: Terminadas y la Papelera se ven
+gh=makeGH([T('a1','La única',{due:day(0),priority:'Alta'}),T('d1','Mandar remitos',{done:true,completedAt:ago(1)}),T('x1','Borrada',{deletedAt:ago(1)})]);
+({ctx,p}=await device(b,gh,{viewport:{width:390,height:844},isMobile:true,hasTouch:true},APP,SEEN));
+await go(p,'tareas');await p.locator('#taskFilter .chip',{hasText:'Alta'}).tap();await sleep(200);
+ok(!(await view(p)).done,'phone, Alta: Terminadas hidden');
+await p.locator('.task',{hasText:'La única'}).locator('.chk').tap();await sleep(900);v=await view(p);
+ok(await chips(p)===null&&v.done&&v.trash&&v.empty==='Nada pendiente. Buen trabajo.','finishing the last pending with Alta: no chips, Terminadas and the Papelera are there '+JSON.stringify(v));
+await p.evaluate(()=>{const t=tasks.find(x=>x.id==='d1');toggle(t)});await sleep(500);
+ok(await chosen(p)==='Todas','a pending one again: the chips are back with Todas');
+ok(p.errs.length===0,'phone (last pending): no page errors '+JSON.stringify(p.errs));
 await ctx.close();
 
 await b.close();console.log('fails',L.fails);
