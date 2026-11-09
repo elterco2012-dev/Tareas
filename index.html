@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
 <!-- Segunda barrera por si algún día se cuela código ajeno: solo corren los scripts de la app (los de esta página, por
      su hash, que recalcula npm run nueva-version) y solo se habla con GitHub -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-RWXXTUGs4inLF/ZQQxVVOLBlN9VzmAy/bX7Zh/HLsOE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4CYDh1WaVYEweaoQffnFCkM+mUKHfOcyhWIrQtZoIuw=' 'sha256-cR+JXh/2PaH0M5E+Gy71eDV8fQJTdS/Yg/d6BYnSwRw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mis tareas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -505,7 +505,7 @@ body.capsheet #editOv:not(.inpanel) .detail .dgrip{display:block;flex:none;width
 @media (prefers-reduced-motion:no-preference){body.capsheet #editOv:not(.hidden):not(.inpanel) .modal,body.capsheet #posOv:not(.hidden) .modal{animation:capup .18s ease-out}}
 /* En la compu ancha, el detalle va en la columna de la derecha (en lugar de Esperando y Sin fecha) */
 #editOv.inpanel{position:static;inset:auto;z-index:auto;background:none;display:block;padding:0}
-#editOv.inpanel .modal{max-width:none;max-height:calc(100vh - 32px);box-shadow:none;border:1px solid var(--border);border-radius:16px}
+#editOv.inpanel .modal{max-width:none;max-height:var(--pmax,calc(100vh - 32px));box-shadow:none;border:1px solid var(--border);border-radius:16px}
 body.detpanel #sideWait,body.detpanel #sideNone{display:none}
 #noteChip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:600}
 /* Celular a una mano: "+" y micrófono abajo, donde llega el pulgar (el aviso con Deshacer queda justo arriba) */
@@ -644,6 +644,11 @@ body.capsheet.docked #addForm{display:block;position:static}
 @media (prefers-reduced-motion:no-preference){body.capsheet.capopen #addForm{animation:capup .18s ease-out}}
 /* Con una hoja abierta (alta, detalle o Posponer), los avisos van arriba (abajo taparían los chips y los botones) */
 body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
+/* En la compu, la ventana del detalle y la de Posponer dejan libre abajo el lugar del aviso ("Cambios guardados ·
+   Deshacer"): si no, en una pantalla baja les tapaba el pie (Esperando…, Terminar, Convertir en tarea). Arriba no puede
+   ir: taparía Descartar */
+body:not(.capsheet) #editOv:not(.inpanel),body:not(.capsheet) #posOv{padding-bottom:76px}
+body:not(.capsheet) #editOv:not(.inpanel) .modal,body:not(.capsheet) #posOv .modal{max-height:calc(100vh - 88px)}
 @keyframes capup{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 </style>
 </head>
@@ -1034,11 +1039,11 @@ body.capopen:not(.docked) .toast,body.capsheet.sheetopen .toast{bottom:auto;top:
 <div id="voiceDock" class="voicedock hidden"><button type="button" id="dockMic" class="dockmic"></button><button type="button" id="dockClose" class="dockclose">Ver lista</button></div>
 <div id="fabs" class="fabs hidden"><button type="button" id="fabMic" class="fab mic hidden" aria-label="Dictar tarea" title="Dictar tarea"></button><button type="button" id="fabAdd" class="fab" aria-label="Nueva tarea" title="Nueva tarea"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
 
-<script src="sync-core.js?v=2026.11.9-3"></script>
+<script src="sync-core.js?v=2026.11.9-5"></script>
 <script>
 'use strict';
 // La versión de esta página (la misma que sw.js y sync-core.js; npm run nueva-version la cambia en los tres)
-const APP_VERSION='2026.11.9-3';
+const APP_VERSION='2026.11.9-5';
 // Página y núcleo de versiones distintas (por ejemplo, la página nueva con un sync-core.js viejo de la caché del
 // navegador): se recarga una sola vez, así llega todo de la misma versión
 (()=>{
@@ -4183,8 +4188,26 @@ function placeEdit(){
   ov.classList.toggle('inpanel',panel);$('editForm').setAttribute('aria-modal',String(!panel));
   document.body.classList.toggle('detpanel',panel);
   if(edit)edit.panel=panel;
-  sheetState();
+  fitPanel();sheetState();
   if(typeof fitSide==='function')fitSide();
+}
+// En la compu ancha, el panel del detalle entra entero en lo que se ve: desde donde empieza la columna (debajo del alta)
+// hasta 16 px del borde de abajo, así el pie (Terminar) siempre está a la vista; lo de adentro se desliza. Al desplazar,
+// la columna se pega arriba y el panel crece, pero no más abajo que el final de la lista (base: lo que entra sin
+// desplazar): si no, con una lista corta la página se alargaba mientras bajabas y, al final de cualquier página, el
+// encabezado quedaba cortado arriba. Se recalcula si cambia lo de arriba de las columnas (el alta, los avisos)
+function fitPanel(){
+  const ov=$('editOv');
+  if(!edit||!edit.panel){ov.style.removeProperty('--pmax');return}
+  const top=Math.max(16,$('side').getBoundingClientRect().top),cols=document.querySelector('.cols');
+  const base=innerHeight-(cols.getBoundingClientRect().top+scrollY)-16,end=document.querySelector('.maincol').getBoundingClientRect().bottom;
+  const h=Math.min(innerHeight-top-16,Math.max(base,end-top));
+  ov.style.setProperty('--pmax',Math.max(160,Math.floor(h))+'px');
+}
+{
+  let raf=0;const later=()=>{if(!raf&&edit&&edit.panel)raf=requestAnimationFrame(()=>{raf=0;fitPanel()})};
+  window.addEventListener('scroll',later,{passive:true});window.addEventListener('resize',later);
+  if(window.ResizeObserver){const ro=new ResizeObserver(later);for(const c of $('wrap').children){if(c.classList.contains('cols'))break;ro.observe(c)}}
 }
 WIDE.addEventListener('change',()=>{
   if(!edit)return;
@@ -4384,6 +4407,8 @@ $('editOv').addEventListener('click',e=>{if(e.target===$('editOv')&&downOn===e.t
 // (al apoyar, antes del clic: el clic que abre otra no lo cierra)
 document.addEventListener('pointerdown',e=>{
   if(!edit||!edit.panel||!e.isTrusted||e.target.closest('#editOv,button,a,input,textarea,select,label,.task,.drow,#menu,.toast,.overlay,.nav'))return;
+  // (la barra de desplazamiento de la página, como las de Windows, no es "afuera": se usa para bajar con el panel abierto)
+  if(e.target===document.documentElement||e.clientX>=document.documentElement.clientWidth)return;
   dismissEdit();
 },true);
 $('eDel').onclick=()=>{const t=edit&&findLive(edit.id);if(t)del(t);else closeEdit()};
